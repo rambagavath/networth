@@ -1944,7 +1944,32 @@ async function gsSaveAndConnect(){
   gsUrl = url;
   LS.set(GS_KEY, gsUrl);
   apiMode = true;
-  await gsSave(true);
+
+  // Load from Sheets first — only push local data if Sheets is empty
+  let sheetsHasData = false;
+  try {
+    const r = await fetchWithTimeout(gsUrl+'?load=1', {}, 10000);
+    if(r.ok){
+      const text = await r.text();
+      if(text && text !== '{}' && text.length > 50){
+        const obj = JSON.parse(text);
+        // Check Sheets has meaningful (non-zero) data
+        const sheetsTotal = Object.values(obj.holdings||{})
+          .reduce((s,h) => s + (h.shares||0)*(h.price||0), 0);
+        const acctTotal = (obj.acctOverrides?.stallion||0) + (obj.acctOverrides?.niveshaay||0) + (obj.acctOverrides?.pension||0);
+        if(sheetsTotal > 0 || acctTotal > 0){
+          sheetsHasData = true;
+          applyPayload(obj);
+          setSaveStatus('loaded');
+        }
+      }
+    }
+  } catch(e){ console.warn('Connect load attempt failed:', e.message); }
+
+  if(!sheetsHasData){
+    // Sheets is empty or zeroed — push local data up
+    await gsSave(true);
+  }
   showGsConnected();
   fetchForex();
   if(!historySnapshots.length) loadHistory();
@@ -2035,7 +2060,12 @@ function applyPayload(data){
     const RUNTIME_KEYS = ['price','shares','prevPrice','dayPrevClose'];
     Object.entries(obj.holdings || {}).forEach(([key, saved]) => {
       if(holdings[key]){
-        RUNTIME_KEYS.forEach(k => { if(saved[k] !== undefined) holdings[key][k] = saved[k]; });
+        RUNTIME_KEYS.forEach(k => {
+          if(saved[k] === undefined) return;
+          // Guard: never overwrite a non-zero hardcoded value with zero
+          if((k === 'shares' || k === 'price') && saved[k] === 0 && holdings[key][k] > 0) return;
+          holdings[key][k] = saved[k];
+        });
       } else {
         holdings[key] = saved; // unknown key (manually added) — restore fully
       }
@@ -2678,15 +2708,22 @@ if(gsUrl){
       const text = await r.text();
       if(!text || text==='{}' || text==='') throw new Error('Empty');
 
-      // Compare timestamps — use whichever is newer
+      // Compare timestamps — use whichever is newer, but never overwrite real local data with zeros
       let useSheets = true;
       if(hadLocalData){
         try{
           const sheetsObj = JSON.parse(text);
           const localRaw  = localStorage.getItem(LS_DATA_KEY);
           const localObj  = localRaw ? JSON.parse(localRaw) : null;
-          if(localObj && localObj.savedAt && sheetsObj.savedAt){
+          // Guard: if Sheets has all-zero holdings but local has real data, prefer local
+          const sheetsTotal = Object.values(sheetsObj.holdings||{})
+            .reduce((s,h)=>s+(h.shares||0)*(h.price||0),0);
+          const sheetsAcct  = (sheetsObj.acctOverrides?.stallion||0)+(sheetsObj.acctOverrides?.niveshaay||0)+(sheetsObj.acctOverrides?.pension||0);
+          const sheetsIsZero = (sheetsTotal + sheetsAcct) === 0;
+          if(localObj && localObj.savedAt && sheetsObj.savedAt && !sheetsIsZero){
             useSheets = new Date(sheetsObj.savedAt) >= new Date(localObj.savedAt);
+          } else if(sheetsIsZero && localObj){
+            useSheets = false; // Sheets looks empty/corrupted — keep local
           }
         } catch(e){ /* use sheets by default */ }
       }
