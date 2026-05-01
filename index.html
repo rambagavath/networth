@@ -1973,6 +1973,8 @@ async function gsSaveAndConnect(){
   showGsConnected();
   fetchForex();
   if(!historySnapshots.length) loadHistory();
+  if(!transactions.length) loadTxFromSheets();
+  loadTxFromSheets();
 }
 
 function gsDisconnect(){
@@ -2474,6 +2476,19 @@ function loadTxLocal(){
     const raw = localStorage.getItem('nw_transactions_v1');
     if(raw) transactions = JSON.parse(raw);
   } catch(e){}
+}
+async function loadTxFromSheets(){
+  if(!gsUrl) return;
+  try{
+    const r = await fetchWithTimeout(gsUrl+'?action=loadTransactions', {}, 8000);
+    if(!r.ok) return;
+    const d = await r.json();
+    if(d.transactions && d.transactions.length){
+      transactions = d.transactions;
+      saveTxLocal();
+      renderTransactions();
+    }
+  } catch(e){ console.warn('loadTxFromSheets failed:', e.message); }
 }
 
 function renderTransactions(){
