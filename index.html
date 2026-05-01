@@ -1,0 +1,3184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Net Worth Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d0f12;--bg2:#13161b;--bg3:#1a1e25;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);--text:#e8eaed;--muted:#6b7280;--muted2:#9ca3af;--green:#34d399;--red:#f87171;--blue:#60a5fa;--amber:#fbbf24;--teal:#2dd4bf;--purple:#a78bfa;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+.app{max-width:980px;margin:0 auto;padding:2rem 1.25rem 4rem;}
+
+/* Header */
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:12px;}
+.hdr-logo{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.15em;color:var(--muted);text-transform:uppercase;margin-bottom:5px;}
+.hdr-title{font-size:24px;font-weight:600;letter-spacing:-.5px;}
+.hdr-sub{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;}
+.hdr-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;}
+.live-dot{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);font-family:'DM Mono',monospace;}
+.live-dot::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.hdr-btns{display:flex;gap:6px;}
+.hdr-btn{font-family:'DM Mono',monospace;font-size:11px;padding:6px 12px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted2);cursor:pointer;transition:all .15s;white-space:nowrap;}
+.hdr-btn:hover{color:var(--text);border-color:var(--blue);}
+.hdr-btn.active{background:rgba(96,165,250,.12);border-color:rgba(96,165,250,.4);color:var(--blue);}
+
+/* Top controls row */
+.controls-row{display:flex;gap:8px;align-items:center;margin-bottom:1rem;flex-wrap:wrap;}
+.view-sw{display:flex;gap:3px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:3px;}
+.view-btn{font-family:'DM Mono',monospace;font-size:11px;padding:5px 13px;border-radius:5px;border:none;cursor:pointer;background:transparent;color:var(--muted);transition:all .15s;}
+.view-btn.active{background:var(--bg2);color:var(--text);border:1px solid var(--border2);}
+.opt-toggle-row{display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--muted2);}
+.switch{position:relative;width:36px;height:20px;flex-shrink:0;}
+.switch input{opacity:0;width:0;height:0;}
+.slider{position:absolute;cursor:pointer;inset:0;background:#2a2f3a;border-radius:20px;transition:.2s;border:1px solid var(--border2);}
+.slider:before{position:absolute;content:'';height:14px;width:14px;left:2px;bottom:2px;background:var(--muted2);border-radius:50%;transition:.2s;}
+input:checked+.slider{background:rgba(96,165,250,.25);border-color:var(--blue);}
+input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
+
+/* Metrics */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1.25rem;}
+@media(max-width:640px){.metrics{grid-template-columns:repeat(2,1fr);}}
+.mc{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:13px 15px;position:relative;overflow:hidden;}
+.mc-accent{position:absolute;top:0;right:0;width:40px;height:40px;border-radius:0 10px 0 40px;}
+.mc-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:7px;}
+.mc-val{font-size:21px;font-weight:600;letter-spacing:-.5px;color:var(--text);line-height:1;}
+.mc-sub{font-size:10px;color:var(--muted);margin-top:5px;font-family:'DM Mono',monospace;}
+.sec-chg{font-size:9px;font-family:'DM Mono',monospace;text-align:right;line-height:1.3;margin-top:1px;min-height:11px;}
+.mc-chg{font-size:10px;font-family:'DM Mono',monospace;margin-top:3px;}
+
+/* Alloc bar */
+.alloc-bar-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:1rem;}
+.alloc-bar{height:6px;border-radius:3px;background:var(--bg3);overflow:hidden;display:flex;margin:8px 0 10px;}
+.alloc-seg{height:100%;}
+.alloc-legend{display:flex;flex-wrap:wrap;gap:10px;}
+.alloc-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted2);font-family:'DM Mono',monospace;}
+.alloc-dot{width:7px;height:7px;border-radius:2px;flex-shrink:0;}
+
+/* Grouped view */
+.group-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1rem;}
+@media(max-width:640px){.group-grid{grid-template-columns:1fr;}}
+.gc{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px;position:relative;overflow:hidden;cursor:pointer;transition:border-color .2s;}
+.gc:hover{border-color:var(--border2);}
+.gc-accent{position:absolute;top:0;left:0;right:0;height:2px;border-radius:12px 12px 0 0;}
+.gc-label{font-size:10px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:8px;}
+.gc-val{font-size:24px;font-weight:600;letter-spacing:-.8px;line-height:1;margin-bottom:5px;}
+.gc-pct{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:12px;}
+.gc-mini-bar{height:4px;border-radius:2px;background:var(--bg3);overflow:hidden;display:flex;margin-bottom:8px;}
+.gc-expand{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;transition:all .2s;}
+.gc-expand::after{content:' ▼';font-size:8px;}
+.gc.open .gc-expand::after{content:' ▲';}
+.gc-body{max-height:0;overflow:hidden;opacity:0;transition:max-height .3s ease,opacity .25s;}
+.gc.open .gc-body{max-height:500px;opacity:1;}
+.gc-divider{height:1px;background:var(--border);margin:10px 0 8px;}
+.gc-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px;font-family:'DM Mono',monospace;}
+.gc-row:last-child{border-bottom:none;}
+.gc-row-name{color:var(--muted2);}
+.gc-row-sub{font-size:10px;color:var(--muted);}
+.gc-row-val{color:var(--text);font-weight:600;}
+.gc-total{display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid var(--border2);font-size:11px;font-family:'DM Mono',monospace;font-weight:600;}
+
+/* Account sections */
+.sec{background:var(--bg2);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;overflow:hidden;transition:opacity .2s;}
+.sec.excluded{opacity:.35;}
+.sec-hdr{display:flex;justify-content:space-between;align-items:center;padding:13px 18px;cursor:pointer;transition:background .15s;border-bottom:1px solid transparent;}
+.sec-hdr:hover{background:var(--bg3);}
+.sec-hdr.open{border-bottom-color:var(--border);}
+.sec-hdr-left{display:flex;align-items:center;gap:10px;}
+.sec-icon{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-family:'DM Mono',monospace;font-weight:500;flex-shrink:0;}
+.sec-name{font-size:13px;font-weight:500;}
+.sec-sub{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:1px;}
+.sec-hdr-right{display:flex;align-items:center;gap:10px;}
+.sec-val{font-size:15px;font-weight:600;font-family:'DM Mono',monospace;}
+.chevron{color:var(--muted);font-size:9px;transition:transform .2s;}
+.chevron.open{transform:rotate(180deg);}
+.sec-body{display:none;padding:0 18px 14px;}
+.sec-body.open{display:block;}
+
+/* Holding rows */
+.holding{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border);}
+.holding:last-of-type{border-bottom:none;}
+.h-left{flex:1;min-width:0;}
+.h-ticker{font-family:'DM Mono',monospace;font-size:12px;font-weight:500;color:var(--blue);}
+.h-name{font-size:12px;color:var(--muted2);margin-top:1px;}
+.h-meta{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;}
+.h-right{text-align:right;flex-shrink:0;margin-left:12px;}
+.h-val{font-size:13px;font-weight:600;font-family:'DM Mono',monospace;}
+.h-gl{font-size:10px;font-family:'DM Mono',monospace;margin-top:2px;}
+.h-edit-btn{font-size:10px;font-family:'DM Mono',monospace;padding:2px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);cursor:pointer;margin-top:3px;transition:all .15s;}
+.h-edit-btn:hover{color:var(--blue);border-color:var(--blue);}
+
+/* Inline edit */
+.h-edit-row{display:none;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap;}
+.h-edit-row.open{display:flex;}
+.h-edit-label{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;}
+.h-edit-input{font-family:'DM Mono',monospace;font-size:12px;background:var(--bg3);border:1px solid var(--border2);border-radius:5px;color:var(--text);padding:3px 8px;width:100px;}
+.h-edit-input:focus{outline:none;border-color:var(--blue);}
+.h-edit-save{font-family:'DM Mono',monospace;font-size:11px;padding:3px 9px;border-radius:5px;border:1px solid rgba(96,165,250,.4);background:rgba(96,165,250,.1);color:var(--blue);cursor:pointer;}
+.h-edit-cancel{font-family:'DM Mono',monospace;font-size:11px;padding:3px 9px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;}
+
+/* Options */
+.opt-badge{font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:1px 5px;border-radius:4px;margin-left:5px;vertical-align:middle;}
+.opt-put{background:rgba(248,113,113,.15);color:var(--red);}
+.opt-call{background:rgba(52,211,153,.12);color:var(--green);}
+.opts-wrap{max-height:0;overflow:hidden;opacity:0;transition:max-height .35s ease,opacity .25s;}
+.opts-wrap.open{max-height:600px;opacity:1;}
+.opts-divider{font-size:10px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);padding:8px 0 4px;border-top:1px solid var(--border);margin-top:4px;}
+.opts-divider:first-child{border-top:none;margin-top:0;padding-top:0;}
+.opts-total-row{display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid var(--border2);margin-top:4px;}
+
+/* Section total */
+.sec-total{display:flex;justify-content:space-between;padding-top:9px;border-top:1px solid var(--border2);margin-top:4px;}
+.sec-total-label{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;}
+.sec-total-val{font-size:13px;font-weight:600;font-family:'DM Mono',monospace;}
+
+/* Gold price input */
+.gold-price-bar{display:flex;align-items:center;gap:8px;padding:9px 0 4px;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);border-top:1px solid var(--border);margin-top:8px;}
+.gold-input{font-family:'DM Mono',monospace;font-size:12px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:4px 8px;width:90px;text-align:right;}
+.gold-input:focus{outline:none;border-color:var(--amber);}
+
+/* India note */
+.india-note{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;padding:8px 0 2px;border-top:1px solid var(--border);margin-top:4px;line-height:1.7;}
+
+/* Stats mini grid */
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:8px 0 10px;border-bottom:1px solid var(--border);margin-bottom:6px;}
+.stat-cell{background:var(--bg3);border-radius:7px;padding:8px 10px;}
+.stat-label{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;}
+.stat-val{font-size:13px;font-weight:600;margin-top:2px;font-family:'DM Mono',monospace;}
+
+/* Holdings table header */
+.h-col-hdr{display:grid;grid-template-columns:1fr auto auto;gap:4px;padding:4px 0 3px;font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;border-bottom:1px solid var(--border2);margin-bottom:2px;}
+.h-col-hdr span:not(:first-child){text-align:right;}
+
+/* Manage accounts panel */
+.manage-panel{display:none;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:1rem;}
+.manage-panel.open{display:block;}
+.manage-title{font-size:11px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:12px;}
+.manage-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:6px;}
+.manage-item{display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:7px;border:1px solid var(--border);cursor:pointer;transition:all .15s;user-select:none;}
+.manage-item:hover{border-color:var(--border2);}
+.manage-item.excluded{background:rgba(248,113,113,.06);border-color:rgba(248,113,113,.3);}
+.manage-dot{width:8px;height:8px;border-radius:50%;border:1.5px solid var(--muted);flex-shrink:0;transition:all .15s;}
+.manage-item.excluded .manage-dot{background:var(--red);border-color:var(--red);}
+.manage-label{font-size:11px;font-family:'DM Mono',monospace;color:var(--muted2);}
+.manage-item.excluded .manage-label{color:var(--red);}
+.manage-val{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-left:auto;}
+
+/* Upload modal */
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;align-items:center;justify-content:center;}
+.modal-backdrop.open{display:flex;}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:26px 28px;width:560px;max-width:94vw;max-height:88vh;overflow-y:auto;position:relative;}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:3px;}
+.modal-sub{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:18px;}
+.modal-x{position:absolute;top:14px;right:14px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:13px;width:26px;height:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:color .15s;line-height:1;}
+.modal-x:hover{color:var(--text);}
+.broker-tabs{display:flex;gap:3px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:3px;margin-bottom:14px;}
+.broker-tab{flex:1;font-family:'DM Mono',monospace;font-size:11px;padding:6px 4px;border-radius:5px;border:none;cursor:pointer;background:transparent;color:var(--muted);transition:all .15s;text-align:center;}
+.broker-tab.active{background:var(--bg2);color:var(--text);border:1px solid var(--border2);}
+.drop-zone{border:2px dashed var(--border2);border-radius:10px;padding:28px 20px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;margin-bottom:12px;}
+.drop-zone:hover,.drop-zone.drag{border-color:var(--blue);background:rgba(96,165,250,.05);}
+.drop-icon{font-size:26px;color:var(--muted);margin-bottom:8px;}
+.drop-title{font-size:13px;font-weight:500;margin-bottom:3px;}
+.drop-sub{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;}
+.instructions{background:var(--bg3);border-radius:8px;padding:12px 14px;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted2);line-height:1.9;margin-bottom:12px;}
+.instructions b{color:var(--text);font-weight:500;}
+.parse-result{display:none;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:12px;margin-bottom:12px;max-height:220px;overflow-y:auto;}
+.parse-result.show{display:block;}
+.parse-hdr{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border2);}
+.parse-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:11px;font-family:'DM Mono',monospace;}
+.parse-row:last-child{border-bottom:none;}
+.parse-sym{color:var(--blue);font-weight:500;}
+.parse-amt{color:var(--text);}
+.modal-actions{display:flex;gap:7px;justify-content:flex-end;margin-top:6px;}
+.mbtn{font-family:'DM Mono',monospace;font-size:12px;padding:7px 16px;border-radius:7px;cursor:pointer;border:1px solid var(--border2);transition:all .15s;}
+.mbtn-primary{background:rgba(96,165,250,.12);color:var(--blue);border-color:rgba(96,165,250,.4);}
+.mbtn-primary:hover{background:rgba(96,165,250,.22);}
+.mbtn-secondary{background:var(--bg3);color:var(--muted2);}
+.mbtn-secondary:hover{color:var(--text);}
+
+/* Summary */
+.summary{background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:20px 24px;margin-top:1.25rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;}
+.sum-left .sum-label{font-size:10px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:6px;}
+.sum-val{font-size:30px;font-weight:600;letter-spacing:-1px;line-height:1;}
+.sum-sub{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:5px;}
+.sum-right{text-align:right;}
+.sum-inr{font-size:18px;font-weight:500;color:var(--teal);font-family:'DM Mono',monospace;}
+.sum-breakdown{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:5px;line-height:1.8;}
+
+.pos{color:var(--green);}.neg{color:var(--red);}.amber{color:var(--amber);}.muted{color:var(--muted);}
+
+.footer{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:1.25rem;line-height:1.9;border-top:1px solid var(--border);padding-top:1rem;}
+
+.hidden{display:none!important;}
+
+  /* Ticker autocomplete */
+  .sug-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    transition: background .1s;
+  }
+  .sug-item:last-child { border-bottom: none; }
+  .sug-item:hover, .sug-item.active { background: var(--bg3); }
+  .sug-ticker {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--blue);
+    min-width: 80px;
+  }
+  .sug-ticker.india { color: var(--teal); }
+  .sug-name {
+    font-size: 12px;
+    color: var(--muted2);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sug-exch {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .sug-exch.us { background: rgba(96,165,250,.15); color: var(--blue); }
+  .sug-exch.in { background: rgba(45,212,191,.15); color: var(--teal); }
+  .sug-highlight { color: var(--text); font-weight: 600; }
+
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── ENH-07: Mobile responsive ─────────────────── */
+  @media(max-width:600px){
+    .app { padding: 1rem .75rem 3rem; }
+    .hdr { flex-direction: column; gap: 10px; }
+    .hdr-right { align-items: flex-start; }
+    .hdr-btns { flex-wrap: wrap; gap: 5px; }
+    .hdr-btn { font-size: 10px; padding: 5px 9px; }
+    .metrics { grid-template-columns: repeat(2,1fr); gap:6px; }
+    .mc-val { font-size: 17px; }
+    .group-grid { grid-template-columns: 1fr; }
+    .sec-hdr { padding: 10px 12px; }
+    .sec-body { padding: 0 12px 12px; }
+    .sec-name { font-size: 12px; }
+    .sec-val { font-size: 13px; }
+    .holding { flex-direction: column; gap: 4px; }
+    .h-right { text-align: left; margin-left: 0; }
+    .h-edit-row { flex-wrap: wrap; }
+    .h-edit-input { width: 80px; }
+    .modal { padding: 18px 16px; }
+    .broker-tabs { flex-wrap: wrap; }
+    .broker-tab { font-size: 10px; padding: 5px 8px; }
+    .stats-grid { grid-template-columns: repeat(2,1fr); }
+    .refresh-bar { flex-wrap: wrap; gap: 6px; }
+    .chart-section { padding: 12px; }
+    .tx-table th, .tx-table td { font-size: 10px; padding: 5px 6px; }
+    .summary { flex-direction: column; gap: 8px; }
+    .sum-val { font-size: 24px; }
+    .sum-right { text-align: left; }
+  }
+
+  /* ── ENH-03: Historical chart ───────────────────── */
+  .chart-section {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px; margin-bottom: 1rem;
+  }
+  .chart-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px; }
+  .chart-title { font-size:11px; font-family:'DM Mono',monospace; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); }
+  .chart-actions { display:flex; gap:6px; }
+  .chart-btn { font-family:'DM Mono',monospace; font-size:10px; padding:4px 10px; border-radius:6px; border:1px solid var(--border2); background:var(--bg3); color:var(--muted2); cursor:pointer; transition:all .15s; }
+  .chart-btn:hover { color:var(--text); border-color:var(--blue); }
+  .chart-btn.active { background:rgba(96,165,250,.12); color:var(--blue); border-color:rgba(96,165,250,.4); }
+  .chart-empty { text-align:center; padding:40px 0; font-size:12px; font-family:'DM Mono',monospace; color:var(--muted); }
+
+  /* ── ENH-05: Transaction log ─────────────────────── */
+  .tx-section { background:var(--bg2); border:1px solid var(--border); border-radius:10px; margin-bottom:1rem; overflow:hidden; }
+  .tx-header { display:flex; justify-content:space-between; align-items:center; padding:13px 18px; cursor:pointer; }
+  .tx-header:hover { background:var(--bg3); }
+  .tx-title { font-size:13px; font-weight:500; }
+  .tx-body { display:none; padding:0 18px 14px; }
+  .tx-body.open { display:block; }
+  .tx-table { width:100%; border-collapse:collapse; font-size:11px; font-family:'DM Mono',monospace; }
+  .tx-table th { text-align:left; padding:6px 8px; font-size:10px; color:var(--muted); border-bottom:1px solid var(--border2); text-transform:uppercase; letter-spacing:.06em; font-weight:500; }
+  .tx-table td { padding:6px 8px; border-bottom:1px solid var(--border); color:var(--muted2); vertical-align:middle; }
+  .tx-table tr:last-child td { border-bottom:none; }
+  .tx-table tr:hover td { background:var(--bg3); }
+  .tx-sym { color:var(--blue); font-weight:600; }
+  .tx-add { color:var(--green); }
+  .tx-edit { color:var(--amber); }
+  .tx-del { color:var(--red); }
+  .tx-empty { text-align:center; padding:20px 0; font-size:12px; color:var(--muted); }
+
+  /* ── ENH-01: Refresh bar ────────────────────────── */
+  .refresh-bar {
+    display:flex; align-items:center; gap:8px; padding:8px 14px;
+    background:var(--bg2); border:1px solid var(--border); border-radius:8px;
+    margin-bottom:1rem; flex-wrap:wrap;
+  }
+  .refresh-btn {
+    font-family:'DM Mono',monospace; font-size:11px; padding:5px 12px;
+    border-radius:6px; border:1px solid var(--border2); background:var(--bg3);
+    color:var(--muted2); cursor:pointer; transition:all .15s; white-space:nowrap;
+  }
+  .refresh-btn:hover { color:var(--text); border-color:var(--blue); }
+  .refresh-btn.refreshing { color:var(--blue); border-color:rgba(96,165,250,.4); animation:pulse 1s infinite; }
+  .refresh-status { font-size:11px; font-family:'DM Mono',monospace; color:var(--muted); flex:1; }
+  .forex-display { font-size:11px; font-family:'DM Mono',monospace; color:var(--muted2); margin-left:auto; }
+  .forex-display b { color:var(--text); }
+
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+</head>
+<body>
+<div class="app">
+
+<!-- HEADER -->
+<div class="hdr">
+  <div>
+    <div class="hdr-logo">Net Worth Tracker</div>
+    <div class="hdr-title">Bagavathirajan Ramaraj</div>
+    <div class="hdr-sub">9 accounts · Fidelity · Merrill · Hartford · India PMS/AIF · Gold</div>
+  </div>
+  <div class="hdr-right">
+    <div class="live-dot" id="live-date">LIVE · <span id="live-date-text"></span></div>
+    <div id="save-status" style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);display:none;align-items:center;gap:5px;"></div>
+    <div class="hdr-btns">
+      <button class="hdr-btn" id="btn-upload" onclick="showModal()">↑ Upload Statement</button>
+      <button class="hdr-btn" id="btn-manage" onclick="toggleManage()">⊞ Manage Accounts</button>
+      <button class="hdr-btn" id="btn-sheets" onclick="showSheetsModal()" style="color:var(--green);border-color:rgba(52,211,153,.3)">⬡ Google Sheets</button>
+    </div>
+  </div>
+</div>
+
+<!-- MANAGE ACCOUNTS PANEL -->
+<div class="manage-panel" id="manage-panel">
+  <div class="manage-title">Toggle accounts to include / exclude from totals</div>
+  <div class="manage-grid" id="manage-grid"></div>
+</div>
+
+<!-- CONTROLS ROW -->
+<div class="controls-row">
+  <div class="view-sw">
+    <button class="view-btn active" id="vbtn-account" onclick="setView('account')">By Account</button>
+    <button class="view-btn" id="vbtn-group" onclick="setView('group')">By Category</button>
+  </div>
+  <div class="opt-toggle-row">
+    <label class="switch"><input type="checkbox" id="opt-toggle" onchange="recalc()"><span class="slider"></span></label>
+    <span>Include options</span>
+    <span class="neg" style="font-family:'DM Mono',monospace;font-size:11px;" id="opt-mv-label">(-$29,517 MV)</span>
+  </div>
+</div>
+
+<!-- METRICS -->
+<div class="metrics">
+  <div class="mc"><div class="mc-accent" style="background:rgba(96,165,250,.08)"></div><div class="mc-label">Total Net Worth</div><div class="mc-val" id="m-total">—</div><div class="mc-sub" id="m-total-sub">loading…</div><div class="mc-chg" id="m-total-chg"></div></div>
+  <div class="mc"><div class="mc-accent" style="background:rgba(45,212,191,.08)"></div><div class="mc-label">INR Equivalent</div><div class="mc-val" id="m-inr">—</div><div class="mc-sub">at 94.55 INR/USD</div></div>
+  <div class="mc"><div class="mc-accent" style="background:rgba(96,165,250,.06)"></div><div class="mc-label">US Portfolio</div><div class="mc-val" id="m-us">—</div><div class="mc-sub" id="m-us-sub">Taxable + Retirement</div><div class="mc-chg" id="m-us-chg"></div></div>
+  <div class="mc"><div class="mc-accent" style="background:rgba(251,191,36,.06)"></div><div class="mc-label">India + Gold</div><div class="mc-val" id="m-india">—</div><div class="mc-sub" id="m-india-sub">₹ · PMS + AIF + Gold</div><div class="mc-chg" id="m-india-chg"></div></div>
+</div>
+
+<!-- ALLOC BAR -->
+<div class="alloc-bar-wrap">
+  <div style="font-size:10px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:2px;">Allocation</div>
+  <div class="alloc-bar" id="alloc-bar"></div>
+  <div class="alloc-legend" id="alloc-legend"></div>
+</div>
+
+<!-- GROUP VIEW -->
+<div id="group-view" class="hidden">
+  <div class="group-grid" id="group-grid"></div>
+</div>
+
+<!-- ACCOUNT VIEW -->
+<div id="account-view">
+
+<!-- Fidelity Individual -->
+<div class="sec" id="sec-fid-ind">
+  <div class="sec-hdr" onclick="toggleSec(this)">
+    <div class="sec-hdr-left">
+      <div class="sec-icon" style="background:rgba(96,165,250,.12);color:#60a5fa">FI</div>
+      <div><div class="sec-name">Fidelity Individual (TOD)</div><div class="sec-sub">Taxable brokerage · equities + options</div></div>
+    </div>
+    <div class="sec-hdr-right"><div class="sec-val" style="color:var(--blue)" id="hdr-fid-ind">—</div><div class="sec-chg" id="chg-fid-ind"></div><div class="chevron">▼</div></div>
+  </div>
+  <div class="sec-body">
+    <div id="rows-fid-ind"></div>
+    <div class="opts-wrap" id="opts-fid-ind">
+      <div class="opts-divider">Short Options</div>
+      <div class="holding"><div class="h-left"><div class="h-ticker">PUT AMZN <span class="opt-badge opt-put">SHORT</span></div><div class="h-name">Jan 15 '27 · $230 strike · 2 contracts</div><div class="h-meta">AMZN270115P230</div></div><div class="h-right"><div class="h-val neg">—</div><div class="h-gl neg">—</div></div></div>
+      <div class="holding"><div class="h-left"><div class="h-ticker">PUT MSFT <span class="opt-badge opt-put">SHORT</span></div><div class="h-name">Jan 21 '28 · $450 strike · 2 contracts</div><div class="h-meta">MSFT280121P450</div></div><div class="h-right"><div class="h-val neg">—</div><div class="h-gl neg">—</div></div></div>
+      <div class="holding"><div class="h-left"><div class="h-ticker">CALL BMNR <span class="opt-badge opt-call">SHORT</span></div><div class="h-name">Apr 17 '26 · $65 · 1 contract</div></div><div class="h-right"><div class="h-val neg">—</div><div class="h-gl pos">—</div></div></div>
+      <div class="holding"><div class="h-left"><div class="h-ticker">CALL BMNR <span class="opt-badge opt-call">SHORT</span></div><div class="h-name">Jun 18 '26 · $65 · 4 contracts</div></div><div class="h-right"><div class="h-val neg">—</div><div class="h-gl pos">—</div></div></div>
+      <div class="holding"><div class="h-left"><div class="h-ticker">CALL BMNR <span class="opt-badge opt-call">SHORT</span></div><div class="h-name">Jan 15 '27 · $60 · 6 contracts</div></div><div class="h-right"><div class="h-val neg">—</div><div class="h-gl pos">—</div></div></div>
+      <div class="holding"><div class="h-left"><div class="h-ticker">CALL TSLA <span class="opt-badge opt-call">SHORT</span></div><div class="h-name">Jan 15 '27 · $750 · 1 contract</div></div><div class="h-right"><div class="h-val neg">—</div><div class="h-gl pos">—</div></div></div>
+    </div>
+    <div class="sec-total"><span class="sec-total-label" id="lbl-fid-ind">equities only</span><span class="sec-total-val" style="color:var(--blue)" id="tot-fid-ind">—</span></div>
+  </div>
+</div>
+
+<!-- Fidelity Traditional IRA -->
+<div class="sec" id="sec-fid-ira">
+  <div class="sec-hdr" onclick="toggleSec(this)">
+    <div class="sec-hdr-left">
+      <div class="sec-icon" style="background:rgba(59,130,246,.12);color:#3b82f6">TR</div>
+      <div><div class="sec-name">Fidelity Traditional IRA</div><div class="sec-sub">Tax-deferred retirement</div></div>
+    </div>
+    <div class="sec-hdr-right"><div class="sec-val" style="color:var(--blue)" id="hdr-fid-ira">—</div><div class="sec-chg" id="chg-fid-ira"></div><div class="chevron">▼</div></div>
+  </div>
+  <div class="sec-body">
+    <div id="rows-fid-ira"></div>
+    <div class="opts-wrap" id="opts-fid-ira">
+      <div class="opts-divider">Short Options</div>
+      <div class="holding"><div class="h-left"><div class="h-ticker">CALL TSLA <span class="opt-badge opt-call">SHORT</span></div><div class="h-name">Jan 15 '27 · $750 · 1 contract · IRA</div></div><div class="h-right"><div class="h-val neg">—</div><div class="h-gl pos">—</div></div></div>
+    </div>
+    <div class="sec-total"><span class="sec-total-label" id="lbl-fid-ira">equities only</span><span class="sec-total-val" style="color:var(--blue)" id="tot-fid-ira">—</span></div>
+  </div>
+</div>
+
+<!-- Hartford 401k -->
+<div class="sec" id="sec-hartford">
+  <div class="sec-hdr" onclick="toggleSec(this)">
+    <div class="sec-hdr-left">
+      <div class="sec-icon" style="background:rgba(167,139,250,.12);color:#a78bfa">HF</div>
+      <div><div class="sec-name">Hartford 401(k) — SS S&P 500 Index K</div><div class="sec-sub">The Hartford Investment & Savings Plan · refreshes via VOO proxy</div></div>
+    </div>
+    <div class="sec-hdr-right"><div class="sec-val" style="color:var(--purple)" id="hdr-hartford">—</div><div class="sec-chg" id="chg-hartford"></div><div class="chevron">▼</div></div>
+  </div>
+  <div class="sec-body">
+    <div id="rows-hartford"></div>
+    <div class="stats-grid" style="margin-top:10px;border-top:none;padding-top:0">
+      <div class="stat-cell"><div class="stat-label">Employee YTD</div><div class="stat-val">—</div></div>
+      <div class="stat-cell"><div class="stat-label">Employer match</div><div class="stat-val">—</div></div>
+      <div class="stat-cell"><div class="stat-label">Market gain</div><div class="stat-val pos">—</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Merrill -->
+<div class="sec" id="sec-merrill">
+  <div class="sec-hdr" onclick="toggleSec(this)">
+    <div class="sec-hdr-left">
+      <div class="sec-icon" style="background:rgba(29,78,216,.15);color:#60a5fa">ME</div>
+      <div><div class="sec-name">Merrill CMA</div><div class="sec-sub">CMA Account · Preferred Rewards Platinum Honors</div></div>
+    </div>
+    <div class="sec-hdr-right"><div class="sec-val" style="color:var(--blue)" id="hdr-merrill">—</div><div class="sec-chg" id="chg-merrill"></div><div class="chevron">▼</div></div>
+  </div>
+  <div class="sec-body">
+    <div id="rows-merrill"></div>
+  </div>
+</div>
+
+<!-- Roth + HSA -->
+<div class="sec" id="sec-fid-rh">
+  <div class="sec-hdr" onclick="toggleSec(this)">
+    <div class="sec-hdr-left">
+      <div class="sec-icon" style="background:rgba(96,165,250,.08);color:#93c5fd">R+H</div>
+      <div><div class="sec-name">Fidelity Roth IRA & HSA</div><div class="sec-sub">····</div></div>
+    </div>
+    <div class="sec-hdr-right"><div class="sec-val" style="color:var(--blue)" id="hdr-fid-rh">—</div><div class="sec-chg" id="chg-fid-rh"></div><div class="chevron">▼</div></div>
+  </div>
+  <div class="sec-body">
+    <div id="rows-fid-rh"></div>
+    <div class="opts-wrap" id="opts-fid-hsa">
+      <div class="opts-divider">HSA Short Options</div>
+      <div class="holding"><div class="h-left"><div class="h-ticker">CALL BMNR <span class="opt-badge opt-call">SHORT</span></div><div class="h-name">Jun 18 '26 · $65 · 1 contract · HSA</div></div><div class="h-right"><div class="h-val neg">—</div><div class="h-gl pos">—</div></div></div>
+    </div>
+    <div class="sec-total"><span class="sec-total-label" id="lbl-fid-rh">Roth + HSA</span><span class="sec-total-val" style="color:var(--blue)" id="tot-fid-rh">—</span></div>
+  </div>
+</div>
+
+<!-- Pension -->
+<div class="sec" id="sec-pension">
+  <div class="sec-hdr" onclick="toggleSec(this)">
+    <div class="sec-hdr-left">
+      <div class="sec-icon" style="background:rgba(251,191,36,.1);color:#fbbf24">PE</div>
+      <div><div class="sec-name">Pension Plan Balance</div><div class="sec-sub">As of 12/31/2025 · 5% annual interest</div></div>
+    </div>
+    <div class="sec-hdr-right"><div class="sec-val" style="color:var(--amber)">—</div><div class="chevron">▼</div></div>
+  </div>
+  <div class="sec-body">
+    <div class="holding"><div class="h-left"><div class="h-ticker" style="color:var(--amber)">PENSION PLAN</div><div class="h-name">Closing balance Dec 31, 2025</div><div class="h-meta">—</div></div><div class="h-right"><div class="h-val">—</div><div class="h-gl pos">—</div></div></div>
+  </div>
+</div>
+
+<!-- Stallion -->
+<div class="sec" id="sec-stallion">
+  <div class="sec-hdr" onclick="toggleSec(this)">
+    <div class="sec-hdr-left">
+      <div class="sec-icon" style="background:rgba(45,212,191,.12);color:#2dd4bf">ST</div>
+      <div><div class="sec-name">Stallion Asset PMS — Core Fund</div><div class="sec-sub">36 holdings · as of Apr 13, 2026</div></div>
+    </div>
+    <div class="sec-hdr-right"><div class="sec-val" style="color:var(--teal)" id="hdr-stallion">—</div><div class="sec-chg" id="chg-stallion"></div><div class="chevron">▼</div></div>
+  </div>
+  <div class="sec-body">
+    <div class="stats-grid">
+      <div class="stat-cell"><div class="stat-label">Invested</div><div class="stat-val">—</div></div>
+      <div class="stat-cell"><div class="stat-label">Value (Apr 13 stmt)</div><div class="stat-val">—</div></div>
+      <div class="stat-cell"><div class="stat-label">Value (live)</div><div class="stat-val" id="stallion-live-val">—</div></div>
+      <div class="stat-cell"><div class="stat-label">P&L</div><div class="stat-val neg">—</div></div>
+    </div>
+        <div id="rows-stallion"></div>
+    <div class="sec-total"><span class="sec-total-label">Stallion PMS · live prices</span><span class="sec-total-val" style="color:var(--teal)" id="tot-stallion">—</span></div>
+    <div class="india-note">live holdings · prices via Yahoo Finance</div>
+  </div>
+</div>
+
+<!-- Physical Gold -->
+<div class="sec" id="sec-gold">
+  <div class="sec-hdr" onclick="toggleSec(this)">
+    <div class="sec-hdr-left">
+      <div class="sec-icon" style="background:rgba(251,191,36,.12);color:#fbbf24">AU</div>
+      <div><div class="sec-name">Physical Gold — 86 Sovereigns</div><div class="sec-sub">22 karat · 8g/sovereign · 688g total</div></div>
+    </div>
+    <div class="sec-hdr-right"><div class="sec-val" style="color:var(--amber)" id="hdr-gold">—</div><div class="sec-chg" id="chg-gold"></div><div class="chevron">▼</div></div>
+  </div>
+  <div class="sec-body">
+    <div class="stats-grid">
+      <div class="stat-cell"><div class="stat-label">Sovereigns</div><div class="stat-val amber">86</div></div>
+      <div class="stat-cell"><div class="stat-label">Total weight</div><div class="stat-val amber">688g (22K)</div></div>
+      <div class="stat-cell"><div class="stat-label">Fine gold</div><div class="stat-val amber">630.7g (91.67%)</div></div>
+    </div>
+    <div class="holding"><div class="h-left"><div class="h-ticker" style="color:var(--amber)">22K SOVEREIGN</div><div class="h-name">86 × 8g · India Gold Sovereign</div><div class="h-meta">22K purity (91.67%) · 630.67g fine gold</div></div><div class="h-right"><div class="h-val amber" id="gold-usd-val">—</div><div class="h-gl amber" id="gold-inr-val">—</div></div></div>
+    <div class="gold-price-bar">
+      <span>22K price/gram (USD):</span>
+      <input class="gold-input" type="number" id="gold-price" value="135.83" step="0.1" min="0" oninput="recalc()">
+      <span style="color:var(--muted2)">live: $135.83/g · Apr 28</span>
+    </div>
+    <div class="india-note">Spot 24K: $4,609/troy oz · 22K = $135.83/g · 86 × 8g = 688g · Fine: 630.67g · USD/INR 94.55</div>
+  </div>
+</div>
+
+<!-- Niveshaay -->
+<div class="sec" id="sec-niveshaay">
+  <div class="sec-hdr" onclick="toggleSec(this)">
+    <div class="sec-hdr-left">
+      <div class="sec-icon" style="background:rgba(15,118,110,.2);color:#2dd4bf">NV</div>
+      <div><div class="sec-name">Niveshaay AIF — Class B9</div><div class="sec-sub">as of Apr 15, 2026</div></div>
+    </div>
+    <div class="sec-hdr-right"><div class="sec-val" style="color:var(--teal)">—</div><div class="chevron">▼</div></div>
+  </div>
+  <div class="sec-body">
+    <div class="holding"><div class="h-left"><div class="h-ticker" style="color:var(--teal)">CLASS B9 UNITS</div><div class="h-name">Niveshaay Investment Trust AIF</div><div class="h-meta">units · NAV ₹— · —</div></div><div class="h-right"><div class="h-val">—</div><div class="h-gl pos">—</div></div></div>
+    <div class="holding"><div class="h-left"><div class="h-ticker" style="color:var(--muted)">INVESTED</div><div class="h-name">5 tranches: Dec '24, Feb/Mar/Apr '25, Feb '26</div></div><div class="h-right"><div class="h-val">—</div><div class="h-gl muted">cost basis</div></div></div>
+    <div class="india-note">NAV: — · USD equiv. — · Custodian: KFIN Technologies</div>
+  </div>
+</div>
+
+
+<!-- India Individual (custom added stocks) -->
+<div class="sec" id="sec-india-ind" style="display:none">
+  <div class="sec-hdr" onclick="toggleSec(this)">
+    <div class="sec-hdr-left">
+      <div class="sec-icon" style="background:rgba(45,212,191,.12);color:#2dd4bf;font-size:10px;">IN</div>
+      <div><div class="sec-name">India Individual Holdings</div><div class="sec-sub">NSE / BSE · prices in ₹ · auto-converted to USD</div></div>
+    </div>
+    <div class="sec-hdr-right"><div class="sec-val" style="color:var(--teal)" id="hdr-india-ind">—</div><div class="sec-chg" id="chg-india-ind"></div><div class="chevron">▼</div></div>
+  </div>
+  <div class="sec-body">
+    <div id="rows-india-ind">
+      <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;padding:12px 0;text-align:center;">
+        No holdings yet — click <b style="color:var(--green)">↑ Upload Statement → + Add Stock</b> to add Indian stocks
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- India Retirement (custom added stocks) -->
+<div class="sec" id="sec-india-ira" style="display:none">
+  <div class="sec-hdr" onclick="toggleSec(this)">
+    <div class="sec-hdr-left">
+      <div class="sec-icon" style="background:rgba(45,212,191,.12);color:#2dd4bf;font-size:10px;">NPS</div>
+      <div><div class="sec-name">India Retirement Holdings</div><div class="sec-sub">NPS / PPF / EPF · prices in ₹</div></div>
+    </div>
+    <div class="sec-hdr-right"><div class="sec-val" style="color:var(--teal)" id="hdr-india-ira">—</div><div class="sec-chg" id="chg-india-ira"></div><div class="chevron">▼</div></div>
+  </div>
+  <div class="sec-body">
+    <div id="rows-india-ira">
+      <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;padding:12px 0;text-align:center;">
+        No holdings yet — click <b style="color:var(--green)">↑ Upload Statement → + Add Stock</b> to add retirement holdings
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end account-view -->
+
+<!-- SUMMARY -->
+<div class="summary">
+  <div class="sum-left">
+    <div class="sum-label" id="sum-label">TOTAL NET WORTH · OPTIONS EXCLUDED</div>
+    <div class="sum-val" id="sum-val">—</div>
+    <div class="sum-sub" id="sum-sub">loading…</div>
+  </div>
+  <div class="sum-right">
+    <div class="sum-inr" id="sum-inr">—</div>
+    <div class="sum-breakdown" id="sum-breakdown">loading…</div>
+  </div>
+</div>
+
+
+<!-- ENH-01: Live price refresh bar -->
+<div class="refresh-bar">
+  <button class="refresh-btn" id="refresh-btn" onclick="refreshAllPrices()">↻ Refresh live prices</button>
+  <button class="refresh-btn" onclick="debugRefresh()" style="border-color:rgba(167,139,250,.4);color:var(--purple)">⬡ Debug</button>
+  <span class="refresh-status" id="refresh-status">Last refresh: never · Connect Google Sheets to enable live refresh</span>
+  <span class="forex-display">USD/INR: <b id="forex-display">94.55</b> <button class="chart-btn" onclick="fetchForex()" style="padding:2px 7px;margin-left:4px;">↻</button></span>
+</div>
+
+<!-- Debug modal -->
+<div class="modal-backdrop" id="debug-modal" onclick="if(event.target===this)this.classList.remove('open')" style="display:none">
+  <div class="modal" style="max-width:680px">
+    <button class="modal-x" onclick="$('debug-modal').classList.remove('open');$('debug-modal').style.display='none'">✕</button>
+    <div class="modal-title">Live Price Debug</div>
+    <div class="modal-sub" id="debug-summary">Running diagnostics…</div>
+    <div id="debug-log" style="background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:12px 14px;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted2);line-height:2;max-height:400px;overflow-y:auto;white-space:pre-wrap;"></div>
+    <div class="modal-actions" style="margin-top:12px">
+      <button class="mbtn mbtn-secondary" onclick="$('debug-modal').classList.remove('open');$('debug-modal').style.display='none'">Close</button>
+      <button class="mbtn mbtn-primary" onclick="debugRefresh()">↻ Run again</button>
+    </div>
+  </div>
+</div>
+
+<!-- ENH-03: Historical net worth chart -->
+<div class="chart-section" id="chart-section">
+  <div class="chart-header">
+    <span class="chart-title">Net Worth History</span>
+    <div class="chart-actions">
+      <button class="chart-btn active" id="chart-mode-line" onclick="setChartMode('line',this)">Line</button>
+      <button class="chart-btn" id="chart-mode-bar" onclick="setChartMode('bar',this)">Bar</button>
+      <button class="chart-btn" onclick="saveHistorySnapshot(true)" title="Save today's snapshot">+ Snapshot</button>
+      <button class="chart-btn" onclick="loadHistory()">↓ Load history</button>
+    </div>
+  </div>
+  <div id="chart-container" style="position:relative;height:200px;">
+    <div class="chart-empty" id="chart-empty">No history yet. Click <b>+ Snapshot</b> to record today's value.<br><span style="font-size:10px;color:var(--muted)">Snapshots are saved to your Google Sheets History tab.</span></div>
+    <canvas id="history-chart" style="display:none;"></canvas>
+  </div>
+</div>
+
+
+<!-- ENH-05: Transaction log -->
+<div class="tx-section">
+  <div class="tx-header" onclick="toggleTxLog()">
+    <div>
+      <span class="tx-title">Transaction History</span>
+      <span id="tx-count" style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-left:8px;">0 transactions</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="chart-btn" onclick="event.stopPropagation();clearTransactions()" style="color:var(--red);border-color:rgba(248,113,113,.3);">Clear</button>
+      <span id="tx-chevron" style="color:var(--muted);font-size:9px;">▼</span>
+    </div>
+  </div>
+  <div class="tx-body" id="tx-body">
+    <div id="tx-content"><div class="tx-empty">No transactions yet. Add or edit holdings to begin tracking.</div></div>
+  </div>
+</div>
+
+<div class="footer" id="footer-note">
+  Live prices via Yahoo Finance · India via Twelve Data / Google Finance · USD/INR via Open Exchange Rates
+</div>
+
+</div><!-- end .app -->
+
+<!-- UPLOAD MODAL -->
+<div class="modal-backdrop" id="upload-modal" onclick="if(event.target===this)hideModal()">
+  <div class="modal">
+    <button class="modal-x" onclick="hideModal()">✕</button>
+    <div class="modal-title">Upload Statement</div>
+    <div class="modal-sub">Update portfolio values from broker exports</div>
+    <div class="broker-tabs">
+      <button class="broker-tab active" id="tab-fidelity-btn" onclick="switchTab('fidelity')">Fidelity CSV</button>
+      <button class="broker-tab" id="tab-merrill-btn" onclick="switchTab('merrill')">Merrill</button>
+      <button class="broker-tab" id="tab-stallion-btn" onclick="switchTab('stallion')">Stallion</button>
+      <button class="broker-tab" id="tab-manual-btn" onclick="switchTab('manual')">Manual Edit</button>
+      <button class="broker-tab" id="tab-add-btn" onclick="switchTab('add')" style="color:var(--green)">+ Add Stock</button>
+      <button class="broker-tab" id="tab-pdf-btn" onclick="switchTab('pdf')">PDF Upload</button>
+    </div>
+
+    <!-- Fidelity tab -->
+    <div id="tab-fidelity">
+      <div class="instructions"><b>How to export from Fidelity:</b><br>1. Go to Accounts &amp; Trade → Portfolio<br>2. Click the <b>Positions</b> tab<br>3. Click <b>Download</b> (top right) → CSV format<br>4. Upload below — holdings parsed automatically</div>
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('csv-input').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="onDrop(event)">
+        <div class="drop-icon">↑</div>
+        <div class="drop-title">Drop Fidelity CSV here or click to browse</div>
+        <div class="drop-sub">.csv · portfolio positions export</div>
+      </div>
+      <input type="file" id="csv-input" accept=".csv" style="display:none" onchange="onFileSelect(this.files[0])">
+      <div class="parse-result" id="parse-result">
+        <div class="parse-hdr" id="parse-hdr">—</div>
+        <div id="parse-rows"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="mbtn mbtn-secondary" onclick="hideModal()">Cancel</button>
+        <button class="mbtn mbtn-primary" id="apply-csv-btn" style="display:none" onclick="applyCSV()">Apply to portfolio</button>
+      </div>
+    </div>
+
+    <!-- Merrill tab -->
+    <div id="tab-merrill" style="display:none">
+      <div class="instructions"><b>Update Merrill CMA values:</b><br>Log in at merrilledge.com → Portfolio → note your holdings.<br><br><b>Current:</b> 450 sh QQQM @ $267.62 = $120,429 + $148 cash = $120,577<br>Statement date: Mar 31, 2026<br><br>Use <b>Manual Edit</b> tab to update individual position prices.</div>
+      <div class="modal-actions"><button class="mbtn mbtn-secondary" onclick="hideModal()">Close</button></div>
+    </div>
+
+    <!-- Stallion tab -->
+    <div id="tab-stallion" style="display:none">
+      <div class="instructions"><b>Update Stallion PMS value:</b><br>Get your monthly PDF from the Stallion client portal.<br><br><b>Current portfolio value:</b><br><input style="font-family:'DM Mono',monospace;font-size:13px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:5px 10px;width:160px;margin:4px 0;" type="number" id="stallion-inr-input" value="0" placeholder="INR value"><span style="font-size:11px;color:var(--muted);margin-left:6px;font-family:'DM Mono',monospace;">INR</span><br><br><b>Conversion:</b> <span id="stallion-usd-preview" style="color:var(--teal);font-family:'DM Mono',monospace;font-size:13px;">—</span> at 94.55 INR/USD</div>
+      <div class="modal-actions">
+        <button class="mbtn mbtn-secondary" onclick="hideModal()">Cancel</button>
+        <button class="mbtn mbtn-primary" onclick="applyStallion()">Update Stallion value</button>
+      </div>
+    </div>
+
+    <!-- Manual edit tab -->
+    <div id="tab-manual" style="display:none">
+      <div class="instructions"><b>Edit any holding price directly:</b><br>Update prices for US stocks, India account totals, or gold.</div>
+      <div style="display:grid;gap:8px;max-height:320px;overflow-y:auto;padding-right:4px;" id="manual-edit-grid"></div>
+      <div class="modal-actions">
+        <button class="mbtn mbtn-secondary" onclick="hideModal()">Close</button>
+        <button class="mbtn mbtn-primary" onclick="applyManual()">Apply changes</button>
+      </div>
+    </div>
+
+    <!-- Add Stock tab -->
+    <div id="tab-add" style="display:none">
+      <div class="instructions"><b>Add a new position to your portfolio:</b><br>Enter the ticker, name, quantity, price, and which account it belongs to.</div>
+
+      <div style="display:grid;gap:10px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div style="position:relative;">
+            <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;">Ticker Symbol *</div>
+            <input id="add-sym" type="text" placeholder="e.g. NVDA or RELIANCE" autocomplete="off"
+              style="font-family:'DM Mono',monospace;font-size:13px;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;color:var(--text);padding:8px 10px;width:100%;text-transform:uppercase;"
+              oninput="this.value=this.value.toUpperCase();tickerSearch(this.value)"
+              onkeydown="tickerKeyNav(event)"
+              onfocus="tickerSearch(this.value)"
+              onblur="setTimeout(()=>hideSuggestions(),150)">
+            <div id="ticker-suggestions" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:999;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;margin-top:3px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.5);max-height:220px;overflow-y:auto;"></div>
+          </div>
+          <div>
+            <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;">Account *</div>
+            <select id="add-acct" style="font-family:'DM Mono',monospace;font-size:12px;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;color:var(--text);padding:8px 10px;width:100%;cursor:pointer;" onchange="updateAddCurrency()">
+              <optgroup label="🇺🇸 US Accounts (USD)">
+                <option value="fid-ind">Fidelity Individual (TOD)</option>
+                <option value="fid-ira">Fidelity Traditional IRA</option>
+                <option value="fid-rh">Fidelity Roth / HSA</option>
+                <option value="hartford">Hartford 401(k)</option>
+                <option value="merrill">Merrill CMA</option>
+              </optgroup>
+              <optgroup label="🇮🇳 India Accounts (INR ₹)">
+                <option value="india-ind">India Individual (NSE/BSE)</option>
+                <option value="india-ira">India Retirement (NPS/PPF)</option>
+              </optgroup>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;">Description / Name</div>
+          <input id="add-name" type="text" placeholder="e.g. Nvidia Corporation" style="font-family:'DM Mono',monospace;font-size:13px;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;color:var(--text);padding:8px 10px;width:100%;">
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div>
+            <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;">Shares / Quantity *</div>
+            <input id="add-shares" type="number" placeholder="e.g. 10" step="0.001" min="0" style="font-family:'DM Mono',monospace;font-size:13px;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;color:var(--text);padding:8px 10px;width:100%;text-align:right;">
+          </div>
+          <div>
+            <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;" id="add-price-label">Price per share (USD) *</div>
+            <input id="add-price" type="number" placeholder="e.g. 135.50" step="0.01" min="0" style="font-family:'DM Mono',monospace;font-size:13px;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;color:var(--text);padding:8px 10px;width:100%;text-align:right;">
+          </div>
+        </div>
+
+        <!-- Live preview -->
+        <div id="add-preview" style="display:none;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:12px 14px;">
+          <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Preview</div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div>
+              <div style="font-size:14px;font-weight:600;font-family:'DM Mono',monospace;color:var(--blue)" id="prev-sym">—</div>
+              <div style="font-size:11px;color:var(--muted2);margin-top:2px" id="prev-name">—</div>
+              <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px" id="prev-meta">—</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:16px;font-weight:600;font-family:'DM Mono',monospace;color:var(--green)" id="prev-val">—</div>
+              <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px" id="prev-acct">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="add-err" style="display:none;font-size:11px;color:var(--red);font-family:'DM Mono',monospace;padding:6px 10px;background:rgba(248,113,113,.08);border-radius:6px;border:1px solid rgba(248,113,113,.2);"></div>
+      </div>
+
+      <div class="modal-actions" style="margin-top:14px;">
+        <button class="mbtn mbtn-secondary" onclick="hideModal()">Cancel</button>
+        <button class="mbtn mbtn-primary" style="background:rgba(52,211,153,.12);color:var(--green);border-color:rgba(52,211,153,.4);" onclick="addStock()">+ Add to Portfolio</button>
+      </div>
+    </div>
+
+    <!-- PDF Upload tab -->
+    <div id="tab-pdf" style="display:none">
+      <div class="instructions">
+        <b>Upload a brokerage PDF statement:</b><br>
+        Drop a PDF from Fidelity, Merrill, or any broker here.<br><br>
+        <span style="color:var(--amber)">★ Requires Google Sheets connection</span> — the Apps Script converts PDF → text server-side.<br>
+        If not connected, use the <b>Fidelity CSV</b> tab instead (Fidelity.com → Positions → Download CSV).
+      </div>
+      <div class="drop-zone" onclick="document.getElementById('pdf-input').click()"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')"
+        ondrop="event.preventDefault();this.classList.remove('drag');handlePDFUpload(event.dataTransfer.files[0])">
+        <div class="drop-icon">📄</div>
+        <div class="drop-title">Drop PDF here or click to browse</div>
+        <div class="drop-sub">.pdf · brokerage statement export</div>
+      </div>
+      <input type="file" id="pdf-input" accept=".pdf" style="display:none"
+        onchange="handlePDFUpload(this.files[0])">
+      <div class="parse-result" id="pdf-parse-result"></div>
+      <div class="modal-actions">
+        <button class="mbtn mbtn-secondary" onclick="hideModal()">Close</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ─── DATA ────────────────────────────────────────────────────
+const USD_INR = 94.55;
+
+// Holdings — each has shares, price (live), name, account key
+let holdings = {
+  'QQQM-fid-ind':  {sym:'QQQM', name:'Invesco Nasdaq 100 ETF',  shares:0,  price:0, acct:'fid-ind',  prevPrice:0},
+  'SCHG-fid-ind':  {sym:'SCHG', name:'Schwab US Large-Cap ETF', shares:0, price:0,  acct:'fid-ind',  prevPrice:0},
+  'TSLA-fid-ind':  {sym:'TSLA', name:'Tesla Inc',               shares:0,  price:0, acct:'fid-ind',  prevPrice:0},
+  'BMNR-fid-ind':  {sym:'BMNR', name:'Bitmine Immersion Tech',  shares:0, price:0,  acct:'fid-ind',  prevPrice:0},
+  'SPAXX-fid-ind': {sym:'SPAXX',name:'Fidelity Gov. Money Mkt', shares:0,    price:0,   acct:'fid-ind',  prevPrice:0},
+
+  'QQQM-fid-ira':  {sym:'QQQM', name:'Invesco Nasdaq 100 ETF',  shares:0,  price:0, acct:'fid-ira',  prevPrice:0},
+  'TSLA-fid-ira':  {sym:'TSLA', name:'Tesla Inc',               shares:0,  price:0, acct:'fid-ira',  prevPrice:0},
+  'AMZN-fid-ira':  {sym:'AMZN', name:'Amazon.com Inc',          shares:0,   price:0, acct:'fid-ira',  prevPrice:0},
+  'SPAXX-fid-ira': {sym:'SPAXX',name:'Fidelity Gov. Money Mkt', shares:0,   price:0,   acct:'fid-ira',  prevPrice:0},
+
+  'SP500-hartford':{sym:'SS S&P 500 INDEX K', name:'Hartford 401k · Large Blend', shares:0, price:0, acct:'hartford', prevPrice:0, yahooSym:'VOO'},
+
+  'QQQM-merrill':  {sym:'QQQM', name:'Invesco Nasdaq 100 ETF',  shares:0,    price:0, acct:'merrill',  prevPrice:0},
+  'CASH-merrill':  {sym:'CASH', name:'ML Direct Deposit Program',shares:0,    price:0,   acct:'merrill',  prevPrice:0},
+
+  'QQQM-fid-rh':   {sym:'QQQM', name:'Invesco Nasdaq 100 ETF (Roth)', shares:0, price:0, acct:'fid-rh', prevPrice:0},
+  'SPAXX-fid-rh':  {sym:'SPAXX',name:'Fidelity Gov. Money Mkt (Roth)', shares:0, price:0,  acct:'fid-rh', prevPrice:0},
+  'BMNR-fid-rh':   {sym:'BMNR', name:'Bitmine Immersion (HSA)',  shares:0,  price:0,  acct:'fid-rh',   prevPrice:0},
+  'FDRXX-fid-rh':  {sym:'FDRXX',name:'Fidelity Gov. Cash Reserves (HSA)', shares:0, price:0, acct:'fid-rh', prevPrice:0},
+  // ── Stallion Asset PMS — Core Fund (36 holdings, Apr 13 2026 statement) ─────
+  // Shares derived from stmt INR value ÷ Apr 28 live price (approximate)
+  // Stallion holdings — quantities & prices as of 13-Apr-2026 statement date
+  'BSE-stallion':         {sym:'BSE',         name:'BSE Ltd',                        shares:0,   price:0,  acct:'stallion', prevPrice:0,  inr:true},
+  'MUTHOOTFIN-stallion':  {sym:'MUTHOOTFIN',  name:'Muthoot Finance',                shares:0,   price:0,  acct:'stallion', prevPrice:0,  inr:true},
+  'M&M-stallion':         {sym:'M&M',         name:'Mahindra & Mahindra',            shares:0,   price:0,  acct:'stallion', prevPrice:0,  inr:true},
+  'ETERNAL-stallion':     {sym:'ETERNAL',     name:'Eternal Ltd (Zomato)',           shares:0,  price:0,   acct:'stallion', prevPrice:0,   inr:true},
+  'JEENASIKHO-stallion':  {sym:'JEENASIKHO',  name:'Jeena Sikho Lifecare',           shares:0,  price:0,   acct:'stallion', prevPrice:0,   inr:true, yahooSym:'JSLL.NS'},
+  'VISHALME-stallion':    {sym:'VMM',         name:'Vishal Mega Mart',               shares:0,  price:0,   acct:'stallion', prevPrice:0,   inr:true},
+  'POLYCAB-stallion':     {sym:'POLYCAB',     name:'Polycab India',                  shares:0,    price:0,  acct:'stallion', prevPrice:0,  inr:true},
+  'APOLLOHOSP-stallion':  {sym:'APOLLOHOSP',  name:'Apollo Hospitals',               shares:0,    price:0,  acct:'stallion', prevPrice:0,  inr:true},
+  'MCX-stallion':         {sym:'MCX',         name:'Multi Commodity Exchange',       shares:0,   price:0,  acct:'stallion', prevPrice:0,  inr:true},
+  'ICICIPRAMC-stallion':  {sym:'ICICIAMC',    name:'ICICI Prudential AMC',           shares:0,    price:0,  acct:'stallion', prevPrice:0,  inr:true},
+  'VBL-stallion':         {sym:'VBL',         name:'Varun Beverages',                shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
+  'HDFCNIFSMEP-stallion': {sym:'HDFCNIFSMEP', name:'HDFC Nifty Smallcap 250 ETF',   shares:0,  price:0,   acct:'stallion', prevPrice:0,   inr:true, yahooSym:'HDFCSML250.NS'},
+  'BLACKBUCK-stallion':   {sym:'BLACKBUCK',   name:'Blackbuck Ltd',                  shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
+  'BLS-stallion':         {sym:'BLS',         name:'BLS International Services',     shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
+  'PHARMABEES-stallion':  {sym:'PHARMABEES',  name:'Nippon India Nifty Pharma ETF',  shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
+  'LLOYDME-stallion':     {sym:'LLOYDSME',    name:'Lloyds Metals & Energy',         shares:0,   price:0,  acct:'stallion', prevPrice:0,  inr:true},
+  'NAM-INDIA-stallion':   {sym:'NAM-INDIA',   name:'Nippon Life India AMC',          shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
+  'NYKAA-stallion':       {sym:'NYKAA',       name:'FSN E-Commerce (Nykaa)',         shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
+  'BBGV-stallion':        {sym:'BBGV',        name:'BillionBrains Garage Ventures',  shares:0,   price:0,  acct:'stallion', prevPrice:0,  inr:true, yahooSym:'GROWW.NS'},
+  'SBIN-stallion':        {sym:'SBIN',        name:'State Bank of India',            shares:0,   price:0,  acct:'stallion', prevPrice:0,  inr:true},
+  'V2RETAIL-stallion':    {sym:'V2RETAIL',    name:'V2 Retail',                      shares:0,   price:0,  acct:'stallion', prevPrice:0,  inr:true},
+  'SKYGOLD-stallion':     {sym:'SKYGOLD',     name:'Sky Gold & Diamonds',            shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
+  'INDIGO-stallion':      {sym:'INDIGO',      name:'InterGlobe Aviation (IndiGo)',   shares:0,    price:0,  acct:'stallion', prevPrice:0,  inr:true},
+  'IKS-stallion':         {sym:'IKS',         name:'Inventurus Knowledge Solutions', shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
+  'ADANIPOWER-stallion':  {sym:'ADANIPOWER',  name:'Adani Power',                    shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
+  'COFORGE-stallion':     {sym:'COFORGE',     name:'Coforge Ltd',                    shares:0,    price:0,  acct:'stallion', prevPrice:0,  inr:true},
+  'ADANIENSOL-stallion':  {sym:'ADANIENSOL',  name:'Adani Energy Solutions',         shares:0,    price:0,  acct:'stallion', prevPrice:0,  inr:true},
+  'BHEL-stallion':        {sym:'BHEL',        name:'Bharat Heavy Electricals',       shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
+  'TRENT-stallion':       {sym:'TRENT',       name:'Trent Ltd',                      shares:0,    price:0,  acct:'stallion', prevPrice:0,  inr:true},
+  'ADITYAVISION-stallion':{sym:'ADITYAVISION',name:'Aditya Vision',                  shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true, yahooSym:'AVL.NS'},
+  'CARTRADE-stallion':    {sym:'CARTRADE',    name:'Cartrade Tech',                  shares:0,    price:0,  acct:'stallion', prevPrice:0,  inr:true},
+  'RATEGAIN-stallion':    {sym:'RATEGAIN',    name:'RateGain Travel Technologies',   shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
+  'GARFIBRES-stallion':   {sym:'GARFIBRES',   name:'Garware Hi-Tech Films',          shares:0,    price:0,  acct:'stallion', prevPrice:0,  inr:true},
+  'IXIGO-stallion':       {sym:'IXIGO',       name:'Le Travenues (Ixigo)',           shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
+  'TIMEXIND-stallion':    {sym:'TIMEXIND',    name:'Timex Group India',              shares:0,    price:0,   acct:'stallion', prevPrice:0,   inr:true, yahooSym:'TIMEX.BO'},
+  'CASH-stallion':        {sym:'CASH',        name:'Cash & Equivalents',             shares:0,price:0,     acct:'stallion', prevPrice:0,     inr:true},
+};
+
+// Account metadata
+const ACCTS = {
+  'fid-ind':   {label:'Fidelity Individual',  color:'var(--blue)',   fixed:false, inr:false, opts:0},
+  'fid-ira':   {label:'Fidelity Trad IRA',    color:'var(--blue)',   fixed:false, inr:false, opts:0},
+  'hartford':  {label:'Hartford 401(k)',       color:'var(--purple)', fixed:false, inr:false, opts:0},
+  'merrill':   {label:'Merrill CMA',           color:'var(--blue)',   fixed:false, inr:false, opts:0},
+  'fid-rh':    {label:'Fidelity Roth + HSA',  color:'var(--blue)',   fixed:false, inr:false, opts:0},
+  'pension':   {label:'Pension Plan',          color:'var(--amber)',  fixed:true,  inr:false, val:0, opts:0},
+  'stallion':  {label:'Stallion PMS',          color:'var(--teal)',   fixed:false, inr:true,  opts:0},
+  'niveshaay': {label:'Niveshaay AIF',         color:'var(--teal)',   fixed:true,  inr:false, val:0, opts:0},
+  'gold':      {label:'Physical Gold',         color:'var(--amber)',  fixed:true,  inr:false, val:0, opts:0},
+  'india-ind': {label:'India Individual',      color:'var(--teal)',   fixed:false, inr:true,  opts:0},
+  'india-ira': {label:'India Retirement',      color:'var(--teal)',   fixed:false, inr:true,  opts:0},
+};
+
+// State
+let excluded = new Set();
+let optionsOn = false;
+let currentView = 'account';
+let parsedData = [];
+let manualEdits = {};
+
+// ─── HELPERS ────────────────────────────────────────────────
+function $(id){ return document.getElementById(id); }
+function usd(n){ return '$' + Math.round(Math.abs(n)).toLocaleString(); }
+function inrCr(n){ return '₹' + (Math.abs(n)*USD_INR/10000000).toFixed(2)+' Cr'; }
+function pct(a,b){ return b>0?(a/b*100).toFixed(1)+'%':'0%'; }
+
+function goldUSD(){
+  const p = parseFloat($('gold-price').value)||135.83;
+  return 86 * 8 * (22/24) * p; // 630.67g fine * price
+}
+
+function acctVal(key){
+  if(ACCTS[key].fixed){
+    if(key==='gold') return goldUSD();
+    return ACCTS[key].val;
+  }
+  let v = 0;
+  Object.values(holdings).filter(h=>h.acct===key).forEach(h=>{
+    const posVal = h.shares * h.price;
+    v += h.inr ? posVal / (USD_INR_LIVE || 94.55) : posVal;  // convert INR to USD at live rate
+  });
+  if(optionsOn) v += ACCTS[key].opts;
+  return v;
+}
+
+// ─── RENDER HOLDINGS ────────────────────────────────────────
+function renderHoldingRows(){
+  const acctMap = {
+    'fid-ind':'rows-fid-ind','fid-ira':'rows-fid-ira',
+    'hartford':'rows-hartford','merrill':'rows-merrill','fid-rh':'rows-fid-rh',
+    'stallion':'rows-stallion',
+    'india-ind':'rows-india-ind','india-ira':'rows-india-ira'
+  };
+  Object.entries(acctMap).forEach(([acct, containerId])=>{
+    const el = $(containerId); if(!el) return;
+    const acctHoldings = Object.entries(holdings).filter(([,h])=>h.acct===acct);
+
+    // Show/hide India sections dynamically
+    if(acct === 'india-ind'){ const sec=$('sec-india-ind'); if(sec) sec.style.display=acctHoldings.length?'':'none'; }
+    if(acct === 'india-ira'){ const sec=$('sec-india-ira'); if(sec) sec.style.display=acctHoldings.length?'':'none'; }
+
+    if(acctHoldings.length === 0 && (acct==='india-ind'||acct==='india-ira')){
+      el.innerHTML=`<div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;padding:12px 0;text-align:center;">No holdings yet — use <b style='color:var(--green)'>↑ Upload Statement → + Add Stock</b></div>`;
+      return;
+    }
+
+    el.innerHTML = acctHoldings.map(([key,h])=>{
+      const val = h.shares * h.price;
+      // Today's change uses dayPrevClose when available, else falls back to statement prevPrice
+      const basePrice = h.dayPrevClose || h.prevPrice;
+      const prevVal = h.shares * basePrice;
+      const chg = val - prevVal;
+      const chgPct = basePrice>0 ? (chg/prevVal*100).toFixed(1) : 0;
+      const chgLabel = h.dayPrevClose ? 'today' : 'vs stmt';
+      const chgCls = chg>=0?'pos':'neg';
+      const chgSign = chg>=0?'+':'';
+      const curr = h.inr ? '₹' : '$';
+      const dispVal = h.inr ? '₹'+Math.round(val).toLocaleString('en-IN') : usd(val);
+      const dispChg = h.inr ? '₹'+Math.round(Math.abs(chg)).toLocaleString('en-IN') : usd(Math.abs(chg));
+      const usdEquiv = h.inr ? ' <span style="color:var(--muted)">~'+usd(val/USD_INR)+'</span>' : '';
+      const ySym = h.yahooSym || h.sym;
+      const tickerUrl = h.inr
+        ? 'https://www.nseindia.com/get-quotes/equity?symbol=' + encodeURIComponent(h.sym)
+        : 'https://finance.yahoo.com/quote/' + encodeURIComponent(ySym);
+      return `<div class="holding">
+        <div class="h-left">
+          <div class="h-ticker"><a href="${tickerUrl}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;border-bottom:1px solid rgba(255,255,255,0.15);transition:border-color .15s;" onmouseover="this.style.borderColor='var(--blue)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.15)'">${h.sym}</a>${h.inr?'<span style="font-size:9px;background:rgba(45,212,191,.15);color:var(--teal);padding:1px 5px;border-radius:4px;margin-left:5px;font-family:DM Mono,monospace;">NSE</span>':''}</div>
+          <div class="h-name">${h.name}</div>
+          <div class="h-meta">${h.shares.toFixed(h.inr?0:3)} sh · ${curr}${h.price.toLocaleString('en-IN')}/sh
+            <span class="${chgCls}"> ${chgSign}${chgPct}% ${chgLabel}</span>
+          </div>
+          <div class="h-edit-row" id="edit-row-${key}">
+            <span class="h-edit-label">Shares</span>
+            <input class="h-edit-input" id="edit-shares-${key}" type="number" value="${h.shares}" step="${h.inr?1:0.001}" min="0" style="width:90px">
+            <span class="h-edit-label" style="margin-left:4px">Price ${curr}</span>
+            <input class="h-edit-input" id="edit-price-${key}" type="number" value="${h.price}" step="${h.inr?0.05:0.01}" min="0" style="width:90px">
+            <button class="h-edit-save" onclick="saveEdit('${key}')">Save</button>
+            <button class="h-edit-cancel" onclick="cancelEdit('${key}')">✕</button>
+          </div>
+        </div>
+        <div class="h-right">
+          <div class="h-val">${dispVal}${usdEquiv}</div>
+          <div class="h-gl ${chgCls}">${chgSign}${dispChg} ${chgLabel}</div>
+          <button class="h-edit-btn" id="edit-btn-${key}" onclick="openEdit('${key}')">✎ edit</button>
+        </div>
+      </div>`;
+    }).join('');
+  });
+}
+
+function openEdit(key){
+  $(`edit-row-${key}`).classList.add('open');
+  $(`edit-btn-${key}`).style.display='none';
+  $(`edit-shares-${key}`).focus();
+}
+function cancelEdit(key){
+  $(`edit-row-${key}`).classList.remove('open');
+  $(`edit-btn-${key}`).style.display='block';
+}
+function saveEdit(key){
+  const newShares = parseFloat($(`edit-shares-${key}`).value);
+  const newPrice  = parseFloat($(`edit-price-${key}`).value);
+  let changed = false;
+  if(!isNaN(newShares) && newShares >= 0){ holdings[key].shares = newShares; changed = true; }
+  if(!isNaN(newPrice)  && newPrice  >  0){ holdings[key].price  = newPrice;  changed = true; }
+  if(changed){
+    const h = holdings[key];
+    logTransaction('Edited', h.sym, h.acct, h.shares, h.price, 'Manual edit');
+    renderHoldingRows(); recalc(); gsSave();
+  }
+  cancelEdit(key);
+}
+
+// ─── RECALC ────────────────────────────────────────────────
+function recalc(){
+  optionsOn = $('opt-toggle').checked;
+  ACCTS.gold.val = goldUSD();
+
+  // Per-account values
+  const vals = {};
+  Object.keys(ACCTS).forEach(k => vals[k] = excluded.has(k) ? 0 : acctVal(k));
+
+  const usTaxable  = vals['fid-ind'] + vals['merrill'];
+  const retirement = vals['fid-ira'] + vals['hartford'] + vals['fid-rh'] + vals['pension'];
+  const india      = vals['stallion'] + vals['niveshaay'] + vals['india-ind'] + vals['india-ira'];
+  const gold       = vals['gold'];
+  const grand      = usTaxable + retirement + india + gold;
+
+  // Update account header vals
+  const hdrMap = {
+    'fid-ind':'hdr-fid-ind','fid-ira':'hdr-fid-ira',
+    'hartford':'hdr-hartford','merrill':'hdr-merrill','fid-rh':'hdr-fid-rh','gold':'hdr-gold',
+    'stallion':'hdr-stallion',
+    'india-ind':'hdr-india-ind','india-ira':'hdr-india-ira'
+  };
+  Object.entries(hdrMap).forEach(([k,id])=>{ if($(id)) $(id).textContent = usd(acctVal(k)); });
+
+  // Stallion live value box
+  const slv = $('stallion-live-val');
+  if(slv){
+    const liveINR = Object.entries(holdings)
+      .filter(([,h]) => h.acct==='stallion' && h.sym!=='CASH')
+      .reduce((s,[,h]) => s + h.shares * h.price, 0);
+    const lakh = liveINR / 100000;
+    slv.textContent = '₹' + lakh.toFixed(2) + 'L';
+    const stmtINR = 0;
+    slv.style.color = liveINR >= stmtINR ? 'var(--green)' : 'var(--red)';
+  }
+
+  // Section totals
+  [['fid-ind','tot-fid-ind','lbl-fid-ind'],['fid-ira','tot-fid-ira','lbl-fid-ira'],['fid-rh','tot-fid-rh','lbl-fid-rh']].forEach(([k,tv,lv])=>{
+    if($(tv)) $(tv).textContent = usd(acctVal(k));
+    if($(lv)) $(lv).textContent = optionsOn ? 'equities + options' : 'equities only';
+  });
+
+  // Gold display
+  const gUSD = goldUSD();
+  if($('gold-usd-val')) $('gold-usd-val').textContent = usd(gUSD);
+  if($('gold-inr-val')) $('gold-inr-val').textContent = '₹'+(gUSD*USD_INR/100000).toFixed(2)+'L';
+
+  // Options visibility
+  ['opts-fid-ind','opts-fid-ira','opts-fid-hsa'].forEach(id=>{
+    const el=$(id); if(el) el.className='opts-wrap'+(optionsOn?' open':'');
+  });
+
+  // Daily change helpers
+  function acctDayChg(acctKey) {
+    return Object.values(holdings)
+      .filter(h => h.acct === acctKey && h.sym !== 'CASH' && h.dayPrevClose && h.price)
+      .reduce((sum, h) => {
+        const chg = h.shares * (h.price - h.dayPrevClose);
+        return sum + (h.inr ? chg / USD_INR : chg);
+      }, 0);
+  }
+  function hasLiveChg(acctKey) {
+    return Object.values(holdings).some(h => h.acct === acctKey && h.dayPrevClose && h.price);
+  }
+  function fmtAcctChg(chg, base, hasLive) {
+    if (!hasLive || Math.abs(chg) < 0.01) return '';
+    const sign = chg >= 0 ? '+' : '';
+    const pct = base > 0.01 ? (Math.abs(chg) / base * 100).toFixed(1) : '0.0';
+    const color = chg >= 0 ? 'var(--green)' : 'var(--red)';
+    return `<span style="color:${color};font-size:9px">${sign}${usd(chg)} (${sign}${pct}%) today</span>`;
+  }
+  function fmtMetricChg(chg, base, hasLive) {
+    if (!hasLive || Math.abs(chg) < 0.01) return '';
+    const sign = chg >= 0 ? '+' : '';
+    const pct = base > 0 ? (Math.abs(chg)/base*100).toFixed(1) : '0.0';
+    const color = chg >= 0 ? 'var(--green)' : 'var(--red)';
+    return `<span style="color:${color}">${sign}${usd(chg)}&thinsp;(${sign}${chg>=0?'':'-'}${pct}%)&thinsp;today</span>`;
+  }
+
+  // Per-account daily changes
+  const liveAccts = ['fid-ind','fid-ira','hartford','merrill','fid-rh','stallion','gold','india-ind','india-ira'];
+  const dayChgs = {};
+  liveAccts.forEach(k => { dayChgs[k] = acctDayChg(k); });
+
+  // Update section header change badges
+  liveAccts.forEach(k => {
+    const el = $('chg-' + k);
+    if (el) el.innerHTML = fmtAcctChg(dayChgs[k], acctVal(k) - dayChgs[k], hasLiveChg(k));
+  });
+
+  // Aggregate daily changes
+  const usDayChg    = dayChgs['fid-ind'] + dayChgs['merrill'] + dayChgs['fid-ira'] + dayChgs['hartford'] + dayChgs['fid-rh'];
+  const indiaDayChg = dayChgs['stallion'] + dayChgs['gold'] + dayChgs['india-ind'] + dayChgs['india-ira'];
+  const totalDayChg = usDayChg + indiaDayChg;
+  const usHasLive   = ['fid-ind','fid-ira','hartford','merrill','fid-rh'].some(k => hasLiveChg(k));
+  const indiaHasLive = ['stallion','gold','india-ind','india-ira'].some(k => hasLiveChg(k));
+  const totalHasLive = usHasLive || indiaHasLive;
+
+  // Metrics
+  if($('m-total')) $('m-total').textContent = usd(grand);
+  if($('m-inr'))   $('m-inr').textContent   = inrCr(grand);
+  if($('m-us'))    $('m-us').textContent     = usd(usTaxable+retirement);
+  if($('m-india')) $('m-india').textContent  = usd(india+gold);
+  if($('m-india-sub')) $('m-india-sub').textContent = inrCr((india+gold)) + ' · PMS+AIF+Gold';
+  if($('m-total-sub')) $('m-total-sub').textContent = lastRefresh
+    ? 'as of ' + lastRefresh.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})
+    : 'refresh prices to see live data';
+  if($('m-us-sub') && !usHasLive) $('m-us-sub').textContent = 'Taxable + Retirement';
+
+  // Metric card daily change badges
+  if($('m-total-chg')) $('m-total-chg').innerHTML = fmtMetricChg(totalDayChg, grand - totalDayChg, totalHasLive);
+  if($('m-us-chg'))    $('m-us-chg').innerHTML    = fmtMetricChg(usDayChg,    (usTaxable+retirement) - usDayChg, usHasLive);
+  if($('m-india-chg')) $('m-india-chg').innerHTML = fmtMetricChg(indiaDayChg, (india+gold) - indiaDayChg, indiaHasLive);
+
+  // Alloc bar
+  const segments = [
+    {val:vals['fid-ind'],    color:'#60a5fa', label:'Fidelity Indiv'},
+    {val:vals['fid-ira'],    color:'#3b82f6', label:'Fidelity IRA'},
+    {val:vals['hartford'],   color:'#8b5cf6', label:'Hartford 401k'},
+    {val:vals['merrill'],    color:'#1d4ed8', label:'Merrill'},
+    {val:vals['fid-rh'],     color:'#93c5fd', label:'Roth+HSA'},
+    {val:vals['pension'],    color:'#fbbf24', label:'Pension'},
+    {val:vals['stallion'],   color:'#2dd4bf', label:'Stallion'},
+    {val:vals['gold'],       color:'#f59e0b', label:'Gold'},
+    {val:vals['niveshaay'],  color:'#0f766e', label:'Niveshaay'},
+    {val:vals['india-ind'],  color:'#14b8a6', label:'India Indiv'},
+    {val:vals['india-ira'],  color:'#0d9488', label:'India Retire'},
+  ].filter(s=>s.val>0);
+  const barEl=$('alloc-bar'), legEl=$('alloc-legend');
+  if(barEl && grand>0){
+    barEl.innerHTML=segments.map(s=>`<div class="alloc-seg" style="width:${(s.val/grand*100).toFixed(1)}%;background:${s.color}"></div>`).join('');
+    legEl.innerHTML=segments.map(s=>`<div class="alloc-item"><div class="alloc-dot" style="background:${s.color}"></div>${s.label} ${usd(s.val)}</div>`).join('');
+  }
+
+  // Group view
+  buildGroupView(usTaxable, retirement, india+gold, gold, grand, vals);
+
+  // Manage panel
+  buildManagePanel(vals);
+
+  // Summary
+  const optLbl = optionsOn ? 'OPTIONS INCLUDED' : 'OPTIONS EXCLUDED';
+  if($('sum-label')) $('sum-label').textContent = 'TOTAL NET WORTH · ' + optLbl;
+  if($('sum-val'))   $('sum-val').textContent   = usd(grand);
+  if($('sum-inr'))   $('sum-inr').textContent   = inrCr(grand);
+  if($('sum-sub'))   $('sum-sub').textContent   = inrCr(grand) + ' · 9 accounts + gold · 2 countries';
+  if($('sum-breakdown')) $('sum-breakdown').innerHTML =
+    `US Taxable: <span style="color:var(--blue)">${usd(usTaxable)}</span><br>Retirement: <span style="color:var(--purple)">${usd(retirement)}</span><br>India+Gold: <span style="color:var(--teal)">${usd(india+gold)}</span>`;
+
+  // Excluded sections
+  Object.keys(ACCTS).forEach(k=>{
+    const el=$('sec-'+k); if(el) el.classList.toggle('excluded',excluded.has(k));
+  });
+
+  // Instant save to localStorage (survives refresh even without Sheets)
+  saveLocal();
+
+  // Auto-save to Google Sheets (debounced 2s)
+  scheduleGsSave();
+}
+
+// Auto-snapshot once per day (if no snapshot today)
+function maybeAutoSnapshot(){
+  if(!historySnapshots.length) return; // wait for manual first snapshot
+  if(!gsUrl) return; // only auto-snapshot when connected to Sheets
+  const last = historySnapshots[historySnapshots.length-1];
+  const today = new Date().toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});
+  if(last.date !== today){ saveHistorySnapshot(); }
+}
+
+function buildGroupView(usTax, retire, indiaGold, gold, grand, vals){
+  const gc = $('group-grid'); if(!gc) return;
+  const groups = [
+    {label:'US Taxable Brokerage', val:usTax, color:'#60a5fa', grad:'linear-gradient(90deg,#60a5fa,#3b82f6)',
+     rows:[{n:'Fidelity Individual TOD',s:'QQQM · SCHG · TSLA · BMNR',v:vals['fid-ind']},{n:'Merrill CMA',s:'450 sh QQQM · cash',v:vals['merrill']}]},
+    {label:'Retirement Accounts', val:retire, color:'#a78bfa', grad:'linear-gradient(90deg,#a78bfa,#8b5cf6)',
+     rows:[{n:'Fidelity Traditional IRA',s:'QQQM · TSLA · AMZN',v:vals['fid-ira']},{n:'Hartford 401(k)',s:'SS S&P 500 Index K',v:vals['hartford']},{n:'Fidelity Roth + HSA',s:'QQQM · BMNR',v:vals['fid-rh']},{n:'Pension Plan',s:'As of Dec 2025',v:vals['pension']}]},
+    {label:'India + Physical Gold', val:indiaGold, color:'#2dd4bf', grad:'linear-gradient(90deg,#2dd4bf,#0f766e)',
+     rows:[{n:'Stallion Asset PMS',s:'36 holdings · live prices',v:vals['stallion']},{n:'Niveshaay AIF B9',s:'units · —',v:vals['niveshaay']},{n:'Physical Gold (86 Sovereigns)',s:'688g 22K · live price',v:vals['gold']},...(vals['india-ind']>0?[{n:'India Individual',s:'NSE/BSE custom holdings',v:vals['india-ind']}]:[]),...(vals['india-ira']>0?[{n:'India Retirement',s:'NPS/PPF/EPF holdings',v:vals['india-ira']}]:[])]},
+  ];
+  gc.innerHTML = groups.map((g,i)=>`
+    <div class="gc" id="gc-${i}" onclick="this.classList.toggle('open')">
+      <div class="gc-accent" style="background:${g.grad}"></div>
+      <div class="gc-label">${g.label}</div>
+      <div class="gc-val" style="color:${g.color}">${usd(g.val)}</div>
+      <div class="gc-pct">${pct(g.val,grand)} of net worth</div>
+      <div class="gc-mini-bar">${g.rows.map(r=>`<div class="alloc-seg" style="width:${g.val>0?(r.v/g.val*100).toFixed(1):0}%;background:${g.color};opacity:${g.rows.indexOf(r)===0?1:.6}"></div>`).join('')}</div>
+      <div class="gc-expand">details</div>
+      <div class="gc-body">
+        <div class="gc-divider"></div>
+        ${g.rows.map(r=>`<div class="gc-row"><div><div class="gc-row-name">${r.n}</div><div class="gc-row-sub">${r.s}</div></div><div class="gc-row-val">${usd(r.v)}</div></div>`).join('')}
+        <div class="gc-total"><span>Total</span><span style="color:${g.color}">${usd(g.val)}</span></div>
+      </div>
+    </div>`).join('');
+}
+
+function buildManagePanel(vals){
+  const g = $('manage-grid'); if(!g) return;
+  g.innerHTML = Object.entries(ACCTS).map(([k,a])=>{
+    // Hide empty India custom sections
+    if((k==='india-ind'||k==='india-ira') && Object.values(holdings).filter(h=>h.acct===k).length===0) return '';
+    return `<div class="manage-item${excluded.has(k)?' excluded':''}" onclick="toggleExclude('${k}')">
+      <div class="manage-dot"></div>
+      <div class="manage-label">${a.label}</div>
+      <div class="manage-val">${usd(acctVal(k))}</div>
+    </div>`;
+  }).join('');
+}
+
+function toggleExclude(key){
+  if(excluded.has(key)) excluded.delete(key);
+  else excluded.add(key);
+  recalc();
+}
+
+// ─── VIEW TOGGLE ────────────────────────────────────────────
+function setView(v){
+  currentView = v;
+  $('group-view').classList.toggle('hidden', v!=='group');
+  $('account-view').classList.toggle('hidden', v!=='account');
+  $('vbtn-account').classList.toggle('active', v==='account');
+  $('vbtn-group').classList.toggle('active', v==='group');
+}
+
+// ─── SECTION EXPAND ────────────────────────────────────────
+function toggleSec(hdr){
+  const sec = hdr.parentElement;
+  const body = sec.querySelector('.sec-body');
+  const chev = hdr.querySelector('.chevron');
+  hdr.classList.toggle('open');
+  if(body) body.classList.toggle('open');
+  if(chev) chev.classList.toggle('open');
+}
+
+// ─── MANAGE PANEL ──────────────────────────────────────────
+function toggleManage(){
+  const p=$('manage-panel'), b=$('btn-manage');
+  const isOpen = p.classList.toggle('open');
+  b.classList.toggle('active', isOpen);
+}
+
+// ─── UPLOAD MODAL ──────────────────────────────────────────
+function showModal(){
+  $('upload-modal').classList.add('open');
+  buildManualEditGrid();
+}
+function hideModal(){
+  $('upload-modal').classList.remove('open');
+}
+
+function switchTab(t){
+  ['fidelity','merrill','stallion','manual','add','pdf'].forEach(name=>{
+    $('tab-'+name).style.display = name===t?'block':'none';
+    $('tab-'+name+'-btn').classList.toggle('active', name===t);
+  });
+  if(t==='manual') buildManualEditGrid();
+}
+
+// ─── CSV PARSER (Fidelity) ──────────────────────────────────
+function onDrop(e){
+  e.preventDefault(); $('drop-zone').classList.remove('drag');
+  const f = e.dataTransfer.files[0]; if(f) readCSV(f);
+}
+function onFileSelect(f){ if(f) readCSV(f); }
+
+function readCSV(file){
+  if(!file.name.toLowerCase().endsWith('.csv')){ alert('Please upload a .csv file from Fidelity.'); return; }
+  const r = new FileReader();
+  r.onload = e => parseCSV(e.target.result, file.name);
+  r.readAsText(file);
+}
+
+function parseCSV(text, fname){
+  const lines = text.split('\n').map(l=>l.trim()).filter(l=>l);
+  parsedData = [];
+  let hi = -1;
+  for(let i=0;i<lines.length;i++){
+    if(lines[i].includes('Symbol')&&lines[i].includes('Current Value')){ hi=i; break; }
+  }
+  if(hi<0){ showParseErr('Could not find Fidelity CSV header row. Make sure you exported from Positions tab.'); return; }
+  const hdrs = splitCSV(lines[hi]);
+  const si = hdrs.findIndex(h=>h.includes('Symbol'));
+  const di = hdrs.findIndex(h=>h.includes('Description'));
+  const qi = hdrs.findIndex(h=>h.includes('Quantity'));
+  const pi = hdrs.findIndex(h=>h.includes('Last Price')&&!h.includes('Change'));
+  const vi = hdrs.findIndex(h=>h.includes('Current Value'));
+  const ai = hdrs.findIndex(h=>h.includes('Account Name')||h.includes('Account'));
+  for(let i=hi+1;i<lines.length;i++){
+    const c = splitCSV(lines[i]);
+    if(c.length<4) continue;
+    const sym = (c[si]||'').replace(/"/g,'').trim();
+    if(!sym||sym==='Symbol'||sym.startsWith('--')) continue;
+    const qty = parseFloat((c[qi]||'').replace(/[",]/g,''))||0;
+    const price= parseFloat((c[pi]||'').replace(/[",$ ]/g,''))||0;
+    const val  = parseFloat((c[vi]||'').replace(/[",$ ]/g,''))||0;
+    const desc = (c[di]||'').replace(/"/g,'').trim();
+    const acct = ai>=0?(c[ai]||'').replace(/"/g,'').trim():'';
+    if(val===0&&qty===0) continue;
+    parsedData.push({sym,desc,qty,price,val,acct});
+  }
+  if(parsedData.length===0){ showParseErr('No holdings found. Check the file format.'); return; }
+  const res=$('parse-result'), rows=$('parse-rows'), hdr=$('parse-hdr'), btn=$('apply-csv-btn');
+  hdr.textContent = parsedData.length+' holdings found in '+fname;
+  rows.innerHTML = parsedData.map(h=>`<div class="parse-row"><div><span class="parse-sym">${h.sym}</span>${h.acct?' <span style="font-size:9px;color:var(--muted)">'+h.acct.substring(0,22)+'</span>':''}<div style="font-size:10px;color:var(--muted)">${h.desc.substring(0,38)} ${h.qty?'· '+h.qty.toFixed(3)+' sh':''}</div></div><span class="parse-amt">$${Math.round(h.val).toLocaleString()}</span></div>`).join('');
+  res.classList.add('show'); btn.style.display='inline-block';
+}
+
+function showParseErr(msg){
+  const r=$('parse-result'); r.classList.add('show');
+  $('parse-rows').innerHTML=`<div style="color:var(--red);font-size:11px;padding:8px 0">${msg}</div>`;
+  $('apply-csv-btn').style.display='none';
+}
+
+function splitCSV(line){
+  const r=[]; let cur='',q=false;
+  for(const c of line){
+    if(c==='"'){q=!q;}
+    else if(c===','&&!q){r.push(cur.trim());cur='';}
+    else cur+=c;
+  }
+  r.push(cur.trim()); return r;
+}
+
+function applyCSV(){
+  const totals={};
+  parsedData.forEach(h=>{
+    const a=h.acct.toLowerCase();
+    let k='other';
+    if(a.includes('individual')||a.includes('tod')) k='fid-ind';
+    else if(a.includes('traditional')||a.includes('trad')) k='fid-ira';
+    else if(a.includes('roth')) k='roth';
+    else if(a.includes('hsa')||a.includes('health')) k='hsa';
+    totals[k]=(totals[k]||0)+h.val;
+
+    // Update prices in holdings object
+    const hKey = h.sym+'-'+k;
+    if(holdings[hKey]){ holdings[hKey].price=h.price; }
+    // Try both account keys
+    ['fid-ind','fid-ira','fid-rh','merrill','hartford'].forEach(acct=>{
+      const hk=h.sym+'-'+acct;
+      if(holdings[hk]&&h.price>0) holdings[hk].price=h.price;
+    });
+  });
+  parsedData.forEach(h => {
+    if(h.qty > 0 && h.val > 0) logTransaction('CSV Import', h.sym, 'fid-ind', h.qty, h.price, 'Fidelity CSV');
+  });
+  renderHoldingRows(); recalc(); hideModal();
+  alert(`Applied! Updated ${parsedData.length} holdings from CSV.`);
+}
+
+// ─── STALLION UPDATE ────────────────────────────────────────
+const stallionInput = document.getElementById('stallion-inr-input');
+if(stallionInput){
+  stallionInput.addEventListener('input',()=>{
+    const inr = parseFloat(stallionInput.value)||0;
+    const usdV = inr/USD_INR;
+    const el=$('stallion-usd-preview');
+    if(el) el.textContent = '~$'+Math.round(usdV).toLocaleString();
+  });
+}
+function applyStallion(){
+  const inr = parseFloat($('stallion-inr-input').value)||0;
+  if(!inr || inr <= 0) return;
+  // Scale all non-cash Stallion holding prices proportionally to match new total
+  const stallionHoldings = Object.values(holdings).filter(h => h.acct === 'stallion' && h.sym !== 'CASH');
+  const cashHolding = Object.values(holdings).find(h => h.acct === 'stallion' && h.sym === 'CASH');
+  const currentEquity = stallionHoldings.reduce((s,h) => s + h.shares * h.price, 0);
+  const targetEquity = inr - (cashHolding ? cashHolding.shares : 0);
+  if(currentEquity > 0 && targetEquity > 0){
+    const scale = targetEquity / currentEquity;
+    stallionHoldings.forEach(h => { h.prevPrice = h.price; h.price = parseFloat((h.price * scale).toFixed(2)); });
+  }
+  renderHoldingRows(); recalc(); gsSave(); hideModal();
+}
+
+// ─── MANUAL EDIT GRID ───────────────────────────────────────
+function buildManualEditGrid(){
+  const g=$('manual-edit-grid'); if(!g) return;
+  const rows=[];
+  Object.entries(holdings).forEach(([key,h])=>{
+    rows.push({key, label:`${h.sym} (${ACCTS[h.acct]?.label||h.acct})`, price:h.price, shares:h.shares, hasShares:true});
+  });
+  rows.push({key:'gold-price-manual', label:'22K Gold price/gram (USD)', price:parseFloat($('gold-price').value)||135.83, shares:null});
+  rows.push({key:'stallion-total', label:'Stallion PMS (INR total)', price:Math.round(ACCTS.stallion.val*USD_INR), shares:null, isINR:true});
+  rows.push({key:'niveshaay-total', label:'Niveshaay AIF (INR total)', price:Math.round(ACCTS.niveshaay.val*USD_INR), shares:null, isINR:true});
+
+  g.innerHTML = rows.map(r=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--bg3);border-radius:7px;border:1px solid var(--border);gap:8px;flex-wrap:wrap;">
+      <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted2);flex:1;min-width:120px;">${r.label}</div>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        ${r.hasShares ? `<div style="display:flex;align-items:center;gap:4px;"><span style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">shares</span><input type="number" value="${r.shares.toFixed(3)}" step="0.001" min="0" style="font-family:'DM Mono',monospace;font-size:12px;background:var(--bg2);border:1px solid var(--border2);border-radius:5px;color:var(--text);padding:3px 7px;width:100px;text-align:right;" oninput="manualEdits['shares__${r.key}']=parseFloat(this.value)"></div>` : ''}
+        <div style="display:flex;align-items:center;gap:4px;"><span style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${r.isINR?'₹':'$'}</span><input type="number" value="${r.price}" step="${r.isINR?1000:0.01}" style="font-family:'DM Mono',monospace;font-size:12px;background:var(--bg2);border:1px solid var(--border2);border-radius:5px;color:var(--text);padding:3px 7px;width:100px;text-align:right;" oninput="manualEdits['${r.key}']=parseFloat(this.value)||0"></div>
+      </div>
+    </div>`).join('');
+}
+
+function applyManual(){
+  Object.entries(manualEdits).forEach(([key,val])=>{
+    if(key.startsWith('shares__')){
+      const hkey = key.replace('shares__','');
+      if(holdings[hkey] && val >= 0) holdings[hkey].shares = val;
+    } else if(key==='gold-price-manual'){
+      $('gold-price').value = val;
+    } else if(key==='stallion-total'){
+      ACCTS.stallion.val = val/USD_INR;
+    } else if(key==='niveshaay-total'){
+      ACCTS.niveshaay.val = val/USD_INR;
+    } else if(holdings[key]){
+      holdings[key].price = val;
+    }
+  });
+  manualEdits={};
+  renderHoldingRows(); recalc(); gsSave(); hideModal();
+}
+
+// ─── ADD STOCK ───────────────────────────────────────────────
+function isIndiaAcct(){ return ($('add-acct').value||'').startsWith('india-'); }
+
+function updateAddCurrency(){
+  const isIndia = isIndiaAcct();
+  const lbl = $('add-price-label');
+  const inp = $('add-price');
+  if(lbl) lbl.textContent = isIndia ? 'Price per share (INR ₹) *' : 'Price per share (USD $) *';
+  if(inp){ inp.placeholder = isIndia ? 'e.g. 3500' : 'e.g. 135.50'; inp.step = isIndia ? '0.05' : '0.01'; }
+  updateAddPreview();
+}
+
+// Live preview as user types
+['add-name','add-shares','add-price','add-acct'].forEach(id=>{
+  const el = document.getElementById(id);
+  if(el) el.addEventListener('input', updateAddPreview);
+});
+
+function updateAddPreview(){
+  const sym    = ($('add-sym').value||'').trim().toUpperCase();
+  const name   = ($('add-name').value||'').trim();
+  const shares = parseFloat($('add-shares').value)||0;
+  const price  = parseFloat($('add-price').value)||0;
+  const acct   = $('add-acct').value;
+  const isIndia = acct.startsWith('india-');
+  const val    = shares * price;
+  const prev   = $('add-preview');
+  const acctLabel = ACCTS[acct]?.label || acct;
+
+  if(sym && shares > 0 && price > 0){
+    prev.style.display = 'block';
+    $('prev-sym').textContent  = sym;
+    $('prev-name').textContent = name || sym;
+    $('prev-meta').textContent = (isIndia ? Math.round(shares) : shares.toFixed(3)) + ' shares · ' + (isIndia ? '₹' : '$') + price.toLocaleString('en-IN') + '/sh';
+    if(isIndia){
+      $('prev-val').textContent = '₹' + Math.round(val).toLocaleString('en-IN') + '  (~' + usd(val/USD_INR) + ')';
+    } else {
+      $('prev-val').textContent = usd(val);
+    }
+    $('prev-acct').textContent = acctLabel + (isIndia ? ' · NSE/BSE' : '');
+    $('prev-val').style.color  = isIndia ? 'var(--teal)' : 'var(--green)';
+  } else {
+    prev.style.display = 'none';
+  }
+}
+
+function addStock(){
+  const sym    = ($('add-sym').value||'').trim().toUpperCase();
+  const name   = ($('add-name').value||'').trim() || sym;
+  const shares = parseFloat($('add-shares').value);
+  const price  = parseFloat($('add-price').value);
+  const acct   = $('add-acct').value;
+  const isIndia = acct.startsWith('india-');
+  const errEl  = $('add-err');
+
+  // Validate
+  errEl.style.display = 'none';
+  if(!sym){ errEl.textContent='Ticker symbol is required.'; errEl.style.display='block'; return; }
+  if(isNaN(shares)||shares<=0){ errEl.textContent='Enter a valid number of shares.'; errEl.style.display='block'; return; }
+  if(isNaN(price)||price<=0){ errEl.textContent='Enter a valid price per share.'; errEl.style.display='block'; return; }
+
+  // Build unique key
+  let key = sym + '-' + acct;
+  if(holdings[key]){ key = sym + '-' + acct + '-' + Date.now(); }
+
+  holdings[key] = { sym, name, shares, price, acct, prevPrice: price, inr: isIndia, custom: true };
+
+  // Reset form
+  ['add-sym','add-name','add-shares','add-price'].forEach(id=>{ const el=$(id); if(el) el.value=''; });
+  $('add-preview').style.display = 'none';
+
+  logTransaction('Added', sym, acct, shares, price, name);
+  renderHoldingRows();
+  recalc();
+  gsSave();
+  hideModal();
+
+  // Flash the correct section
+  const secId = isIndia ? 'sec-india-custom' : 'sec-'+acct;
+  const sec = $(secId) || $('sec-'+acct);
+  if(sec){ sec.style.outline='2px solid var(--green)'; setTimeout(()=>sec.style.outline='',1500); }
+}
+
+// ─── TICKER SEARCH (Yahoo Finance live + local fallback) ────────
+// Compact local fallback — used when offline or API fails
+const LOCAL_DB = [
+  // US ETFs & common
+  {s:'SPY',n:'SPDR S&P 500 ETF',x:'NYSE'},{s:'QQQ',n:'Invesco Nasdaq 100 ETF',x:'NASDAQ'},
+  {s:'QQQM',n:'Invesco Nasdaq 100 ETF Mini',x:'NASDAQ'},{s:'VOO',n:'Vanguard S&P 500 ETF',x:'NYSE'},
+  {s:'VTI',n:'Vanguard Total Stock Market ETF',x:'NYSE'},{s:'IVV',n:'iShares Core S&P 500',x:'NYSE'},
+  {s:'SCHG',n:'Schwab US Large-Cap Growth ETF',x:'NYSE'},{s:'VGT',n:'Vanguard Information Technology ETF',x:'NYSE'},
+  {s:'XLK',n:'Technology Select SPDR',x:'NYSE'},{s:'GLD',n:'SPDR Gold Shares',x:'NYSE'},
+  {s:'ARKK',n:'ARK Innovation ETF',x:'NYSE'},{s:'BND',n:'Vanguard Total Bond Market',x:'NYSE'},
+  {s:'SPAXX',n:'Fidelity Gov. Money Market',x:'FIDELITY'},{s:'FDRXX',n:'Fidelity Gov. Cash Reserves',x:'FIDELITY'},
+  // US Mega-caps
+  {s:'AAPL',n:'Apple Inc',x:'NASDAQ'},{s:'MSFT',n:'Microsoft Corporation',x:'NASDAQ'},
+  {s:'NVDA',n:'Nvidia Corporation',x:'NASDAQ'},{s:'GOOGL',n:'Alphabet Inc Class A',x:'NASDAQ'},
+  {s:'AMZN',n:'Amazon.com Inc',x:'NASDAQ'},{s:'META',n:'Meta Platforms Inc',x:'NASDAQ'},
+  {s:'TSLA',n:'Tesla Inc',x:'NASDAQ'},{s:'AVGO',n:'Broadcom Inc',x:'NASDAQ'},
+  {s:'JPM',n:'JPMorgan Chase & Co',x:'NYSE'},{s:'V',n:'Visa Inc',x:'NYSE'},
+  {s:'UNH',n:'UnitedHealth Group',x:'NYSE'},{s:'XOM',n:'Exxon Mobil',x:'NYSE'},
+  {s:'LLY',n:'Eli Lilly and Company',x:'NYSE'},{s:'MA',n:'Mastercard Inc',x:'NYSE'},
+  {s:'WMT',n:'Walmart Inc',x:'NYSE'},{s:'BMNR',n:'Bitmine Immersion Technologies',x:'NYSE'},
+  {s:'PLTR',n:'Palantir Technologies',x:'NYSE'},{s:'COIN',n:'Coinbase Global',x:'NASDAQ'},
+  {s:'SNOW',n:'Snowflake Inc',x:'NYSE'},{s:'CRWD',n:'CrowdStrike Holdings',x:'NASDAQ'},
+  {s:'INFY',n:'Infosys (ADR)',x:'NYSE'},{s:'HDB',n:'HDFC Bank (ADR)',x:'NYSE'},
+  // NSE India
+  {s:'RELIANCE',n:'Reliance Industries Ltd',x:'NSE',inr:true},
+  {s:'TCS',n:'Tata Consultancy Services',x:'NSE',inr:true},
+  {s:'HDFCBANK',n:'HDFC Bank Ltd',x:'NSE',inr:true},
+  {s:'INFY',n:'Infosys Ltd',x:'NSE',inr:true},
+  {s:'ICICIBANK',n:'ICICI Bank Ltd',x:'NSE',inr:true},
+  {s:'HINDUNILVR',n:'Hindustan Unilever Ltd',x:'NSE',inr:true},
+  {s:'SBIN',n:'State Bank of India',x:'NSE',inr:true},
+  {s:'BAJFINANCE',n:'Bajaj Finance Ltd',x:'NSE',inr:true},
+  {s:'BHARTIARTL',n:'Bharti Airtel Ltd',x:'NSE',inr:true},
+  {s:'KOTAKBANK',n:'Kotak Mahindra Bank',x:'NSE',inr:true},
+  {s:'LT',n:'Larsen & Toubro Ltd',x:'NSE',inr:true},
+  {s:'MARUTI',n:'Maruti Suzuki India',x:'NSE',inr:true},
+  {s:'TITAN',n:'Titan Company Ltd',x:'NSE',inr:true},
+  {s:'AXISBANK',n:'Axis Bank Ltd',x:'NSE',inr:true},
+  {s:'ASIANPAINT',n:'Asian Paints Ltd',x:'NSE',inr:true},
+  {s:'DMART',n:'Avenue Supermarts (DMart)',x:'NSE',inr:true},
+  {s:'WIPRO',n:'Wipro Ltd',x:'NSE',inr:true},
+  {s:'HCLTECH',n:'HCL Technologies Ltd',x:'NSE',inr:true},
+  {s:'ITC',n:'ITC Ltd',x:'NSE',inr:true},
+  {s:'ADANIENT',n:'Adani Enterprises Ltd',x:'NSE',inr:true},
+  {s:'ADANIPORTS',n:'Adani Ports & SEZ Ltd',x:'NSE',inr:true},
+  {s:'ADANIPOWER',n:'Adani Power Ltd',x:'NSE',inr:true},
+  {s:'M&M',n:'Mahindra & Mahindra Ltd',x:'NSE',inr:true},
+  {s:'TATAMOTORS',n:'Tata Motors Ltd',x:'NSE',inr:true},
+  {s:'SUNPHARMA',n:'Sun Pharmaceutical Industries',x:'NSE',inr:true},
+  {s:'CIPLA',n:'Cipla Ltd',x:'NSE',inr:true},
+  {s:'DRREDDY',n:'Dr. Reddys Laboratories',x:'NSE',inr:true},
+  {s:'NESTLEIND',n:'Nestle India Ltd',x:'NSE',inr:true},
+  {s:'BRITANNIA',n:'Britannia Industries',x:'NSE',inr:true},
+  {s:'POLYCAB',n:'Polycab India Ltd',x:'NSE',inr:true},
+  {s:'APOLLOHOSP',n:'Apollo Hospitals Enterprises',x:'NSE',inr:true},
+  {s:'BSE',n:'BSE Ltd',x:'NSE',inr:true},
+  {s:'MCX',n:'Multi Commodity Exchange',x:'NSE',inr:true},
+  {s:'MUTHOOTFIN',n:'Muthoot Finance Ltd',x:'NSE',inr:true},
+  {s:'TRENT',n:'Trent Ltd',x:'NSE',inr:true},
+  {s:'ETERNAL',n:'Eternal Ltd (Zomato)',x:'NSE',inr:true},
+  {s:'ZOMATO',n:'Zomato Ltd',x:'NSE',inr:true},
+  {s:'NYKAA',n:'FSN E-Commerce Ventures (Nykaa)',x:'NSE',inr:true},
+  {s:'PAYTM',n:'One 97 Communications (Paytm)',x:'NSE',inr:true},
+  {s:'IRCTC',n:'Indian Railway Catering & Tourism',x:'NSE',inr:true},
+  {s:'HAL',n:'Hindustan Aeronautics Ltd',x:'NSE',inr:true},
+  {s:'BEL',n:'Bharat Electronics Ltd',x:'NSE',inr:true},
+  {s:'BHEL',n:'Bharat Heavy Electricals Ltd',x:'NSE',inr:true},
+  {s:'INDIGO',n:'InterGlobe Aviation (IndiGo)',x:'NSE',inr:true},
+  {s:'VBL',n:'Varun Beverages Ltd',x:'NSE',inr:true},
+  {s:'COFORGE',n:'Coforge Ltd',x:'NSE',inr:true},
+  {s:'PERSISTENT',n:'Persistent Systems Ltd',x:'NSE',inr:true},
+  {s:'LTIM',n:'LTIMindtree Ltd',x:'NSE',inr:true},
+  {s:'MPHASIS',n:'Mphasis Ltd',x:'NSE',inr:true},
+  {s:'RATEGAIN',n:'RateGain Travel Technologies',x:'NSE',inr:true},
+  {s:'GODREJCP',n:'Godrej Consumer Products',x:'NSE',inr:true},
+  {s:'DABUR',n:'Dabur India Ltd',x:'NSE',inr:true},
+  {s:'MARICO',n:'Marico Ltd',x:'NSE',inr:true},
+  {s:'ICICIPRULI',n:'ICICI Prudential AMC',x:'NSE',inr:true},
+  {s:'DLF',n:'DLF Ltd',x:'NSE',inr:true},
+  {s:'GODREJPROP',n:'Godrej Properties Ltd',x:'NSE',inr:true},
+  {s:'COALINDIA',n:'Coal India Ltd',x:'NSE',inr:true},
+  {s:'ONGC',n:'Oil & Natural Gas Corporation',x:'NSE',inr:true},
+  {s:'POWERGRID',n:'Power Grid Corporation',x:'NSE',inr:true},
+  {s:'NTPC',n:'NTPC Ltd',x:'NSE',inr:true},
+  {s:'TATASTEEL',n:'Tata Steel Ltd',x:'NSE',inr:true},
+  {s:'JSWSTEEL',n:'JSW Steel Ltd',x:'NSE',inr:true},
+  {s:'HINDALCO',n:'Hindalco Industries Ltd',x:'NSE',inr:true},
+  {s:'VEDL',n:'Vedanta Ltd',x:'NSE',inr:true},
+  {s:'INDUSINDBK',n:'IndusInd Bank Ltd',x:'NSE',inr:true},
+  {s:'BANDHANBNK',n:'Bandhan Bank Ltd',x:'NSE',inr:true},
+  {s:'IDFCFIRSTB',n:'IDFC First Bank Ltd',x:'NSE',inr:true},
+  {s:'FEDERALBNK',n:'Federal Bank Ltd',x:'NSE',inr:true},
+  {s:'PNB',n:'Punjab National Bank',x:'NSE',inr:true},
+  {s:'BANKBARODA',n:'Bank of Baroda',x:'NSE',inr:true},
+  {s:'CANARABANK',n:'Canara Bank',x:'NSE',inr:true},
+  {s:'SBICARD',n:'SBI Cards and Payment Services',x:'NSE',inr:true},
+  {s:'SBILIFE',n:'SBI Life Insurance',x:'NSE',inr:true},
+  {s:'HDFCLIFE',n:'HDFC Life Insurance',x:'NSE',inr:true},
+  {s:'LICI',n:'Life Insurance Corporation',x:'NSE',inr:true},
+  {s:'ULTRACEMCO',n:'UltraTech Cement Ltd',x:'NSE',inr:true},
+  {s:'SHREECEM',n:'Shree Cement Ltd',x:'NSE',inr:true},
+  {s:'BAJAJFINSV',n:'Bajaj Finserv Ltd',x:'NSE',inr:true},
+  {s:'BAJAJ-AUTO',n:'Bajaj Auto Ltd',x:'NSE',inr:true},
+  {s:'HEROMOTOCO',n:'Hero MotoCorp Ltd',x:'NSE',inr:true},
+  {s:'EICHERMOT',n:'Eicher Motors Ltd',x:'NSE',inr:true},
+  {s:'HAVELLS',n:'Havells India Ltd',x:'NSE',inr:true},
+  {s:'ABFRL',n:'Aditya Birla Fashion & Retail',x:'NSE',inr:true},
+  {s:'NAUKRI',n:'Info Edge India (Naukri)',x:'NSE',inr:true},
+  {s:'IRFC',n:'Indian Railway Finance Corp',x:'NSE',inr:true},
+  {s:'LLOYDME',n:'Lloyds Metals & Energy Ltd',x:'NSE',inr:true},
+  {s:'BLACKBUCK',n:'Blackbuck Ltd',x:'NSE',inr:true},
+  {s:'IXIGO',n:'Le Travenues Technology (Ixigo)',x:'NSE',inr:true},
+];
+
+let sugIdx = -1;
+let searchTimer = null;
+let lastQuery = '';
+let apiMode = true; // try live API first
+
+// Exchange label colour
+function exchCls(x){ return (x==='NSE'||x==='BSE') ? 'in' : 'us'; }
+function isIndiaExch(x){ return x==='NSE'||x==='BSE'; }
+
+// Map Yahoo Finance exchange to our label
+function yExch(quote){
+  const ex = (quote.exchange||'').toUpperCase();
+  const type = (quote.quoteType||'').toUpperCase();
+  if(ex.includes('NSE')||ex==='NSI') return 'NSE';
+  if(ex.includes('BSE')||ex==='BOM') return 'BSE';
+  if(ex==='NMS'||ex==='NGM'||ex==='NCM') return 'NASDAQ';
+  if(ex==='NYQ'||ex==='NYS') return 'NYSE';
+  if(type==='ETF') return 'ETF';
+  if(type==='MUTUALFUND') return 'MF';
+  if(type==='CRYPTOCURRENCY') return 'CRYPTO';
+  return ex.slice(0,6)||'—';
+}
+
+// Strip Yahoo .NS/.BO suffix for Indian tickers
+function cleanSym(sym, exch){
+  if(exch==='NSE'||exch==='BSE') return sym.replace(/\.(NS|BO)$/i,'');
+  return sym;
+}
+
+async function fetchYahoo(q){
+  // If connected to Google Sheets, use the Apps Script as a CORS-free proxy
+  if(gsUrl){
+    try{
+      const url = gsUrl + '?action=search&q=' + encodeURIComponent(q);
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 8000);
+      const r = await fetch(url, {signal: ctrl.signal});
+      clearTimeout(t);
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      const data = await r.json();
+      if(data.error) throw new Error(data.error);
+      const quotes = (data.quotes||[]).filter(q => q.symbol && q.quoteType!=='OPTION' && q.quoteType!=='FUTURE');
+      if(quotes.length >= 0) return quotes; // trust the proxy even if empty
+    } catch(e){
+      console.warn('Apps Script search failed, falling back to direct:', e.message);
+      // Fall through to direct attempts below
+    }
+  }
+
+  // Direct + CORS proxy fallbacks (work on https:// origins)
+  const yPath = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(q)}&quotesCount=10&newsCount=0&enableFuzzyQuery=false`;
+  const endpoints = [
+    yPath,
+    `https://corsproxy.io/?${encodeURIComponent(yPath)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(yPath)}`,
+  ];
+
+  for(const url of endpoints){
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 5000);
+      const r = await fetch(url, {signal: ctrl.signal, headers:{Accept:'application/json'}});
+      clearTimeout(t);
+      if(!r.ok) continue;
+      const data = await r.json();
+      const quotes = (data.quotes||[]).filter(q => q.symbol && q.quoteType!=='OPTION' && q.quoteType!=='FUTURE');
+      if(quotes.length > 0) return quotes;
+    } catch(e){ continue; }
+  }
+  throw new Error('All endpoints failed');
+}
+
+function localSearch(q){
+  const qU = q.toUpperCase();
+  return LOCAL_DB.filter(t =>
+    t.s.startsWith(qU) || t.n.toUpperCase().includes(qU)
+  ).slice(0,10);
+}
+
+function renderSuggestions(items){
+  // items = [{sym, name, exch, inr}]
+  const box = $('ticker-suggestions');
+  if(!items.length){ hideSuggestions(); return; }
+  sugIdx = -1;
+  const qU = ($('add-sym').value||'').toUpperCase();
+  box.innerHTML = items.map((t,i)=>{
+    const isIn = t.inr || isIndiaExch(t.exch);
+    const hl = t.sym.startsWith(qU)
+      ? `<b style="color:var(--text)">${t.sym.slice(0,qU.length)}</b>${t.sym.slice(qU.length)}`
+      : t.sym;
+    return `<div class="sug-item" data-i="${i}"
+      onmousedown="pickSuggestion('${t.sym.replace(/'/g,"\'")}','${t.name.replace(/'/g,"\'")}',${isIn},'${t.exch}')">
+      <span class="sug-ticker ${isIn?'india':''}">${hl}</span>
+      <span class="sug-name">${t.name}</span>
+      <span class="sug-exch ${exchCls(t.exch)}">${t.exch}</span>
+    </div>`;
+  }).join('');
+  box.style.display = 'block';
+}
+
+function showLoading(){
+  const box = $('ticker-suggestions');
+  const via = gsUrl ? '· via Apps Script ✓' : '· via proxy';
+  box.innerHTML = `<div style="padding:10px 14px;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);display:flex;align-items:center;gap:8px;"><span style="display:inline-block;width:12px;height:12px;border:2px solid var(--border2);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></span>Searching all markets <span style="color:var(--green);font-size:10px">${via}</span></div>`;
+  box.style.display = 'block';
+}
+
+function tickerSearch(q){
+  if(!q || q.length < 1){ hideSuggestions(); return; }
+
+  // Don't skip if we were previously showing a spinner — user may have retyped
+  const hasSpinner = $('ticker-suggestions').innerHTML.includes('spin');
+  if(q === lastQuery && !hasSpinner) return;
+  lastQuery = q;
+
+  clearTimeout(searchTimer);
+
+  // Show local results instantly if available, otherwise show spinner
+  const local = localSearch(q);
+  const hasLocal = local.length > 0;
+  if(hasLocal) renderSuggestions(local.map(t=>({sym:t.s,name:t.n,exch:t.x,inr:!!t.inr})));
+  else if(!apiMode) { showNoResults(q); return; }  // API known-dead + no local = done immediately
+  else showLoading();
+
+  // Fire live API with debounce
+  searchTimer = setTimeout(async ()=>{
+    if(!apiMode){
+      if(!hasLocal) showNoResults(q);
+      return;
+    }
+    try {
+      const quotes = await fetchYahoo(q);
+      const results = quotes.map(qt=>{
+        const exch = yExch(qt);
+        const isIn = isIndiaExch(exch);
+        const sym = cleanSym(qt.symbol, exch);
+        const name = qt.shortname || qt.longname || sym;
+        return {sym, name, exch, inr:isIn};
+      });
+
+      if(results.length) renderSuggestions(results);
+      else if(!hasLocal) showNoResults(q); // API returned nothing + no local = no results
+      // else keep local results showing
+    } catch(err){
+      console.warn('Yahoo Finance API unavailable:', err.message);
+      apiMode = false;
+      // *** KEY FIX: if we were showing a spinner (no local results), replace with no-results ***
+      if(!hasLocal) showNoResults(q);
+    }
+  }, 300);
+}
+
+function tickerKeyNav(e){
+  const box = $('ticker-suggestions');
+  const items = box.querySelectorAll('.sug-item');
+  if(!items.length) return;
+  if(e.key==='ArrowDown'){ e.preventDefault(); sugIdx=Math.min(sugIdx+1,items.length-1); }
+  else if(e.key==='ArrowUp'){ e.preventDefault(); sugIdx=Math.max(sugIdx-1,0); }
+  else if(e.key==='Enter'&&sugIdx>=0){ e.preventDefault(); items[sugIdx].dispatchEvent(new MouseEvent('mousedown')); return; }
+  else if(e.key==='Escape'){ hideSuggestions(); return; }
+  items.forEach((el,i)=>el.classList.toggle('active',i===sugIdx));
+  if(sugIdx>=0) items[sugIdx].scrollIntoView({block:'nearest'});
+}
+
+function pickSuggestion(sym, name, isInr, exch){
+  const symEl=$('add-sym'); if(symEl) symEl.value=sym;
+  const nameEl=$('add-name'); if(nameEl&&!nameEl.value) nameEl.value=name;
+
+  // Auto-switch account group
+  const acctEl=$('add-acct');
+  if(acctEl){
+    if(isInr&&!acctEl.value.startsWith('india-')){ acctEl.value='india-ind'; updateAddCurrency(); }
+    else if(!isInr&&acctEl.value.startsWith('india-')){ acctEl.value='fid-ind'; updateAddCurrency(); }
+  }
+  hideSuggestions();
+  updateAddPreview();
+  $('add-shares')?.focus();
+}
+
+function hideSuggestions(){
+  const box=$('ticker-suggestions'); if(box) box.style.display='none';
+  sugIdx=-1; lastQuery='';
+}
+
+function showNoResults(q){
+  const box = $('ticker-suggestions');
+  if(!box) return;
+  box.innerHTML = `<div style="padding:10px 14px;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);">No results for "<b style="color:var(--text)">${q.toUpperCase()}</b>" — try a different search or enter details manually</div>`;
+  box.style.display = 'block';
+}
+
+// Keyboard shortcut: R = refresh prices (when no input focused)
+document.addEventListener('keydown', function(e){
+  if(e.key === 'r' && !e.ctrlKey && !e.metaKey && !['INPUT','SELECT','TEXTAREA'].includes(document.activeElement?.tagName)){
+    refreshAllPrices();
+  }
+});
+
+
+// ─── GOOGLE SHEETS SYNC ──────────────────────────────────────
+let gsUrl = '';
+let gsSaveTimer = null;
+const GS_KEY = 'nw_sheets_url';
+
+// Safe localStorage (works from file:// and https://)
+const LS = {
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){} }
+};
+
+function showSheetsModal(){
+  // Open the modal first — nothing must be able to block this
+  const modal = $('sheets-modal');
+  if(!modal){ console.error('sheets-modal element missing'); return; }
+  modal.style.display = 'flex';
+  modal.classList.add('open');
+  try {
+    gsUrl = LS.get(GS_KEY) || '';
+    if(gsUrl){ showGsConnected(); } else { gsNextStep(1); }
+  } catch(e){ console.warn('showSheetsModal inner error:', e); }
+}
+function hideSheetsModal(){ const m=$('sheets-modal'); if(m){ m.classList.remove('open'); m.style.display=''; } }
+
+function gsNextStep(n){
+  [1,2,3,4].forEach(i=>{
+    const el=$('gs-step-'+i); if(el) el.style.display = i===n?'block':'none';
+    const ind=$('gs-step-'+i+'-ind');
+    if(ind){
+      ind.style.background = i===n?'rgba(52,211,153,.12)':'transparent';
+      ind.style.color = i===n?'var(--green)':i<n?'var(--muted2)':'var(--muted)';
+    }
+  });
+  const gc=$('gs-connected'); if(gc) gc.style.display='none';
+}
+
+function showGsConnected(){
+  [1,2,3,4].forEach(i=>{
+    const el=$('gs-step-'+i); if(el) el.style.display='none';
+  });
+  const gc=$('gs-connected'); if(gc) gc.style.display='block';
+  const disp=$('gs-url-display');
+  if(disp) disp.textContent = gsUrl.slice(0,60)+'…';
+  [1,2,3,4].forEach(i=>{
+    const ind=$('gs-step-'+i+'-ind');
+    if(ind){ ind.style.background='rgba(52,211,153,.12)'; ind.style.color='var(--green)'; }
+  });
+  $('btn-sheets').style.color='var(--green)';
+  $('btn-sheets').style.borderColor='rgba(52,211,153,.5)';
+  setTimeout(tdCheckKey, 300); // show key status if already saved
+}
+
+function copyScript(){
+  const code = $('apps-script-code').textContent;
+  navigator.clipboard.writeText(code).then(()=>{
+    const btn=$('copy-btn'); btn.textContent='Copied ✓'; btn.style.color='var(--green)';
+    setTimeout(()=>{ btn.textContent='Copy'; btn.style.color='var(--blue)'; }, 2000);
+  });
+}
+
+async function gsTestConnection(){
+  const url = ($('gs-url-input').value||'').trim();
+  const res=$('gs-test-result');
+  if(!url){ res.style.display='block'; res.style.background='rgba(248,113,113,.1)'; res.style.color='var(--red)'; res.textContent='Please enter the Web App URL'; return; }
+  res.style.display='block'; res.style.background='var(--bg3)'; res.style.color='var(--muted)'; res.textContent='Testing…';
+  try{
+    const r = await fetchWithTimeout(url+'?test=1', {}, 8000);
+    if(r.ok){
+      res.style.background='rgba(52,211,153,.08)'; res.style.color='var(--green)'; res.textContent='✓ Connection successful!';
+    } else { throw new Error('HTTP '+r.status); }
+  }catch(e){
+    res.style.background='rgba(248,113,113,.08)'; res.style.color='var(--red)';
+    res.textContent='✗ Failed: '+e.message+'. Make sure you deployed with "Anyone" access.';
+  }
+}
+
+async function gsSaveAndConnect(){
+  const url = ($('gs-url-input').value||'').trim();
+  if(!url){ alert('Please enter the Web App URL'); return; }
+  gsUrl = url;
+  LS.set(GS_KEY, gsUrl);
+  apiMode = true;
+  await gsSave(true);
+  showGsConnected();
+  fetchForex();
+  if(!historySnapshots.length) loadHistory();
+}
+
+function gsDisconnect(){
+  if(!confirm('Disconnect from Google Sheets? Your local data stays intact.')) return;
+  gsUrl=''; LS.del(GS_KEY);
+  $('btn-sheets').style.color=''; $('btn-sheets').style.borderColor='';
+  gsNextStep(1);
+}
+
+// ─── Twelve Data key management ──────────────────────────────
+async function tdSaveKey(){
+  if(!gsUrl){ $('td-key-status').textContent='Connect Google Sheets first.'; return; }
+  const key = ($('td-key-input').value||'').trim();
+  $('td-key-status').textContent = 'Saving…';
+  try {
+    const r = await fetch(gsUrl + '?action=saveTdKey&key=' + encodeURIComponent(key));
+    const d = await r.json();
+    if(d.ok){
+      $('td-key-status').textContent = key ? '✓ Key saved to Apps Script' : '✓ Key cleared';
+      $('td-key-status').style.color = 'var(--green)';
+      $('td-key-input').value = '';
+    } else {
+      $('td-key-status').textContent = 'Error: ' + (d.error||'unknown');
+      $('td-key-status').style.color = 'var(--red)';
+    }
+  } catch(e){
+    $('td-key-status').textContent = 'Network error: ' + e.message;
+    $('td-key-status').style.color = 'var(--red)';
+  }
+}
+
+async function tdCheckKey(){
+  if(!gsUrl) return;
+  try {
+    const r = await fetch(gsUrl + '?action=getTdKey');
+    const d = await r.json();
+    if(d.hasKey){
+      $('td-key-status').textContent = '✓ Key active: ' + d.masked;
+      $('td-key-status').style.color = 'var(--green)';
+    }
+  } catch(e){ /* silent */ }
+}
+
+// ─── Local storage fallback ─────────────────────────────────
+const LS_DATA_KEY = 'nw_portfolio_v2';
+
+function saveLocal(){
+  if(typeof initDone !== 'undefined' && !initDone) return; // skip during startup
+  try {
+    localStorage.setItem(LS_DATA_KEY, buildSavePayload());
+  } catch(e) { /* localStorage unavailable */ }
+}
+
+function loadLocal(){
+  try {
+    const raw = localStorage.getItem(LS_DATA_KEY);
+    if(raw && raw !== '{}') return applyPayload(raw);
+  } catch(e) {}
+  return false;
+}
+
+// ─── Core save/load ──────────────────────────────────────────
+function buildSavePayload(){
+  return JSON.stringify({
+    version: 2,
+    savedAt: new Date().toISOString(),
+    holdings,
+    acctOverrides: {
+      stallion: ACCTS.stallion.val,
+      niveshaay: ACCTS.niveshaay.val,
+      pension: ACCTS.pension.val,
+    },
+    excluded: [...excluded],
+    goldPrice: parseFloat($('gold-price')?.value||135.83),
+  });
+}
+
+function applyPayload(data){
+  try{
+    const obj = typeof data==='string' ? JSON.parse(data) : data;
+    if(!obj || !obj.holdings) return false;
+
+    // Restore holdings — only merge runtime values so code-level changes
+    // (yahooSym, sym, name, acct, inr, cusip) always take effect on reload
+    const RUNTIME_KEYS = ['price','shares','prevPrice','dayPrevClose'];
+    Object.entries(obj.holdings || {}).forEach(([key, saved]) => {
+      if(holdings[key]){
+        RUNTIME_KEYS.forEach(k => { if(saved[k] !== undefined) holdings[key][k] = saved[k]; });
+      } else {
+        holdings[key] = saved; // unknown key (manually added) — restore fully
+      }
+    });
+
+    // Restore fixed account overrides
+    if(obj.acctOverrides){
+      if(obj.acctOverrides.stallion) ACCTS.stallion.val = obj.acctOverrides.stallion;
+      if(obj.acctOverrides.niveshaay) ACCTS.niveshaay.val = obj.acctOverrides.niveshaay;
+      if(obj.acctOverrides.pension) ACCTS.pension.val = obj.acctOverrides.pension;
+    }
+
+    // Restore exclusions
+    excluded.clear();
+    (obj.excluded||[]).forEach(k=>excluded.add(k));
+
+    // Restore gold price
+    if(obj.goldPrice){
+      const gp=$('gold-price'); if(gp) gp.value=obj.goldPrice;
+    }
+
+    renderHoldingRows();
+    recalc();
+    return true;
+  }catch(e){
+    console.error('Failed to apply payload:', e);
+    return false;
+  }
+}
+
+async function gsSave(manual=false){
+  if(!gsUrl) return;
+  const payload = buildSavePayload();
+  setSaveStatus('saving');
+  try{
+    const r = await fetchWithTimeout(gsUrl, {
+      method:'POST',
+      body: payload,
+    }, 10000);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const now = new Date().toLocaleTimeString();
+    setSaveStatus('saved', now);
+    const lsEl=$('gs-last-save'); if(lsEl) lsEl.textContent=now;
+  }catch(e){
+    console.warn('Google Sheets save failed:', e.message);
+    setSaveStatus('error');
+    if(manual) alert('Save failed: '+e.message+'. Check your connection and Web App URL.');
+  }
+}
+
+async function gsLoad(){
+  if(!gsUrl){ alert('Not connected to Google Sheets.'); return; }
+  setSaveStatus('loading');
+  try{
+    const r = await fetchWithTimeout(gsUrl+'?load=1', {}, 10000);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const text = await r.text();
+    if(!text || text==='{}') { alert('No data found in Google Sheets yet. Save first!'); setSaveStatus(''); return; }
+    const ok = applyPayload(text);
+    if(ok){ setSaveStatus('loaded'); hideSheetsModal(); }
+    else alert('Could not parse data from Sheets. It may be empty or corrupted.');
+  }catch(e){
+    setSaveStatus('error');
+    alert('Load failed: '+e.message);
+  }
+}
+
+function setSaveStatus(state, time){
+  const el=$('save-status'); if(!el) return;
+  const states = {
+    saving: {show:true, col:'var(--muted)',  icon:'⟳', txt:'Saving…'},
+    saved:  {show:true, col:'var(--green)',  icon:'✓', txt:'Saved '+(time||'')},
+    loaded: {show:true, col:'var(--green)',  icon:'↓', txt:'Loaded from Sheets'},
+    loading:{show:true, col:'var(--muted)',  icon:'⟳', txt:'Loading…'},
+    error:  {show:true, col:'var(--red)',    icon:'✗', txt:'Save failed'},
+    '':     {show:false,col:'',              icon:'', txt:''},
+  };
+  const s = states[state]||states[''];
+  el.style.display = s.show?'flex':'none';
+  el.style.color = s.col;
+  el.innerHTML = `<span>${s.icon}</span><span>${s.txt}</span>`;
+  if(state==='saved'||state==='loaded') setTimeout(()=>setSaveStatus(''),4000);
+}
+
+// Auto-save debounced 2s after any change
+function scheduleGsSave(){
+  if(!gsUrl) return;
+  clearTimeout(gsSaveTimer);
+  gsSaveTimer = setTimeout(()=>gsSave(), 2000);
+}
+
+
+// ─── ENH-01 & ENH-02: Live price refresh ──────────────────────
+let USD_INR_LIVE = 94.55;
+// ── Cross-browser fetch with timeout (replaces AbortSignal.timeout) ──────────
+function fetchWithTimeout(url, options, ms) {
+  ms = ms || 10000;
+  var ctrl = new AbortController();
+  var timer = setTimeout(function(){ ctrl.abort(); }, ms);
+  var opts = Object.assign({}, options, { signal: ctrl.signal });
+  return fetch(url, opts).finally(function(){ clearTimeout(timer); });
+}
+
+
+let lastRefresh = null;
+let transactions = [];
+let historySnapshots = [];
+let chartInstance = null;
+let chartMode = 'line';
+
+// Build the list of symbols to refresh
+// Map holding sym → Yahoo Finance symbol
+function getYahooSym(h){
+  if(h.yahooSym) return h.yahooSym; // explicit override
+  const sym = h.sym;
+  const skipSyms = ['CASH','SPAXX','FDRXX','MONEY MARKET','ML DIRECT'];
+  if(!sym || sym.includes(' ') || skipSyms.some(s => sym.toUpperCase().includes(s))) return null;
+  if(h.inr) return sym.replace(/\.(NS|BO)$/i,'') + '.NS'; // NSE suffix
+  return sym;
+}
+
+function getRefreshSymbols(){
+  const symMap = {}; // yahooSym -> [holdingKey, ...]
+  Object.entries(holdings).forEach(([key, h]) => {
+    const ySym = getYahooSym(h);
+    if(!ySym) return;
+    if(!symMap[ySym]) symMap[ySym] = [];
+    symMap[ySym].push(key);
+  });
+  return symMap; // returns map so we can look up which holdings to update
+}
+
+async function refreshAllPrices(){
+  if(!gsUrl){ 
+    setRefreshStatus('Connect Google Sheets to enable live price refresh'); 
+    return; 
+  }
+  const symMap = getRefreshSymbols();
+  const symList = Object.keys(symMap);
+  if(!symList.length){ setRefreshStatus('No refreshable holdings found'); return; }
+
+  const btn = $('refresh-btn');
+  btn.classList.add('refreshing');
+  btn.textContent = '↻ Refreshing…';
+  setRefreshStatus('Fetching ' + symList.length + ' prices via Apps Script…');
+
+  try {
+    // Pass symbols as comma-separated (NOT encodeURIComponent the whole string)
+    // Apps Script will receive them correctly
+    const symParam = symList.map(s => encodeURIComponent(s)).join('%2C');
+    const url = gsUrl + '?action=prices&symbols=' + symParam;
+    const r = await fetchWithTimeout(url, {}, 20000);
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    if(data.error) throw new Error(data.error);
+    
+    const prices = data.prices || {};
+    const prevCloses = data.prevCloses || {};
+    let updated = 0, skipped = 0;
+
+    // Day-boundary detection: if this is the first refresh of a new calendar day,
+    // freeze today's opening price as dayPrevClose before overwriting with new price
+    const todayStr = new Date().toDateString();
+    const lastRefreshDay = LS.get('nw_last_refresh_day') || '';
+    const isNewDay = lastRefreshDay !== todayStr;
+
+    // Update each holding using the symMap
+    Object.entries(symMap).forEach(([ySym, keys]) => {
+      const cleanSym = ySym.replace(/\.(NS|BO)$/i,'');
+      const newPrice = prices[ySym] || prices[cleanSym] || null;
+      const apiPrevClose = prevCloses[ySym] || prevCloses[cleanSym] || null;
+      if(!newPrice || newPrice <= 0){ skipped++; return; }
+      keys.forEach(key => {
+        const h = holdings[key];
+        if(!h) return;
+        if(apiPrevClose){
+          // Always trust the API-supplied previous close (most accurate)
+          h.dayPrevClose = parseFloat(apiPrevClose.toFixed(4));
+        } else if(h.price > 0 && (!h.dayPrevClose || isNewDay)){
+          // First refresh ever, or first refresh of a new day:
+          // snapshot the current stored price as the baseline before overwriting
+          h.dayPrevClose = h.price;
+        }
+        if(h.price !== newPrice){
+          h.prevPrice = h.price;
+          h.price = parseFloat(newPrice.toFixed(4));
+          updated++;
+        }
+      });
+    });
+
+    if(isNewDay) LS.set('nw_last_refresh_day', todayStr);
+
+    lastRefresh = new Date();
+    const timeStr = lastRefresh.toLocaleTimeString();
+    const skipMsg = skipped > 0 ? ' (' + skipped + ' not found on Yahoo)' : '';
+    setRefreshStatus('✓ ' + updated + ' prices updated at ' + timeStr + skipMsg);
+    renderHoldingRows();
+    recalc();
+    gsSave();
+    const fNote = $('footer-note');
+    if(fNote) fNote.textContent = 'Live prices refreshed ' + timeStr + ' via Apps Script · USD/INR ' + USD_INR_LIVE.toFixed(2);
+  } catch(e){
+    setRefreshStatus('✗ Refresh failed: ' + e.message + ' — check Apps Script deployment');
+    console.warn('Price refresh error:', e);
+  } finally {
+    btn.classList.remove('refreshing');
+    btn.textContent = '↻ Refresh live prices';
+  }
+}
+
+function setRefreshStatus(msg){
+  const el = $('refresh-status'); if(el) el.textContent = msg;
+}
+
+// ── ENH-08: Live INR/USD rate ──────────────────────────────────
+async function fetchForex(){
+  if(!gsUrl){ console.log('Sheets not connected — using stored rate'); return; }
+  try {
+    const r = await fetchWithTimeout(gsUrl + '?action=forex', {}, 8000);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const data = await r.json();
+    if(data.INR && data.INR > 0){
+      USD_INR_LIVE = data.INR;
+      const el = $('forex-display');
+      if(el) el.textContent = USD_INR_LIVE.toFixed(2);
+      recalc();
+      console.log('INR/USD updated:', USD_INR_LIVE);
+    }
+  } catch(e){ console.warn('Forex fetch failed:', e.message); }
+}
+
+// ── ENH-04: Niveshaay NAV auto-fetch ──────────────────────────
+async function fetchNiveshaayNAV(){
+  if(!gsUrl) return;
+  // Try via Yahoo Finance (Niveshaay AIF may be listed as a fund)
+  const candidates = ['0P0001HCVS.BO','NIVESHAAYAIF.NS'];
+  try {
+    const syms = candidates.join(',');
+    const r = await fetchWithTimeout(gsUrl + '?action=prices&symbols=' + encodeURIComponent(syms), {}, 8000);
+    if(!r.ok) return;
+    const data = await r.json();
+    const prices = data.prices || {};
+    for(const sym of candidates){
+      if(prices[sym] && prices[sym] > 100){
+        // Found NAV — update Niveshaay value
+        const nav = prices[sym];
+        const units = 17209.015;
+        const newValINR = nav * units;
+        ACCTS.niveshaay.val = newValINR / USD_INR_LIVE;
+        console.log('Niveshaay NAV updated:', nav, '→ ₹' + (newValINR/100000).toFixed(2) + 'L');
+        recalc();
+        return;
+      }
+    }
+  } catch(e){ console.warn('Niveshaay NAV fetch failed:', e.message); }
+}
+
+// ── ENH-03: Historical chart ───────────────────────────────────
+async function saveHistorySnapshot(manual=false){
+  if(!gsUrl && !manual){ return; }
+
+  const usTax = acctVal('fid-ind') + acctVal('merrill');
+  const retire = acctVal('fid-ira') + acctVal('hartford') + acctVal('fid-rh') + acctVal('pension');
+  const india  = acctVal('stallion') + acctVal('niveshaay') + acctVal('india-ind') + acctVal('india-ira');
+  const gold   = acctVal('gold');
+  const total  = usTax + retire + india + gold;
+
+  const snap = {
+    date: new Date().toLocaleDateString('en-US', {year:'numeric',month:'short',day:'numeric'}),
+    total: Math.round(total),
+    us: Math.round(usTax),
+    retirement: Math.round(retire),
+    india: Math.round(india),
+    gold: Math.round(gold),
+    forex: USD_INR_LIVE,
+  };
+
+  // Add to local history
+  historySnapshots.push(snap);
+  saveHistoryLocal();
+  renderHistoryChart();
+
+  // Push to Sheets
+  if(gsUrl){
+    try {
+      await fetchWithTimeout(gsUrl, {
+        method: 'POST',
+        body: JSON.stringify({_action:'saveHistory', ...snap}),
+      }, 8000);
+      if(manual) setRefreshStatus('✓ Snapshot saved to Google Sheets');
+    } catch(e){ console.warn('History save failed:', e.message); }
+  } else if(manual) {
+    setRefreshStatus('Snapshot saved locally · Connect Google Sheets to sync');
+  }
+}
+
+function saveHistoryLocal(){
+  try { localStorage.setItem('nw_history_v1', JSON.stringify(historySnapshots)); } catch(e){}
+}
+function loadHistoryLocal(){
+  try {
+    const raw = localStorage.getItem('nw_history_v1');
+    if(raw) historySnapshots = JSON.parse(raw);
+  } catch(e){}
+}
+
+async function loadHistory(){
+  if(!gsUrl){ setRefreshStatus('Connect Google Sheets to load history'); return; }
+  try {
+    const r = await fetchWithTimeout(gsUrl + '?action=loadHistory', {}, 8000);
+    const data = await r.json();
+    if(data.history && data.history.length){
+      historySnapshots = data.history;
+      saveHistoryLocal();
+      renderHistoryChart();
+      setRefreshStatus('✓ Loaded ' + data.history.length + ' history snapshots');
+    } else {
+      setRefreshStatus('No history in Sheets yet · click + Snapshot to start tracking');
+    }
+  } catch(e){ setRefreshStatus('Failed to load history: ' + e.message); }
+}
+
+function setChartMode(mode, btn){
+  chartMode = mode;
+  document.querySelectorAll('.chart-btn[id^="chart-mode"]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderHistoryChart();
+}
+
+function renderHistoryChart(){
+  const empty = $('chart-empty');
+  const canvas = $('history-chart');
+  if(!historySnapshots.length){
+    if(empty) empty.style.display='block';
+    if(canvas) canvas.style.display='none';
+    return;
+  }
+  if(empty) empty.style.display='none';
+  if(canvas) canvas.style.display='block';
+
+  if(chartInstance) chartInstance.destroy();
+
+  const labels = historySnapshots.map(s => s.date);
+  const total  = historySnapshots.map(s => s.total);
+  const us     = historySnapshots.map(s => s.us);
+  const ret    = historySnapshots.map(s => s.retirement);
+  const india  = historySnapshots.map(s => s.india);
+
+  const cfg = {
+    type: chartMode,
+    data: {
+      labels,
+      datasets: [
+        { label:'Total', data:total, borderColor:'#60a5fa', backgroundColor:'rgba(96,165,250,.15)', tension:.4, fill: chartMode==='line', pointRadius:4, borderWidth:2 },
+        { label:'US Taxable', data:us, borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,.1)', tension:.4, fill:false, pointRadius:3, borderWidth:1.5 },
+        { label:'Retirement', data:ret, borderColor:'#a78bfa', backgroundColor:'rgba(167,139,250,.1)', tension:.4, fill:false, pointRadius:3, borderWidth:1.5 },
+        { label:'India+Gold', data:india, borderColor:'#2dd4bf', backgroundColor:'rgba(45,212,191,.1)', tension:.4, fill:false, pointRadius:3, borderWidth:1.5 },
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:'index', intersect:false },
+      plugins:{
+        legend:{ labels:{ color:'#9ca3af', font:{family:'DM Mono',size:10}, boxWidth:10 } },
+        tooltip:{ callbacks:{ label: ctx => ' $' + ctx.raw.toLocaleString() } }
+      },
+      scales:{
+        x:{ ticks:{ color:'#6b7280', font:{family:'DM Mono',size:10} }, grid:{ color:'rgba(255,255,255,.04)' } },
+        y:{ ticks:{ color:'#6b7280', font:{family:'DM Mono',size:10}, callback: v => '$' + (v>=1e6?(v/1e6).toFixed(1)+'M':(v/1000).toFixed(0)+'k') }, grid:{ color:'rgba(255,255,255,.04)' } }
+      }
+    }
+  };
+  chartInstance = new Chart(canvas.getContext('2d'), cfg);
+}
+
+// ── ENH-05: Transaction log ────────────────────────────────────
+function logTransaction(action, sym, acct, shares, price, note=''){
+  const tx = {
+    date: new Date().toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}),
+    action, sym, acct: ACCTS[acct]?.label || acct,
+    shares: parseFloat(shares).toFixed(shares%1===0?0:3),
+    price: parseFloat(price).toFixed(2),
+    value: Math.round(parseFloat(shares) * parseFloat(price) / (ACCTS[acct]?.inr ? USD_INR_LIVE : 1)),
+    note
+  };
+  transactions.unshift(tx); // newest first
+  if(transactions.length > 200) transactions.pop(); // cap at 200
+  saveTxLocal();
+  renderTransactions();
+
+  // Push to Sheets async
+  if(gsUrl){
+    fetchWithTimeout(gsUrl, {
+      method:'POST',
+      body: JSON.stringify({_action:'saveTransaction', ...tx}),
+    }, 8000).catch(e => console.warn('Tx save failed:', e.message));
+  }
+}
+
+function saveTxLocal(){
+  try { localStorage.setItem('nw_transactions_v1', JSON.stringify(transactions)); } catch(e){}
+}
+function loadTxLocal(){
+  try {
+    const raw = localStorage.getItem('nw_transactions_v1');
+    if(raw) transactions = JSON.parse(raw);
+  } catch(e){}
+}
+
+function renderTransactions(){
+  const count = $('tx-count'); if(count) count.textContent = transactions.length + ' transactions';
+  const el = $('tx-content'); if(!el) return;
+  if(!transactions.length){
+    el.innerHTML = '<div class="tx-empty">No transactions yet. Add or edit holdings to begin tracking.</div>';
+    return;
+  }
+  el.innerHTML = '<table class="tx-table"><thead><tr><th>Date</th><th>Action</th><th>Symbol</th><th>Account</th><th style="text-align:right">Shares</th><th style="text-align:right">Price</th><th style="text-align:right">Value</th><th>Note</th></tr></thead><tbody>' +
+    transactions.slice(0,100).map(tx => {
+      const cls = tx.action==='Added'?'tx-add':tx.action==='Deleted'?'tx-del':'tx-edit';
+      return `<tr>
+        <td style="color:var(--muted)">${tx.date}</td>
+        <td><span class="${cls}">${tx.action}</span></td>
+        <td><span class="tx-sym">${tx.sym}</span></td>
+        <td style="color:var(--muted2)">${tx.acct}</td>
+        <td style="text-align:right">${tx.shares}</td>
+        <td style="text-align:right">$${tx.price}</td>
+        <td style="text-align:right;color:var(--teal)">$${tx.value.toLocaleString()}</td>
+        <td style="color:var(--muted)">${tx.note||'—'}</td>
+      </tr>`;
+    }).join('') +
+    '</tbody></table>' +
+    (transactions.length > 100 ? `<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;padding:8px 0;text-align:center;">Showing 100 of ${transactions.length} · Older records in Google Sheets</div>` : '');
+}
+
+function toggleTxLog(){
+  const body = $('tx-body');
+  const chev = $('tx-chevron');
+  if(!body) return;
+  const open = body.classList.toggle('open');
+  if(chev) chev.textContent = open ? '▲' : '▼';
+}
+
+function clearTransactions(){
+  if(!confirm('Clear all local transaction history? (Google Sheets history is not affected)')) return;
+  transactions = [];
+  saveTxLocal();
+  renderTransactions();
+}
+
+
+// ── ENH-06: PDF upload handler ─────────────────────────────────
+function handlePDFUpload(file){
+  const res = $('pdf-parse-result');
+  if(!file || !file.name.toLowerCase().endsWith('.pdf')){
+    res.className='parse-result show';
+    res.innerHTML='<div style="color:var(--red);font-size:11px;">Please select a .pdf file.</div>';
+    return;
+  }
+  if(!gsUrl){
+    res.className='parse-result show';
+    res.innerHTML='<div style="font-size:11px;color:var(--amber);">Connect Google Sheets first — PDF parsing requires Apps Script to call Google Drive&#39;s PDF-to-text API.</div>';
+    return;
+  }
+  res.className='parse-result show';
+  res.innerHTML=`<div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;padding:8px 0;">PDF parsing via Apps Script is not yet implemented in this version.<br><br>Workaround: use the <b>Fidelity CSV</b> tab — export a CSV from Fidelity.com → Positions → Download.</div>`;
+}
+
+
+// ── DEBUG: step-by-step refresh diagnosis ──────────────────────────────────
+async function debugRefresh(){
+  const modal = $('debug-modal');
+  const log   = $('debug-log');
+  const summ  = $('debug-summary');
+  if(!modal || !log) return;
+  modal.style.display = 'flex';
+  modal.classList.add('open');
+  log.textContent = '';
+  summ.textContent = 'Running diagnostics…';
+
+  const dbg = (msg, color) => {
+    const line = document.createElement('div');
+    line.style.color = color || 'var(--muted2)';
+    line.textContent = msg;
+    log.appendChild(line);
+    log.scrollTop = log.scrollHeight;
+  };
+
+  // Step 1: Check gsUrl
+  dbg('STEP 1 — Check Apps Script connection');
+  if(!gsUrl){
+    dbg('  ✗ gsUrl is empty — not connected to Google Sheets', 'var(--red)');
+    dbg('  → Click ⬡ Google Sheets and complete the setup', 'var(--amber)');
+    summ.textContent = 'Not connected to Google Sheets';
+    return;
+  }
+  dbg('  ✓ gsUrl = ' + gsUrl.slice(0,50) + '…', 'var(--green)');
+
+  // Step 2: Check what symbols will be sent
+  dbg('\nSTEP 2 — Symbols to refresh');
+  const symMap = getRefreshSymbols();
+  const symList = Object.keys(symMap);
+  if(!symList.length){
+    dbg('  ✗ No symbols found — all holdings are cash/money market', 'var(--red)');
+    summ.textContent = 'No refreshable symbols';
+    return;
+  }
+  symList.forEach(s => dbg('  → ' + s + ' (for: ' + symMap[s].join(', ') + ')'));
+
+  // Step 3: Call Apps Script
+  dbg('\nSTEP 3 — Calling Apps Script');
+  const symParam = symList.map(s => encodeURIComponent(s)).join('%2C');
+  const url = gsUrl + '?action=prices&symbols=' + symParam;
+  dbg('  URL: ' + url.slice(0, 100) + (url.length>100?'…':''));
+
+  let rawText = '', httpStatus = 0;
+  try {
+    const r = await fetchWithTimeout(url, {}, 20000);
+    httpStatus = r.status;
+    rawText = await r.text();
+    dbg('  HTTP status: ' + httpStatus, httpStatus===200 ? 'var(--green)' : 'var(--red)');
+    if(httpStatus !== 200){
+      dbg('  ✗ Non-200 response', 'var(--red)');
+      dbg('  Body: ' + rawText.slice(0,300));
+      summ.textContent = 'Apps Script returned HTTP ' + httpStatus;
+      return;
+    }
+  } catch(e){
+    dbg('  ✗ Fetch failed: ' + e.message, 'var(--red)');
+    dbg('  → Check: is the Web App URL correct? Is it deployed with Anyone access?', 'var(--amber)');
+    summ.textContent = 'Network error: ' + e.message;
+    return;
+  }
+
+  // Step 4: Parse response
+  dbg('\nSTEP 4 — Parse Apps Script response');
+  dbg('  Raw response (first 500 chars):');
+  dbg('  ' + rawText.slice(0, 500));
+
+  let data;
+  try {
+    data = JSON.parse(rawText);
+    dbg('  ✓ Valid JSON', 'var(--green)');
+  } catch(e){
+    dbg('  ✗ Invalid JSON: ' + e.message, 'var(--red)');
+    dbg('  → Your Apps Script may not have the updated code. Redeploy as a new version.', 'var(--amber)');
+    summ.textContent = 'Apps Script returned invalid JSON — needs redeployment';
+    return;
+  }
+
+  if(data.error){
+    dbg('  ✗ Apps Script error: ' + data.error, 'var(--red)');
+    dbg('  → Yahoo Finance may be blocking the request. Check Apps Script logs.', 'var(--amber)');
+    summ.textContent = 'Apps Script error: ' + data.error;
+    return;
+  }
+
+  // Step 5: Match prices to holdings
+  dbg('\nSTEP 5 — Match prices to holdings');
+  const prices = data.prices || {};
+  const priceKeys = Object.keys(prices);
+  dbg('  Prices returned: ' + priceKeys.length);
+  priceKeys.slice(0,20).forEach(k => dbg('  ' + k + ' = ' + prices[k]));
+
+  let matched = 0, unmatched = [];
+  symList.forEach(ySym => {
+    const price = prices[ySym] || prices[ySym.replace(/\.(NS|BO)$/i,'')];
+    if(price){
+      dbg('  ✓ ' + ySym + ' → $' + price, 'var(--green)');
+      matched++;
+    } else {
+      dbg('  ✗ ' + ySym + ' → not found in response', 'var(--red)');
+      unmatched.push(ySym);
+    }
+  });
+
+  // Step 6: Summary
+  dbg('\nSTEP 6 — Result');
+  if(matched === 0){
+    dbg('  ✗ No prices matched any holding symbols', 'var(--red)');
+    dbg('  → Symbols sent: ' + symList.join(', '), 'var(--amber)');
+    dbg('  → Symbols returned: ' + priceKeys.join(', '), 'var(--amber)');
+    summ.textContent = '✗ 0/' + symList.length + ' prices matched — see log for details';
+  } else {
+    dbg('  ✓ Matched ' + matched + '/' + symList.length + ' symbols', 'var(--green)');
+    if(unmatched.length) dbg('  ✗ Unmatched: ' + unmatched.join(', '), 'var(--amber)');
+    summ.textContent = '✓ ' + matched + '/' + symList.length + ' prices matched successfully';
+    // Apply the matched prices
+    await refreshAllPrices();
+  }
+}
+
+// ─── INIT ─────────────────────────────────────────────────────
+// CRITICAL: Load saved data BEFORE first recalc() so we don't
+// overwrite localStorage with defaults on startup.
+
+gsUrl = LS.get(GS_KEY) || '';
+
+// Step 1: Restore all local data
+const hadLocalData = loadLocal();
+loadTxLocal();
+loadHistoryLocal();
+
+// Step 2: Render with whatever data we have (saved or defaults)
+renderHoldingRows();
+
+// Temporarily disable saveLocal during the initial recalc so we
+// don't immediately overwrite a good restore with stale defaults
+let initDone = false;
+recalc();
+initDone = true;
+
+// Live date in header — updates every minute
+(function updateLiveDate(){
+  const el = $('live-date-text');
+  if(el){
+    const now = new Date();
+    el.textContent = now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  }
+  setTimeout(updateLiveDate, 60000);
+})();
+
+// Render transactions and history chart from local data
+renderTransactions();
+renderHistoryChart();
+
+// Auto-snapshot check runs 5 seconds after startup (non-blocking)
+setTimeout(maybeAutoSnapshot, 5000);
+
+// Step 3: Wire up Sheets and optionally refresh from remote
+if(gsUrl){
+  apiMode = true;
+  showGsConnected();
+  // Only show loading if we don't already have local data to show immediately
+  if(!hadLocalData) setSaveStatus('loading');
+  (async()=>{
+    try{
+      const r = await fetchWithTimeout(gsUrl+'?load=1', {}, 8000);
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      const text = await r.text();
+      if(!text || text==='{}' || text==='') throw new Error('Empty');
+
+      // Compare timestamps — use whichever is newer
+      let useSheets = true;
+      if(hadLocalData){
+        try{
+          const sheetsObj = JSON.parse(text);
+          const localRaw  = localStorage.getItem(LS_DATA_KEY);
+          const localObj  = localRaw ? JSON.parse(localRaw) : null;
+          if(localObj && localObj.savedAt && sheetsObj.savedAt){
+            useSheets = new Date(sheetsObj.savedAt) >= new Date(localObj.savedAt);
+          }
+        } catch(e){ /* use sheets by default */ }
+      }
+
+      if(useSheets){
+        applyPayload(text);
+        const t = new Date().toLocaleTimeString();
+        setSaveStatus('loaded');
+        const lsEl=$('gs-last-save'); if(lsEl) lsEl.textContent=t;
+      } else {
+        // Local data is newer — push it up to Sheets
+        console.log('Local data is newer than Sheets — syncing up');
+        setSaveStatus('');
+        await gsSave(); // push local → Sheets
+      }
+    } catch(e){
+      console.warn('Sheets load failed:', e.message);
+      setSaveStatus('');
+      if(hadLocalData){
+        // We have local data — push it to Sheets so they're in sync
+        console.log('Sheets empty/unreachable — pushing local data up');
+        await gsSave();
+      }
+    }
+  })();
+} else if(hadLocalData){
+  // Not connected to Sheets but we restored from localStorage
+  const el = $('save-status');
+  if(el){
+    el.style.display='flex'; el.style.color='var(--muted)';
+    el.innerHTML='<span>⬡</span><span>Restored from local cache · <a href="#" onclick="showSheetsModal();return false;" style="color:var(--blue);text-decoration:none">Connect Sheets to sync across devices</a></span>';
+    setTimeout(()=>{ el.style.display='none'; }, 7000);
+  }
+}
+</script>
+
+<!-- GOOGLE SHEETS MODAL -->
+<div class="modal-backdrop" id="sheets-modal" onclick="if(event.target===this)hideSheetsModal()">
+  <div class="modal">
+    <button class="modal-x" onclick="hideSheetsModal()">✕</button>
+    <div class="modal-title">Google Sheets Sync</div>
+    <div class="modal-sub">Your portfolio auto-saves to Google Sheets on every change</div>
+
+    <!-- Step indicator -->
+    <div id="gs-step-indicator" style="display:flex;gap:0;margin-bottom:20px;border-radius:8px;overflow:hidden;border:1px solid var(--border);">
+      <div id="gs-step-1-ind" style="flex:1;padding:7px;text-align:center;font-size:10px;font-family:'DM Mono',monospace;background:rgba(52,211,153,.12);color:var(--green);border-right:1px solid var(--border);">1 · Create Sheet</div>
+      <div id="gs-step-2-ind" style="flex:1;padding:7px;text-align:center;font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);border-right:1px solid var(--border);">2 · Add Script</div>
+      <div id="gs-step-3-ind" style="flex:1;padding:7px;text-align:center;font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);border-right:1px solid var(--border);">3 · Deploy</div>
+      <div id="gs-step-4-ind" style="flex:1;padding:7px;text-align:center;font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);">4 · Connect</div>
+    </div>
+
+    <!-- Step 1 -->
+    <div id="gs-step-1">
+      <div class="instructions">
+        <b>Step 1 — Create a Google Sheet</b><br><br>
+        1. Go to <a href="https://sheets.new" target="_blank" style="color:var(--blue)">sheets.new</a> to create a new Google Sheet<br>
+        2. Name it anything — e.g. <b>"Net Worth Tracker"</b><br>
+        3. Keep the tab named <b>Sheet1</b> (default is fine)<br>
+      </div>
+      <div class="modal-actions">
+        <a href="https://sheets.new" target="_blank" class="mbtn mbtn-primary" style="text-decoration:none">Open sheets.new ↗</a>
+        <button class="mbtn mbtn-primary" onclick="gsNextStep(2)">Done, next →</button>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div id="gs-step-2" style="display:none">
+      <div class="instructions">
+        <b>Step 2 — Add the Apps Script</b><br><br>
+        1. In your Google Sheet, click <b>Extensions → Apps Script</b><br>
+        2. Delete all existing code in the editor<br>
+        3. Paste the code below, then click <b>💾 Save</b> (Ctrl+S)<br>
+        <span style="color:var(--amber)">★ Already deployed before? Replace the old code and redeploy as a <b>new version</b>.</span>
+      </div>
+      <div style="position:relative;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:12px 14px;margin-bottom:12px;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted2);max-height:200px;overflow-y:auto;line-height:1.7;">
+        <button onclick="copyScript()" style="position:sticky;top:0;float:right;font-family:'DM Mono',monospace;font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid var(--border2);background:var(--bg2);color:var(--blue);cursor:pointer;z-index:1;" id="copy-btn">Copy</button>
+        <pre id="apps-script-code" style="white-space:pre-wrap;margin:0;padding-top:4px;">const SHEET_NAME = 'Sheet1';
+const HISTORY_SHEET = 'History';
+const TX_SHEET = 'Transactions';
+
+// ─── GET handler ──────────────────────────────────────────────
+function doGet(e) {
+  try {
+    const action = e.parameter.action || 'load';
+
+    // 1. Ticker search — proxies Yahoo Finance (no CORS!)
+    if (action === 'search') {
+      const q = e.parameter.q || '';
+      if (!q) return json({quotes: []});
+      const url = 'https://query1.finance.yahoo.com/v1/finance/search?q='
+        + encodeURIComponent(q) + '&quotesCount=10&newsCount=0';
+      try {
+        const resp = UrlFetchApp.fetch(url, {muteHttpExceptions: true});
+        const data = JSON.parse(resp.getContentText());
+        const quotes = (data.quotes || []).filter(function(q) {
+          return q.symbol && q.quoteType !== 'OPTION' && q.quoteType !== 'FUTURE';
+        });
+        return json({quotes: quotes});
+      } catch(err) {
+        return json({quotes: [], error: err.message});
+      }
+    }
+
+    // 2. Live price refresh
+    if (action === 'prices') {
+      var symbols = e.parameter.symbols || '';
+      if (!symbols) return json({prices: {}});
+
+      var prices = {};
+      var prevCloses = {};
+      var errors = [];
+
+      // Browser-like headers that Yahoo accepts
+      var headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Referer': 'https://finance.yahoo.com/',
+        'Origin': 'https://finance.yahoo.com'
+      };
+
+      // Split symbols and fetch individually to avoid batch 500 errors
+      var symList = symbols.split(',');
+      var resp, code, parsed, result, price;
+
+      symList.forEach(function(sym) {
+        sym = sym.trim();
+        if (!sym) return;
+        try {
+          // Use the chart endpoint — more reliable than quote for Apps Script
+          var url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + sym + '?interval=1d&range=1d';
+          resp = UrlFetchApp.fetch(url, {muteHttpExceptions: true, headers: headers});
+          code = resp.getResponseCode();
+          if (code === 200) {
+            parsed = JSON.parse(resp.getContentText());
+            var meta = ((parsed.chart || {}).result || [{}])[0].meta || {};
+            price = meta.regularMarketPrice || meta.previousClose;
+            if (price) {
+              var clean = sym.replace(/\.(NS|BO)$/i, '');
+              prices[clean] = price;
+              prices[sym] = price;
+              var pc = meta.chartPreviousClose || meta.previousClose || meta.regularMarketPreviousClose;
+              if (pc) { prevCloses[clean] = pc; prevCloses[sym] = pc; }
+              return;
+            }
+          }
+          // Fallback 1: v8 quote endpoint (stocks + some mutual funds)
+          url = 'https://query2.finance.yahoo.com/v8/finance/quote?symbols=' + sym
+              + '&fields=regularMarketPrice,navPrice,price,regularMarketPreviousClose,previousClose';
+          resp = UrlFetchApp.fetch(url, {muteHttpExceptions: true, headers: headers});
+          code = resp.getResponseCode();
+          if (code === 200) {
+            parsed = JSON.parse(resp.getContentText());
+            result = ((parsed.quoteResponse || {}).result || [])[0] || {};
+            price = result.regularMarketPrice || result.navPrice || result.price;
+            if (price) {
+              var clean2 = sym.replace(/\.(NS|BO)$/i, '');
+              prices[clean2] = price;
+              prices[sym] = price;
+              var pc = result.regularMarketPreviousClose || result.previousClose;
+              if (pc) { prevCloses[clean2] = pc; prevCloses[sym] = pc; }
+              return;
+            }
+          }
+          // Fallback 2: v7 quote endpoint (better for mutual funds / NAVs)
+          try {
+            var url7 = 'https://query1.finance.yahoo.com/v7/finance/quote?symbols=' + sym;
+            var resp7 = UrlFetchApp.fetch(url7, {muteHttpExceptions: true, headers: headers});
+            if (resp7.getResponseCode() === 200) {
+              var p7 = JSON.parse(resp7.getContentText());
+              var r7 = ((p7.quoteResponse || {}).result || [])[0] || {};
+              var px7 = r7.regularMarketPrice || r7.navPrice;
+              if (px7) {
+                var cl7 = sym.replace(/\.(NS|BO)$/i, '');
+                prices[cl7] = px7;
+                prices[sym] = px7;
+                return;
+              }
+            }
+          } catch(e7) { /* ignore */ }
+          errors.push(sym + ':HTTP' + code);
+        } catch(err) {
+          errors.push(sym + ':' + err.message.slice(0, 40));
+        }
+      });
+
+      // ── Twelve Data fallback for symbols Yahoo couldn't price ──────
+      var tdKey = PropertiesService.getScriptProperties().getProperty('TWELVE_DATA_KEY')
+                  || '7d9a4575d3104cae88dd178c9448d22b';
+      var failedNSE = symList.filter(function(s) {
+        s = s.trim();
+        if (!s) return false;
+        var clean = s.replace(/\.(NS|BO)$/i, '');
+        return /\.NS$/i.test(s) && !prices[clean] && !prices[s];
+      });
+      if (failedNSE.length > 0) {
+        var tdPairs = failedNSE.map(function(s) {
+          return {ns: s.trim(), td: s.trim().replace(/\.NS$/i, ':NSE')};
+        });
+        var tdSymStr = tdPairs.map(function(p){ return p.td; }).join(',');
+        try {
+          var tdUrl = 'https://api.twelvedata.com/price?symbol='
+            + encodeURIComponent(tdSymStr) + '&apikey=' + tdKey;
+          var tdResp = UrlFetchApp.fetch(tdUrl, {muteHttpExceptions: true});
+          if (tdResp.getResponseCode() === 200) {
+            var tdData = JSON.parse(tdResp.getContentText());
+            if (tdPairs.length === 1) {
+              if (tdData.price && !tdData.code) {
+                var cl = tdPairs[0].ns.replace(/\.NS$/i, '');
+                prices[cl] = parseFloat(tdData.price);
+                prices[tdPairs[0].ns] = parseFloat(tdData.price);
+              }
+            } else {
+              tdPairs.forEach(function(pair) {
+                var r = tdData[pair.td];
+                if (r && r.price && !r.code) {
+                  var cl2 = pair.ns.replace(/\.NS$/i, '');
+                  prices[cl2] = parseFloat(r.price);
+                  prices[pair.ns] = parseFloat(r.price);
+                }
+              });
+            }
+          }
+        } catch(tdErr) {
+          errors.push('TwelveData:' + tdErr.message.slice(0, 40));
+        }
+      }
+
+      // ── Google Finance fallback (via Sheets formula) for anything still missing ──
+      var stillMissing = symList.filter(function(s) {
+        s = s.trim();
+        if (!s) return false;
+        var clean = s.replace(/\.(NS|BO)$/i, '');
+        return /\.NS$/i.test(s) && !prices[clean] && !prices[s];
+      });
+      if (stillMissing.length > 0) {
+        try {
+          var ss = SpreadsheetApp.getActiveSpreadsheet();
+          var tmpName = '_PriceTemp';
+          var tmp = ss.getSheetByName(tmpName);
+          if (!tmp) { tmp = ss.insertSheet(tmpName); tmp.hideSheet(); }
+          stillMissing.forEach(function(s, i) {
+            // Strip .NS and -SM suffix so Google Finance gets the plain NSE symbol
+            var sym = s.trim().replace(/\.NS$/i, '').replace(/-SM$/i, '');
+            tmp.getRange(i + 1, 1).setFormula('=IFERROR(GOOGLEFINANCE("NSE:' + sym + '","price"),0)');
+          });
+          SpreadsheetApp.flush();
+          Utilities.sleep(2500);
+          stillMissing.forEach(function(s, i) {
+            var sym = s.trim();
+            var clean = sym.replace(/\.NS$/i, '');
+            var val = Number(tmp.getRange(i + 1, 1).getValue());
+            if (val > 0) { prices[clean] = val; prices[sym] = val; }
+          });
+          tmp.getRange(1, 1, stillMissing.length, 1).clearContent();
+        } catch(gfErr) {
+          errors.push('GoogleFinance:' + gfErr.message.slice(0, 40));
+        }
+      }
+      // ────────────────────────────────────────────────────────────────
+
+      return json({
+        prices: prices,
+        prevCloses: prevCloses,
+        updatedAt: new Date().toISOString(),
+        count: Object.keys(prices).length / 2,
+        errors: errors
+      });
+    }
+
+    // 3a. Save / delete Twelve Data API key
+    if (action === 'saveTdKey') {
+      var k = (e.parameter.key || '').trim();
+      if (k) {
+        PropertiesService.getScriptProperties().setProperty('TWELVE_DATA_KEY', k);
+      } else {
+        PropertiesService.getScriptProperties().deleteProperty('TWELVE_DATA_KEY');
+      }
+      return json({ok: true});
+    }
+
+    // 3b. Check whether a Twelve Data key is stored
+    if (action === 'getTdKey') {
+      var stored = PropertiesService.getScriptProperties().getProperty('TWELVE_DATA_KEY');
+      return json({
+        hasKey: !!stored,
+        masked: stored ? stored.substring(0,4) + '…' + stored.substring(stored.length - 4) : null
+      });
+    }
+
+    // 3. Forex — live INR/USD rate
+    if (action === 'forex') {
+      try {
+        const url = 'https://api.exchangerate-api.com/v4/latest/USD';
+        const resp = UrlFetchApp.fetch(url, {muteHttpExceptions: true});
+        const data = JSON.parse(resp.getContentText());
+        return json({INR: data.rates.INR, updatedAt: new Date().toISOString()});
+      } catch(err) {
+        // Fallback: try another free API
+        try {
+          const url2 = 'https://open.er-api.com/v6/latest/USD';
+          const resp2 = UrlFetchApp.fetch(url2, {muteHttpExceptions: true});
+          const data2 = JSON.parse(resp2.getContentText());
+          return json({INR: data2.rates.INR, updatedAt: new Date().toISOString()});
+        } catch(err2) {
+          return json({INR: null, error: err.message});
+        }
+      }
+    }
+
+    // 4. Load history snapshots
+    if (action === 'loadHistory') {
+      try {
+        const ss = SpreadsheetApp.getActiveSpreadsheet();
+        let sheet = ss.getSheetByName(HISTORY_SHEET);
+        if (!sheet) return json({history: []});
+        const rows = sheet.getDataRange().getValues();
+        const history = rows.slice(1).map(function(r) {
+          return {date: r[0], total: r[1], us: r[2], retirement: r[3], india: r[4], gold: r[5]};
+        }).filter(function(r){ return r.date && r.total; });
+        return json({history: history});
+      } catch(err) {
+        return json({history: [], error: err.message});
+      }
+    }
+
+    // 5. Load transactions
+    if (action === 'loadTransactions') {
+      try {
+        const ss = SpreadsheetApp.getActiveSpreadsheet();
+        let sheet = ss.getSheetByName(TX_SHEET);
+        if (!sheet) return json({transactions: []});
+        const rows = sheet.getDataRange().getValues();
+        const txns = rows.slice(1).map(function(r) {
+          return {date: r[0], action: r[1], sym: r[2], acct: r[3], shares: r[4], price: r[5], value: r[6], note: r[7]};
+        }).filter(function(r){ return r.date; });
+        return json({transactions: txns});
+      } catch(err) {
+        return json({transactions: [], error: err.message});
+      }
+    }
+
+    // Default: load portfolio
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+    const data = sheet.getRange('A1').getValue();
+    return json(data ? JSON.parse(data) : {});
+
+  } catch(err) {
+    return json({error: err.message});
+  }
+}
+
+// ─── POST handler ─────────────────────────────────────────────
+function doPost(e) {
+  try {
+    const body = JSON.parse(e.postData.contents);
+    const action = body._action || 'save';
+
+    // Save history snapshot
+    if (action === 'saveHistory') {
+      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      let sheet = ss.getSheetByName(HISTORY_SHEET);
+      if (!sheet) {
+        sheet = ss.insertSheet(HISTORY_SHEET);
+        sheet.appendRow(['Date', 'Total (USD)', 'US Taxable', 'Retirement', 'India+Gold', 'Gold only', 'INR/USD']);
+        sheet.getRange(1,1,1,7).setFontWeight('bold').setBackground('#1E3A5F').setFontColor('#FFFFFF');
+      }
+      sheet.appendRow([body.date, body.total, body.us, body.retirement, body.india, body.gold, body.forex]);
+      return json({ok: true});
+    }
+
+    // Save transaction
+    if (action === 'saveTransaction') {
+      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      let sheet = ss.getSheetByName(TX_SHEET);
+      if (!sheet) {
+        sheet = ss.insertSheet(TX_SHEET);
+        sheet.appendRow(['Date', 'Action', 'Symbol', 'Account', 'Shares', 'Price', 'Value (USD)', 'Note']);
+        sheet.getRange(1,1,1,8).setFontWeight('bold').setBackground('#1E3A5F').setFontColor('#FFFFFF');
+      }
+      sheet.appendRow([body.date, body.action, body.sym, body.acct, body.shares, body.price, body.value, body.note||'']);
+      return json({ok: true});
+    }
+
+    // Default: save portfolio (raw JSON string posted)
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+    sheet.getRange('A1').setValue(e.postData.contents);
+    return json({ok: true});
+
+  } catch(err) {
+    // Also try treating body as raw portfolio string
+    try {
+      const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+      sheet.getRange('A1').setValue(e.postData.contents);
+      return json({ok: true});
+    } catch(e2) {
+      return json({error: err.message});
+    }
+  }
+}
+
+
+// ── Run THIS function from the editor to trigger authorization + test ──
+function authorizeAndTest() {
+  var headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Referer': 'https://finance.yahoo.com/'
+  };
+  var resp = UrlFetchApp.fetch('https://query1.finance.yahoo.com/v8/finance/chart/AAPL?interval=1d&range=1d', {
+    muteHttpExceptions: true,
+    headers: headers
+  });
+  var code = resp.getResponseCode();
+  Logger.log('HTTP status: ' + code);
+  var data = JSON.parse(resp.getContentText());
+  var meta = ((data.chart || {}).result || [{}])[0].meta || {};
+  Logger.log('AAPL price: ' + (meta.regularMarketPrice || meta.previousClose));
+}
+
+function json(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+</pre>
+      </div>
+      <div class="modal-actions">
+        <button class="mbtn" onclick="gsNextStep(1)">← Back</button>
+        <button class="mbtn mbtn-primary" onclick="gsNextStep(3)">Done, next →</button>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div id="gs-step-3" style="display:none">
+      <div class="instructions">
+        <b>Step 3 — Deploy as Web App</b><br><br>
+        1. In the Apps Script editor, click <b>Deploy → New deployment</b><br>
+        2. Click the gear ⚙ icon → select <b>Web app</b><br>
+        3. Set <b>Execute as:</b> Me &nbsp;|&nbsp; <b>Who has access:</b> Anyone<br>
+        4. Click <b>Deploy</b> and copy the <b>Web app URL</b><br>
+        <span style="color:var(--amber)">★ Re-deploying? Use <b>Manage deployments → Edit → New version</b> — the URL stays the same.</span>
+      </div>
+      <div class="modal-actions">
+        <button class="mbtn" onclick="gsNextStep(2)">← Back</button>
+        <button class="mbtn mbtn-primary" onclick="gsNextStep(4)">I have the URL →</button>
+      </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div id="gs-step-4" style="display:none">
+      <div class="instructions">
+        <b>Step 4 — Paste your Web App URL</b><br><br>
+        Paste the Web App URL from Step 3 below, then click <b>Test</b> to verify it works.
+      </div>
+      <input id="gs-url-input" type="url" placeholder="https://script.google.com/macros/s/…/exec"
+        style="width:100%;box-sizing:border-box;padding:9px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;font-family:'DM Mono',monospace;margin:12px 0 8px;outline:none;">
+      <div id="gs-test-result" style="display:none;padding:8px 12px;border-radius:6px;font-size:12px;font-family:'DM Mono',monospace;margin-bottom:10px;"></div>
+      <div class="modal-actions">
+        <button class="mbtn" onclick="gsNextStep(3)">← Back</button>
+        <button class="mbtn" onclick="gsTestConnection()">Test connection</button>
+        <button class="mbtn mbtn-primary" onclick="gsSaveAndConnect()">Connect ✓</button>
+      </div>
+    </div>
+
+    <!-- Connected state -->
+    <div id="gs-connected" style="display:none">
+      <div class="instructions" style="background:rgba(52,211,153,.06);border-color:rgba(52,211,153,.2);">
+        <span style="color:var(--green);font-size:14px">✓ Connected</span><br><br>
+        Your portfolio syncs automatically with Google Sheets.<br>
+        <span style="color:var(--muted);font-size:11px" id="gs-url-display"></span>
+      </div>
+
+      <!-- Twelve Data key section -->
+      <div style="margin-top:14px;padding:12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);">
+        <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:6px;">Twelve Data API Key <span style="color:var(--muted);font-weight:400">(for NSE/BSE price fallback)</span></div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Used when Yahoo Finance can't find an Indian stock. Get a free key at <a href="https://twelvedata.com" target="_blank" style="color:var(--blue)">twelvedata.com</a>.</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input id="td-key-input" type="password" placeholder="Your Twelve Data API key…"
+            style="flex:1;padding:7px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:11px;font-family:'DM Mono',monospace;outline:none;">
+          <button class="mbtn mbtn-primary" style="font-size:11px;padding:6px 12px;" onclick="tdSaveKey()">Save key</button>
+        </div>
+        <div id="td-key-status" style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:5px;min-height:14px;"></div>
+      </div>
+
+      <div class="modal-actions" style="margin-top:16px;">
+        <button class="mbtn" onclick="gsDisconnect()" style="color:var(--red);border-color:rgba(248,113,113,.3);">Disconnect</button>
+        <button class="mbtn mbtn-primary" onclick="hideSheetsModal()">Done</button>
+      </div>
+    </div>
+
+  </div><!-- end .modal -->
+</div><!-- end #sheets-modal -->
+
+</body>
+</html>
