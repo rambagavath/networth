@@ -501,7 +501,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
       <div class="sec-icon" style="background:rgba(251,191,36,.1);color:#fbbf24">PE</div>
       <div><div class="sec-name">Pension Plan Balance</div><div class="sec-sub">As of 12/31/2025 · 5% annual interest</div></div>
     </div>
-    <div class="sec-hdr-right"><div class="sec-val" style="color:var(--amber)">—</div><div class="chevron">▼</div></div>
+    <div class="sec-hdr-right"><div class="sec-val" style="color:var(--amber)" id="hdr-pension">—</div><div class="chevron">▼</div></div>
   </div>
   <div class="sec-body">
     <div class="holding"><div class="h-left"><div class="h-ticker" style="color:var(--amber)">PENSION PLAN</div><div class="h-name">Closing balance Dec 31, 2025</div><div class="h-meta">—</div></div><div class="h-right"><div class="h-val">—</div><div class="h-gl pos">—</div></div></div>
@@ -562,7 +562,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
       <div class="sec-icon" style="background:rgba(15,118,110,.2);color:#2dd4bf">NV</div>
       <div><div class="sec-name">Niveshaay AIF — Class B9</div><div class="sec-sub">as of Apr 15, 2026</div></div>
     </div>
-    <div class="sec-hdr-right"><div class="sec-val" style="color:var(--teal)">—</div><div class="chevron">▼</div></div>
+    <div class="sec-hdr-right"><div class="sec-val" style="color:var(--teal)" id="hdr-niveshaay">—</div><div class="chevron">▼</div></div>
   </div>
   <div class="sec-body">
     <div class="holding"><div class="h-left"><div class="h-ticker" style="color:var(--teal)">CLASS B9 UNITS</div><div class="h-name">Niveshaay Investment Trust AIF</div><div class="h-meta">units · NAV ₹— · —</div></div><div class="h-right"><div class="h-val">—</div><div class="h-gl pos">—</div></div></div>
@@ -1069,7 +1069,7 @@ function recalc(){
   const hdrMap = {
     'fid-ind':'hdr-fid-ind','fid-ira':'hdr-fid-ira',
     'hartford':'hdr-hartford','merrill':'hdr-merrill','fid-rh':'hdr-fid-rh','gold':'hdr-gold',
-    'stallion':'hdr-stallion',
+    'stallion':'hdr-stallion','pension':'hdr-pension','niveshaay':'hdr-niveshaay',
     'india-ind':'hdr-india-ind','india-ira':'hdr-india-ira'
   };
   Object.entries(hdrMap).forEach(([k,id])=>{ if($(id)) $(id).textContent = usd(acctVal(k)); });
@@ -2710,29 +2710,32 @@ if(gsUrl){
 
       // Compare timestamps — use whichever is newer, but never overwrite real local data with zeros
       let useSheets = true;
-      if(hadLocalData){
-        try{
-          const sheetsObj = JSON.parse(text);
-          const localRaw  = localStorage.getItem(LS_DATA_KEY);
-          const localObj  = localRaw ? JSON.parse(localRaw) : null;
-          // Guard: if Sheets has all-zero holdings but local has real data, prefer local
-          const sheetsTotal = Object.values(sheetsObj.holdings||{})
-            .reduce((s,h)=>s+(h.shares||0)*(h.price||0),0);
-          const sheetsAcct  = (sheetsObj.acctOverrides?.stallion||0)+(sheetsObj.acctOverrides?.niveshaay||0)+(sheetsObj.acctOverrides?.pension||0);
-          const sheetsIsZero = (sheetsTotal + sheetsAcct) === 0;
-          if(localObj && localObj.savedAt && sheetsObj.savedAt && !sheetsIsZero){
-            useSheets = new Date(sheetsObj.savedAt) >= new Date(localObj.savedAt);
-          } else if(sheetsIsZero && localObj){
-            useSheets = false; // Sheets looks empty/corrupted — keep local
-          }
-        } catch(e){ /* use sheets by default */ }
-      }
+      let sheetsWasZero = false;
+      try{
+        const sheetsObj = JSON.parse(text);
+        const localRaw  = localStorage.getItem(LS_DATA_KEY);
+        const localObj  = localRaw ? JSON.parse(localRaw) : null;
+        const sheetsTotal = Object.values(sheetsObj.holdings||{})
+          .reduce((s,h)=>s+(h.shares||0)*(h.price||0),0);
+        const sheetsAcct  = (sheetsObj.acctOverrides?.stallion||0)+(sheetsObj.acctOverrides?.niveshaay||0)+(sheetsObj.acctOverrides?.pension||0);
+        sheetsWasZero = (sheetsTotal + sheetsAcct) === 0;
+        if(hadLocalData && localObj && localObj.savedAt && sheetsObj.savedAt && !sheetsWasZero){
+          useSheets = new Date(sheetsObj.savedAt) >= new Date(localObj.savedAt);
+        } else if(sheetsWasZero && localObj){
+          useSheets = false; // Sheets looks zeroed/corrupted — keep local
+        }
+      } catch(e){ /* use sheets by default */ }
 
       if(useSheets){
         applyPayload(text);
         const t = new Date().toLocaleTimeString();
         setSaveStatus('loaded');
         const lsEl=$('gs-last-save'); if(lsEl) lsEl.textContent=t;
+        // If Sheets was zeroed (e.g. from a blank public copy), push real data back up
+        if(sheetsWasZero){
+          console.log('Sheets was zeroed — pushing real data back to Sheets');
+          setTimeout(()=>gsSave(), 500);
+        }
       } else {
         // Local data is newer — push it up to Sheets
         console.log('Local data is newer than Sheets — syncing up');
