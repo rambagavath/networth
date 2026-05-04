@@ -2049,6 +2049,7 @@ function buildSavePayload(){
     },
     excluded: [...excluded],
     goldPrice: parseFloat($('gold-price')?.value||135.83),
+    transactions: transactions.slice(0, 200),
   });
 }
 
@@ -2083,6 +2084,12 @@ function applyPayload(data){
     // Restore exclusions
     excluded.clear();
     (obj.excluded||[]).forEach(k=>excluded.add(k));
+
+    // Restore transactions
+    if(obj.transactions && obj.transactions.length){
+      transactions = obj.transactions;
+      saveTxLocal();
+    }
 
     // Restore gold price
     if(obj.goldPrice){
@@ -2206,7 +2213,7 @@ async function refreshAllPrices(){
     return; 
   }
   const symMap = getRefreshSymbols();
-  const symList = Object.keys(symMap);
+  const symList = [...Object.keys(symMap), 'GC=F']; // GC=F = gold spot
   if(!symList.length){ setRefreshStatus('No refreshable holdings found'); return; }
 
   const btn = $('refresh-btn');
@@ -2260,6 +2267,27 @@ async function refreshAllPrices(){
     });
 
     if(isNewDay) LS.set('nw_last_refresh_day', todayStr);
+
+    // Update gold price from GC=F (spot 24K in USD/troy oz → 22K per gram)
+    const goldSpot = prices['GC=F'] || prices['GC%3DF'] || null;
+    if(goldSpot && goldSpot > 0){
+      const gold22KPerGram = (goldSpot / 31.1035) * 0.9167;
+      const gpInput = $('gold-price');
+      if(gpInput){
+        const oldGoldPrice = parseFloat(gpInput.value) || 0;
+        gpInput.value = gold22KPerGram.toFixed(2);
+        // Update gold note
+        const gNote = gpInput.parentElement?.querySelector('span:last-child');
+        if(gNote) gNote.textContent = 'live: $' + gold22KPerGram.toFixed(2) + '/g · ' + new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'});
+        // Update india-note under gold section
+        const goldNote = document.querySelector('#sec-gold .india-note');
+        if(goldNote){
+          const spot = goldSpot.toFixed(0);
+          goldNote.textContent = 'Spot 24K: $' + Number(spot).toLocaleString() + '/troy oz · 22K = $' + gold22KPerGram.toFixed(2) + '/g · 86 × 8g = 688g · Fine: 630.67g · USD/INR ' + USD_INR_LIVE.toFixed(2);
+        }
+        if(Math.abs(oldGoldPrice - gold22KPerGram) > 0.01) updated++;
+      }
+    }
 
     lastRefresh = new Date();
     const timeStr = lastRefresh.toLocaleTimeString();
