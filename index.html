@@ -374,6 +374,11 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
     <span>Include options</span>
     <span class="neg" style="font-family:'DM Mono',monospace;font-size:11px;" id="opt-mv-label">(-$29,517 MV)</span>
   </div>
+  <div class="opt-toggle-row" style="margin-top:5px;">
+    <label class="switch"><input type="checkbox" id="aftertax-toggle" onchange="recalc()"><span class="slider"></span></label>
+    <span>After-tax view</span>
+    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--amber);">30% deducted on 401k · Trad IRA · Pension</span>
+  </div>
 </div>
 
 <!-- METRICS -->
@@ -1059,6 +1064,18 @@ function recalc(){
   const vals = {};
   Object.keys(ACCTS).forEach(k => vals[k] = excluded.has(k) ? 0 : acctVal(k));
 
+  // After-tax toggle: 30% withholding on pre-tax accounts (401k, Trad IRA, Pension)
+  const afterTaxOn = $('aftertax-toggle')?.checked;
+  const PRE_TAX_KEYS = ['hartford','fid-ira','pension'];
+  let taxDeduction = 0;
+  if(afterTaxOn){
+    PRE_TAX_KEYS.forEach(k => {
+      const ded = vals[k] * 0.30;
+      taxDeduction += ded;
+      vals[k] = vals[k] * 0.70;
+    });
+  }
+
   const usTaxable  = vals['fid-ind'] + vals['merrill'];
   const retirement = vals['fid-ira'] + vals['hartford'] + vals['fid-rh'] + vals['pension'];
   const india      = vals['stallion'] + vals['niveshaay'] + vals['india-ind'] + vals['india-ira'];
@@ -1072,7 +1089,7 @@ function recalc(){
     'stallion':'hdr-stallion','pension':'hdr-pension','niveshaay':'hdr-niveshaay',
     'india-ind':'hdr-india-ind','india-ira':'hdr-india-ira'
   };
-  Object.entries(hdrMap).forEach(([k,id])=>{ if($(id)) $(id).textContent = usd(acctVal(k)); });
+  Object.entries(hdrMap).forEach(([k,id])=>{ if($(id)) $(id).textContent = usd(vals[k] ?? acctVal(k)); });
 
   // Stallion live value box
   const slv = $('stallion-live-val');
@@ -1088,7 +1105,7 @@ function recalc(){
 
   // Section totals
   [['fid-ind','tot-fid-ind','lbl-fid-ind'],['fid-ira','tot-fid-ira','lbl-fid-ira'],['fid-rh','tot-fid-rh','lbl-fid-rh']].forEach(([k,tv,lv])=>{
-    if($(tv)) $(tv).textContent = usd(acctVal(k));
+    if($(tv)) $(tv).textContent = usd(vals[k] ?? acctVal(k));
     if($(lv)) $(lv).textContent = optionsOn ? 'equities + options' : 'equities only';
   });
 
@@ -1154,10 +1171,22 @@ function recalc(){
   if($('m-us'))    $('m-us').textContent     = usd(usTaxable+retirement);
   if($('m-india')) $('m-india').textContent  = usd(india+gold);
   if($('m-india-sub')) $('m-india-sub').textContent = inrCr((india+gold)) + ' · PMS+AIF+Gold';
-  if($('m-total-sub')) $('m-total-sub').textContent = lastRefresh
-    ? 'as of ' + lastRefresh.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})
-    : 'refresh prices to see live data';
-  if($('m-us-sub') && !usHasLive) $('m-us-sub').textContent = 'Taxable + Retirement';
+  if($('m-total-sub')){
+    if(afterTaxOn){
+      $('m-total-sub').innerHTML = `<span style="color:var(--amber)">After-tax view · 30% deducted on pre-tax · saved ${usd(taxDeduction)}</span>`;
+    } else {
+      $('m-total-sub').textContent = lastRefresh
+        ? 'as of ' + lastRefresh.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})
+        : 'refresh prices to see live data';
+    }
+  }
+  if($('m-us-sub')){
+    if(afterTaxOn){
+      $('m-us-sub').innerHTML = `<span style="color:var(--amber)">After-tax · −${usd(taxDeduction)} withheld</span>`;
+    } else if(!usHasLive){
+      $('m-us-sub').textContent = 'Taxable + Retirement';
+    }
+  }
 
   // Metric card daily change badges
   if($('m-total-chg')) $('m-total-chg').innerHTML = fmtMetricChg(totalDayChg, grand - totalDayChg, totalHasLive);
@@ -1192,12 +1221,15 @@ function recalc(){
 
   // Summary
   const optLbl = optionsOn ? 'OPTIONS INCLUDED' : 'OPTIONS EXCLUDED';
-  if($('sum-label')) $('sum-label').textContent = 'TOTAL NET WORTH · ' + optLbl;
+  const taxLbl = afterTaxOn ? ' · AFTER-TAX' : '';
+  if($('sum-label')) $('sum-label').textContent = 'TOTAL NET WORTH · ' + optLbl + taxLbl;
   if($('sum-val'))   $('sum-val').textContent   = usd(grand);
   if($('sum-inr'))   $('sum-inr').textContent   = inrCr(grand);
-  if($('sum-sub'))   $('sum-sub').textContent   = inrCr(grand) + ' · 9 accounts + gold · 2 countries';
+  if($('sum-sub'))   $('sum-sub').textContent   = afterTaxOn
+    ? `30% withheld on 401k · Trad IRA · Pension (−${usd(taxDeduction)})`
+    : inrCr(grand) + ' · 9 accounts + gold · 2 countries';
   if($('sum-breakdown')) $('sum-breakdown').innerHTML =
-    `US Taxable: <span style="color:var(--blue)">${usd(usTaxable)}</span><br>Retirement: <span style="color:var(--purple)">${usd(retirement)}</span><br>India+Gold: <span style="color:var(--teal)">${usd(india+gold)}</span>`;
+    `US Taxable: <span style="color:var(--blue)">${usd(usTaxable)}</span><br>Retirement: <span style="color:var(--purple)">${usd(retirement)}</span>${afterTaxOn ? ` <span style="color:var(--amber);font-size:10px">(after 30% tax)</span>` : ''}<br>India+Gold: <span style="color:var(--teal)">${usd(india+gold)}</span>`;
 
   // Excluded sections
   Object.keys(ACCTS).forEach(k=>{
