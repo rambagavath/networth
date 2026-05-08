@@ -2041,115 +2041,23 @@ const LS = {
 };
 
 function showSheetsModal(){
-  // Open the modal first — nothing must be able to block this
   const modal = $('sheets-modal');
-  if(!modal){ console.error('sheets-modal element missing'); return; }
+  if(!modal) return;
   modal.style.display = 'flex';
   modal.classList.add('open');
-  try {
-    gsUrl = LS.get(GS_KEY) || '';
-    if(gsUrl){ showGsConnected(); } else { gsNextStep(1); }
-  } catch(e){ console.warn('showSheetsModal inner error:', e); }
+  const disp = $('gs-url-display');
+  if(disp) disp.textContent = gsUrl ? gsUrl.slice(0,60)+'…' : 'loading from config.json…';
+  setTimeout(tdCheckKey, 300);
 }
 function hideSheetsModal(){ const m=$('sheets-modal'); if(m){ m.classList.remove('open'); m.style.display=''; } }
 
-function gsNextStep(n){
-  [1,2,3,4].forEach(i=>{
-    const el=$('gs-step-'+i); if(el) el.style.display = i===n?'block':'none';
-    const ind=$('gs-step-'+i+'-ind');
-    if(ind){
-      ind.style.background = i===n?'rgba(52,211,153,.12)':'transparent';
-      ind.style.color = i===n?'var(--green)':i<n?'var(--muted2)':'var(--muted)';
-    }
-  });
-  const gc=$('gs-connected'); if(gc) gc.style.display='none';
-}
-
 function showGsConnected(){
-  [1,2,3,4].forEach(i=>{
-    const el=$('gs-step-'+i); if(el) el.style.display='none';
-  });
-  const gc=$('gs-connected'); if(gc) gc.style.display='block';
-  const disp=$('gs-url-display');
-  if(disp) disp.textContent = gsUrl.slice(0,60)+'…';
-  [1,2,3,4].forEach(i=>{
-    const ind=$('gs-step-'+i+'-ind');
-    if(ind){ ind.style.background='rgba(52,211,153,.12)'; ind.style.color='var(--green)'; }
-  });
   $('btn-sheets').style.color='var(--green)';
   $('btn-sheets').style.borderColor='rgba(52,211,153,.5)';
-  setTimeout(tdCheckKey, 300); // show key status if already saved
+  const disp=$('gs-url-display');
+  if(disp) disp.textContent = gsUrl.slice(0,60)+'…';
 }
 
-function copyScript(){
-  const code = $('apps-script-code').textContent;
-  navigator.clipboard.writeText(code).then(()=>{
-    const btn=$('copy-btn'); btn.textContent='Copied ✓'; btn.style.color='var(--green)';
-    setTimeout(()=>{ btn.textContent='Copy'; btn.style.color='var(--blue)'; }, 2000);
-  });
-}
-
-async function gsTestConnection(){
-  const url = ($('gs-url-input').value||'').trim();
-  const res=$('gs-test-result');
-  if(!url){ res.style.display='block'; res.style.background='rgba(248,113,113,.1)'; res.style.color='var(--red)'; res.textContent='Please enter the Web App URL'; return; }
-  res.style.display='block'; res.style.background='var(--bg3)'; res.style.color='var(--muted)'; res.textContent='Testing…';
-  try{
-    const r = await fetchWithTimeout(url+'?test=1', {}, 8000);
-    if(r.ok){
-      res.style.background='rgba(52,211,153,.08)'; res.style.color='var(--green)'; res.textContent='✓ Connection successful!';
-    } else { throw new Error('HTTP '+r.status); }
-  }catch(e){
-    res.style.background='rgba(248,113,113,.08)'; res.style.color='var(--red)';
-    res.textContent='✗ Failed: '+e.message+'. Make sure you deployed with "Anyone" access.';
-  }
-}
-
-async function gsSaveAndConnect(){
-  const url = ($('gs-url-input').value||'').trim();
-  if(!url){ alert('Please enter the Web App URL'); return; }
-  gsUrl = url;
-  LS.set(GS_KEY, gsUrl);
-  apiMode = true;
-
-  // Load from Sheets first — only push local data if Sheets is empty
-  let sheetsHasData = false;
-  try {
-    const r = await fetchWithTimeout(gsUrl+'?load=1', {}, 10000);
-    if(r.ok){
-      const text = await r.text();
-      if(text && text !== '{}' && text.length > 50){
-        const obj = JSON.parse(text);
-        // Check Sheets has meaningful (non-zero) data
-        const sheetsTotal = Object.values(obj.holdings||{})
-          .reduce((s,h) => s + (h.shares||0)*(h.price||0), 0);
-        const acctTotal = (obj.acctOverrides?.stallion||0) + (obj.acctOverrides?.niveshaay||0) + (obj.acctOverrides?.pension||0);
-        if(sheetsTotal > 0 || acctTotal > 0){
-          sheetsHasData = true;
-          applyPayload(obj);
-          setSaveStatus('loaded');
-        }
-      }
-    }
-  } catch(e){ console.warn('Connect load attempt failed:', e.message); }
-
-  if(!sheetsHasData){
-    // Sheets is empty or zeroed — push local data up
-    await gsSave(true);
-  }
-  showGsConnected();
-  fetchForex();
-  if(!historySnapshots.length) loadHistory();
-  if(!transactions.length) loadTxFromSheets();
-  loadTxFromSheets();
-}
-
-function gsDisconnect(){
-  if(!confirm('Disconnect from Google Sheets? Your local data stays intact.')) return;
-  gsUrl=''; LS.del(GS_KEY);
-  $('btn-sheets').style.color=''; $('btn-sheets').style.borderColor='';
-  gsNextStep(1);
-}
 
 // ─── Twelve Data key management ──────────────────────────────
 async function tdSaveKey(){
@@ -2991,7 +2899,7 @@ setTimeout(maybeAutoSnapshot, 5000);
     const el = $('save-status');
     if(el){
       el.style.display='flex'; el.style.color='var(--muted)';
-      el.innerHTML='<span>⬡</span><span>Restored from local cache · <a href="#" onclick="showSheetsModal();return false;" style="color:var(--blue);text-decoration:none">Connect Sheets to sync across devices</a></span>';
+      el.innerHTML='<span>⬡</span><span>Restored from local cache · connecting to Google Sheets…</span>';
       setTimeout(()=>{ el.style.display='none'; }, 7000);
     }
   }
@@ -3003,31 +2911,9 @@ setTimeout(maybeAutoSnapshot, 5000);
   <div class="modal">
     <button class="modal-x" onclick="hideSheetsModal()">✕</button>
     <div class="modal-title">Google Sheets Sync</div>
-    <div class="modal-sub">Your portfolio auto-saves to Google Sheets on every change</div>
+    <div class="modal-sub">Auto-connected via config.json · syncs on every change</div>
 
-    <!-- Step indicator -->
-    <div id="gs-step-indicator" style="display:flex;gap:0;margin-bottom:20px;border-radius:8px;overflow:hidden;border:1px solid var(--border);">
-      <div id="gs-step-1-ind" style="flex:1;padding:7px;text-align:center;font-size:10px;font-family:'DM Mono',monospace;background:rgba(52,211,153,.12);color:var(--green);border-right:1px solid var(--border);">1 · Create Sheet</div>
-      <div id="gs-step-2-ind" style="flex:1;padding:7px;text-align:center;font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);border-right:1px solid var(--border);">2 · Add Script</div>
-      <div id="gs-step-3-ind" style="flex:1;padding:7px;text-align:center;font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);border-right:1px solid var(--border);">3 · Deploy</div>
-      <div id="gs-step-4-ind" style="flex:1;padding:7px;text-align:center;font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);">4 · Connect</div>
-    </div>
 
-    <!-- Step 1 -->
-    <div id="gs-step-1">
-      <div class="instructions">
-        <b>Step 1 — Create a Google Sheet</b><br><br>
-        1. Go to <a href="https://sheets.new" target="_blank" style="color:var(--blue)">sheets.new</a> to create a new Google Sheet<br>
-        2. Name it anything — e.g. <b>"Net Worth Tracker"</b><br>
-        3. Keep the tab named <b>Sheet1</b> (default is fine)<br>
-      </div>
-      <div class="modal-actions">
-        <a href="https://sheets.new" target="_blank" class="mbtn mbtn-primary" style="text-decoration:none">Open sheets.new ↗</a>
-        <button class="mbtn mbtn-primary" onclick="gsNextStep(2)">Done, next →</button>
-      </div>
-    </div>
-
-    <!-- Step 2 -->
     <div id="gs-step-2" style="display:none">
       <div class="instructions">
         <b>Step 2 — Add the Apps Script</b><br><br>
@@ -3394,40 +3280,7 @@ function json(obj) {
       </div>
     </div>
 
-    <!-- Step 3 -->
-    <div id="gs-step-3" style="display:none">
-      <div class="instructions">
-        <b>Step 3 — Deploy as Web App</b><br><br>
-        1. In the Apps Script editor, click <b>Deploy → New deployment</b><br>
-        2. Click the gear ⚙ icon → select <b>Web app</b><br>
-        3. Set <b>Execute as:</b> Me &nbsp;|&nbsp; <b>Who has access:</b> Anyone<br>
-        4. Click <b>Deploy</b> and copy the <b>Web app URL</b><br>
-        <span style="color:var(--amber)">★ Re-deploying? Use <b>Manage deployments → Edit → New version</b> — the URL stays the same.</span>
-      </div>
-      <div class="modal-actions">
-        <button class="mbtn" onclick="gsNextStep(2)">← Back</button>
-        <button class="mbtn mbtn-primary" onclick="gsNextStep(4)">I have the URL →</button>
-      </div>
-    </div>
-
-    <!-- Step 4 -->
-    <div id="gs-step-4" style="display:none">
-      <div class="instructions">
-        <b>Step 4 — Paste your Web App URL</b><br><br>
-        Paste the Web App URL from Step 3 below, then click <b>Test</b> to verify it works.
-      </div>
-      <input id="gs-url-input" type="url" placeholder="https://script.google.com/macros/s/…/exec"
-        style="width:100%;box-sizing:border-box;padding:9px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;font-family:'DM Mono',monospace;margin:12px 0 8px;outline:none;">
-      <div id="gs-test-result" style="display:none;padding:8px 12px;border-radius:6px;font-size:12px;font-family:'DM Mono',monospace;margin-bottom:10px;"></div>
-      <div class="modal-actions">
-        <button class="mbtn" onclick="gsNextStep(3)">← Back</button>
-        <button class="mbtn" onclick="gsTestConnection()">Test connection</button>
-        <button class="mbtn mbtn-primary" onclick="gsSaveAndConnect()">Connect ✓</button>
-      </div>
-    </div>
-
-    <!-- Connected state -->
-    <div id="gs-connected" style="display:none">
+    <div id="gs-connected">
       <div class="instructions" style="background:rgba(52,211,153,.06);border-color:rgba(52,211,153,.2);">
         <span style="color:var(--green);font-size:14px">✓ Connected</span><br><br>
         Your portfolio syncs automatically with Google Sheets.<br>
@@ -3447,7 +3300,6 @@ function json(obj) {
       </div>
 
       <div class="modal-actions" style="margin-top:16px;">
-        <button class="mbtn" onclick="gsDisconnect()" style="color:var(--red);border-color:rgba(248,113,113,.3);">Disconnect</button>
         <button class="mbtn mbtn-primary" onclick="hideSheetsModal()">Done</button>
       </div>
     </div>
