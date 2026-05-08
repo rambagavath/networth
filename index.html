@@ -565,14 +565,14 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
   <div class="sec-hdr" onclick="toggleSec(this)">
     <div class="sec-hdr-left">
       <div class="sec-icon" style="background:rgba(15,118,110,.2);color:#2dd4bf">NV</div>
-      <div><div class="sec-name">Niveshaay AIF — Class B9</div><div class="sec-sub">as of Apr 15, 2026</div></div>
+      <div><div class="sec-name">Niveshaay AIF — Class B9</div><div class="sec-sub" id="niv-as-of">as of —</div></div>
     </div>
     <div class="sec-hdr-right"><div class="sec-val" style="color:var(--teal)" id="hdr-niveshaay">—</div><div class="chevron">▼</div></div>
   </div>
   <div class="sec-body">
-    <div class="holding"><div class="h-left"><div class="h-ticker" style="color:var(--teal)">CLASS B9 UNITS</div><div class="h-name">Niveshaay Investment Trust AIF</div><div class="h-meta">units · NAV ₹— · —</div></div><div class="h-right"><div class="h-val">—</div><div class="h-gl pos">—</div></div></div>
-    <div class="holding"><div class="h-left"><div class="h-ticker" style="color:var(--muted)">INVESTED</div><div class="h-name">5 tranches: Dec '24, Feb/Mar/Apr '25, Feb '26</div></div><div class="h-right"><div class="h-val">—</div><div class="h-gl muted">cost basis</div></div></div>
-    <div class="india-note">NAV: — · USD equiv. — · Custodian: KFIN Technologies</div>
+    <div class="holding"><div class="h-left"><div class="h-ticker" style="color:var(--teal)">CLASS B9 UNITS</div><div class="h-name">Niveshaay Investment Trust AIF</div><div class="h-meta" id="niv-units-meta">units · NAV ₹— · —</div></div><div class="h-right"><div class="h-val" id="niv-units-val">—</div><div class="h-gl pos" id="niv-units-gl">—</div></div></div>
+    <div class="holding"><div class="h-left"><div class="h-ticker" style="color:var(--muted)">INVESTED</div><div class="h-name" id="niv-tranches">—</div></div><div class="h-right"><div class="h-val" id="niv-cost-val">—</div><div class="h-gl muted">cost basis</div></div></div>
+    <div class="india-note" id="niv-note">NAV: — · USD equiv. — · Custodian: KFIN Technologies</div>
   </div>
 </div>
 
@@ -702,6 +702,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
       <button class="broker-tab active" id="tab-fidelity-btn" onclick="switchTab('fidelity')">Fidelity CSV</button>
       <button class="broker-tab" id="tab-merrill-btn" onclick="switchTab('merrill')">Merrill</button>
       <button class="broker-tab" id="tab-stallion-btn" onclick="switchTab('stallion')">Stallion</button>
+      <button class="broker-tab" id="tab-niveshaay-btn" onclick="switchTab('niveshaay')">Niveshaay</button>
       <button class="broker-tab" id="tab-manual-btn" onclick="switchTab('manual')">Manual Edit</button>
       <button class="broker-tab" id="tab-add-btn" onclick="switchTab('add')" style="color:var(--green)">+ Add Stock</button>
       <button class="broker-tab" id="tab-pdf-btn" onclick="switchTab('pdf')">PDF Upload</button>
@@ -738,6 +739,48 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
       <div class="modal-actions">
         <button class="mbtn mbtn-secondary" onclick="hideModal()">Cancel</button>
         <button class="mbtn mbtn-primary" onclick="applyStallion()">Update Stallion value</button>
+      </div>
+    </div>
+
+    <!-- Niveshaay tab -->
+    <div id="tab-niveshaay" style="display:none">
+      <div class="instructions"><b>Update Niveshaay AIF — Class B9:</b><br>Get your statement from the Niveshaay client portal or KFIN.
+        <div style="display:grid;gap:8px;margin-top:10px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div>
+              <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Units held</div>
+              <input id="niv-units-input" type="number" step="0.001" min="0" placeholder="e.g. 17209.015"
+                style="font-family:'DM Mono',monospace;font-size:13px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:5px 10px;width:100%;box-sizing:border-box;"
+                oninput="updateNivPreview()">
+            </div>
+            <div>
+              <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">NAV per unit (₹)</div>
+              <input id="niv-nav-input" type="number" step="0.01" min="0" placeholder="e.g. 1234.56"
+                style="font-family:'DM Mono',monospace;font-size:13px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:5px 10px;width:100%;box-sizing:border-box;"
+                oninput="updateNivPreview()">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div>
+              <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Total invested (₹)</div>
+              <input id="niv-cost-input" type="number" step="1000" min="0" placeholder="e.g. 17950000"
+                style="font-family:'DM Mono',monospace;font-size:13px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:5px 10px;width:100%;box-sizing:border-box;"
+                oninput="updateNivPreview()">
+            </div>
+            <div>
+              <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">As of date</div>
+              <input id="niv-asof-input" type="text" placeholder="e.g. Apr 15, 2026"
+                style="font-family:'DM Mono',monospace;font-size:13px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:5px 10px;width:100%;box-sizing:border-box;">
+            </div>
+          </div>
+          <div style="font-size:12px;color:var(--muted2);font-family:'DM Mono',monospace;padding:4px 0;">
+            Value: <span id="niv-preview" style="color:var(--teal);">—</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="mbtn mbtn-secondary" onclick="hideModal()">Cancel</button>
+        <button class="mbtn mbtn-primary" onclick="applyNiveshaay()">Update Niveshaay</button>
       </div>
     </div>
 
@@ -929,7 +972,7 @@ const ACCTS = {
   'fid-rh':    {label:'Fidelity Roth + HSA',  color:'var(--blue)',   fixed:false, inr:false, opts:0},
   'pension':   {label:'Pension Plan',          color:'var(--amber)',  fixed:true,  inr:false, val:0, opts:0},
   'stallion':  {label:'Stallion PMS',          color:'var(--teal)',   fixed:false, inr:true,  opts:0},
-  'niveshaay': {label:'Niveshaay AIF',         color:'var(--teal)',   fixed:true,  inr:false, val:0, opts:0},
+  'niveshaay': {label:'Niveshaay AIF',         color:'var(--teal)',   fixed:true,  inr:false, val:0, opts:0, units:0, nav:0, costINR:0, asOf:''},
   'gold':      {label:'Physical Gold',         color:'var(--amber)',  fixed:true,  inr:false, val:0, opts:0},
   'india-ind': {label:'India Individual',      color:'var(--teal)',   fixed:false, inr:true,  opts:0},
   'india-ira': {label:'India Retirement',      color:'var(--teal)',   fixed:false, inr:true,  opts:0},
@@ -1236,6 +1279,8 @@ function recalc(){
     const el=$('sec-'+k); if(el) el.classList.toggle('excluded',excluded.has(k));
   });
 
+  renderNiveshaaySection();
+
   // Instant save to localStorage (survives refresh even without Sheets)
   saveLocal();
 
@@ -1333,11 +1378,12 @@ function hideModal(){
 }
 
 function switchTab(t){
-  ['fidelity','merrill','stallion','manual','add','pdf'].forEach(name=>{
+  ['fidelity','merrill','stallion','niveshaay','manual','add','pdf'].forEach(name=>{
     $('tab-'+name).style.display = name===t?'block':'none';
     $('tab-'+name+'-btn').classList.toggle('active', name===t);
   });
   if(t==='manual') buildManualEditGrid();
+  if(t==='niveshaay') populateNiveshaayTab();
 }
 
 // ─── CSV PARSER (Fidelity) ──────────────────────────────────
@@ -1442,6 +1488,95 @@ if(stallionInput){
     if(el) el.textContent = '~$'+Math.round(usdV).toLocaleString();
   });
 }
+function updateNivPreview(){
+  const units = parseFloat($('niv-units-input').value)||0;
+  const nav   = parseFloat($('niv-nav-input').value)||0;
+  const cost  = parseFloat($('niv-cost-input').value)||0;
+  const el    = $('niv-preview'); if(!el) return;
+  if(units > 0 && nav > 0){
+    const inrVal = units * nav;
+    const usdVal = inrVal / (USD_INR_LIVE || USD_INR);
+    const gainStr = cost > 0 ? '  · gain: ₹' + ((inrVal-cost)/100000).toFixed(2) + 'L' : '';
+    el.textContent = '₹' + (inrVal/100000).toFixed(2) + 'L  (~' + usd(usdVal) + ')' + gainStr;
+  } else {
+    el.textContent = '—';
+  }
+}
+
+function populateNiveshaayTab(){
+  const niv = ACCTS.niveshaay;
+  if(niv.units > 0 && $('niv-units-input')) $('niv-units-input').value = niv.units;
+  if(niv.nav   > 0 && $('niv-nav-input'))   $('niv-nav-input').value   = niv.nav;
+  if(niv.costINR > 0 && $('niv-cost-input')) $('niv-cost-input').value = niv.costINR;
+  if(niv.asOf && $('niv-asof-input'))        $('niv-asof-input').value  = niv.asOf;
+  updateNivPreview();
+}
+
+function applyNiveshaay(){
+  const units  = parseFloat($('niv-units-input').value)||0;
+  const nav    = parseFloat($('niv-nav-input').value)||0;
+  const cost   = parseFloat($('niv-cost-input').value)||0;
+  const asOf   = ($('niv-asof-input').value||'').trim();
+  if(!units || !nav){ alert('Please enter both Units and NAV.'); return; }
+  ACCTS.niveshaay.units   = units;
+  ACCTS.niveshaay.nav     = nav;
+  ACCTS.niveshaay.costINR = cost;
+  ACCTS.niveshaay.asOf    = asOf;
+  ACCTS.niveshaay.val     = (units * nav) / (USD_INR_LIVE || USD_INR);
+  renderNiveshaaySection();
+  recalc(); gsSave(); hideModal();
+}
+
+function renderNiveshaaySection(){
+  const niv = ACCTS.niveshaay;
+  const units = niv.units || 0;
+  const nav   = niv.nav   || 0;
+  const cost  = niv.costINR || 0;
+  const rate  = USD_INR_LIVE || USD_INR;
+  const curINR = units * nav;
+  const curUSD = curINR / rate;
+  const gainINR = cost > 0 ? curINR - cost : 0;
+  const gainPct = cost > 0 ? gainINR / cost * 100 : 0;
+
+  const asOfEl = $('niv-as-of');
+  if(asOfEl) asOfEl.textContent = niv.asOf ? 'as of ' + niv.asOf : 'as of —';
+
+  const metaEl = $('niv-units-meta');
+  if(metaEl){
+    if(units > 0 && nav > 0){
+      metaEl.textContent = units.toLocaleString('en-IN',{maximumFractionDigits:3}) + ' units · NAV ₹' + nav.toLocaleString('en-IN',{maximumFractionDigits:2}) + ' · ₹' + (curINR/100000).toFixed(2) + 'L';
+    } else {
+      metaEl.textContent = 'units · NAV ₹— · —';
+    }
+  }
+
+  const valEl = $('niv-units-val');
+  if(valEl) valEl.textContent = curUSD > 0 ? usd(curUSD) : '—';
+
+  const glEl = $('niv-units-gl');
+  if(glEl){
+    if(cost > 0 && curINR > 0){
+      const sign = gainINR >= 0 ? '+' : '';
+      glEl.textContent  = sign + '₹' + (gainINR/100000).toFixed(2) + 'L · ' + sign + gainPct.toFixed(1) + '%';
+      glEl.className    = 'h-gl ' + (gainINR >= 0 ? 'pos' : 'neg');
+    } else {
+      glEl.textContent = '—'; glEl.className = 'h-gl pos';
+    }
+  }
+
+  const tranchesEl = $('niv-tranches');
+  if(tranchesEl) tranchesEl.textContent = cost > 0 ? 'Invested ₹' + (cost/100000).toFixed(2) + 'L · cost basis' : '—';
+
+  const costValEl = $('niv-cost-val');
+  if(costValEl) costValEl.textContent = cost > 0 ? usd(cost/rate) : '—';
+
+  const noteEl = $('niv-note');
+  if(noteEl){
+    const navStr = nav > 0 ? '₹' + nav.toLocaleString('en-IN',{maximumFractionDigits:2}) : '—';
+    noteEl.textContent = 'NAV: ' + navStr + ' · USD equiv. ' + (curUSD > 0 ? usd(curUSD) : '—') + ' · Custodian: KFIN Technologies';
+  }
+}
+
 function applyStallion(){
   const inr = parseFloat($('stallion-inr-input').value)||0;
   if(!inr || inr <= 0) return;
@@ -2079,6 +2214,12 @@ function buildSavePayload(){
       niveshaay: ACCTS.niveshaay.val,
       pension: ACCTS.pension.val,
     },
+    niveshaayData: {
+      units:   ACCTS.niveshaay.units   || 0,
+      nav:     ACCTS.niveshaay.nav     || 0,
+      costINR: ACCTS.niveshaay.costINR || 0,
+      asOf:    ACCTS.niveshaay.asOf    || '',
+    },
     excluded: [...excluded],
     goldPrice: parseFloat($('gold-price')?.value||135.83),
     transactions: transactions.slice(0, 200),
@@ -2108,9 +2249,16 @@ function applyPayload(data){
 
     // Restore fixed account overrides
     if(obj.acctOverrides){
-      if(obj.acctOverrides.stallion) ACCTS.stallion.val = obj.acctOverrides.stallion;
-      if(obj.acctOverrides.niveshaay) ACCTS.niveshaay.val = obj.acctOverrides.niveshaay;
-      if(obj.acctOverrides.pension) ACCTS.pension.val = obj.acctOverrides.pension;
+      if(obj.acctOverrides.stallion)   ACCTS.stallion.val   = obj.acctOverrides.stallion;
+      if(obj.acctOverrides.niveshaay)  ACCTS.niveshaay.val  = obj.acctOverrides.niveshaay;
+      if(obj.acctOverrides.pension)    ACCTS.pension.val    = obj.acctOverrides.pension;
+    }
+    if(obj.niveshaayData){
+      const nd = obj.niveshaayData;
+      if(nd.units)   ACCTS.niveshaay.units   = nd.units;
+      if(nd.nav)     ACCTS.niveshaay.nav     = nd.nav;
+      if(nd.costINR) ACCTS.niveshaay.costINR = nd.costINR;
+      if(nd.asOf)    ACCTS.niveshaay.asOf    = nd.asOf;
     }
 
     // Restore exclusions
@@ -2375,8 +2523,9 @@ async function fetchNiveshaayNAV(){
       if(prices[sym] && prices[sym] > 100){
         // Found NAV — update Niveshaay value
         const nav = prices[sym];
-        const units = 17209.015;
+        const units = ACCTS.niveshaay.units || 17209.015;
         const newValINR = nav * units;
+        ACCTS.niveshaay.nav = nav;
         ACCTS.niveshaay.val = newValINR / USD_INR_LIVE;
         console.log('Niveshaay NAV updated:', nav, '→ ₹' + (newValINR/100000).toFixed(2) + 'L');
         recalc();
