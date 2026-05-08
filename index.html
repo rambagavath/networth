@@ -2886,8 +2886,6 @@ async function debugRefresh(){
 // CRITICAL: Load saved data BEFORE first recalc() so we don't
 // overwrite localStorage with defaults on startup.
 
-gsUrl = LS.get(GS_KEY) || '';
-
 // Step 1: Restore all local data
 const hadLocalData = loadLocal();
 loadTxLocal();
@@ -2919,13 +2917,26 @@ renderHistoryChart();
 // Auto-snapshot check runs 5 seconds after startup (non-blocking)
 setTimeout(maybeAutoSnapshot, 5000);
 
-// Step 3: Wire up Sheets and optionally refresh from remote
-if(gsUrl){
-  apiMode = true;
-  showGsConnected();
-  // Only show loading if we don't already have local data to show immediately
-  if(!hadLocalData) setSaveStatus('loading');
-  (async()=>{
+// Step 3: Fetch config.json for gsUrl, then sync with Sheets
+(async()=>{
+  // Always read the URL from config.json so all devices stay in sync automatically
+  try{
+    const cfgR = await fetch('./config.json', {cache:'no-cache'});
+    if(cfgR.ok){
+      const cfg = await cfgR.json();
+      if(cfg.gsUrl){ gsUrl = cfg.gsUrl; LS.set(GS_KEY, gsUrl); }
+    }
+  } catch(e){
+    // Offline or local file:// — fall back to whatever is in localStorage
+    gsUrl = LS.get(GS_KEY) || '';
+    console.warn('config.json unavailable, using cached URL:', e.message);
+  }
+
+  if(gsUrl){
+    apiMode = true;
+    showGsConnected();
+    // Only show loading if we don't already have local data to show immediately
+    if(!hadLocalData) setSaveStatus('loading');
     try{
       const r = await fetchWithTimeout(gsUrl+'?load=1', {}, 8000);
       if(!r.ok) throw new Error('HTTP '+r.status);
@@ -2975,16 +2986,16 @@ if(gsUrl){
         await gsSave();
       }
     }
-  })();
-} else if(hadLocalData){
-  // Not connected to Sheets but we restored from localStorage
-  const el = $('save-status');
-  if(el){
-    el.style.display='flex'; el.style.color='var(--muted)';
-    el.innerHTML='<span>⬡</span><span>Restored from local cache · <a href="#" onclick="showSheetsModal();return false;" style="color:var(--blue);text-decoration:none">Connect Sheets to sync across devices</a></span>';
-    setTimeout(()=>{ el.style.display='none'; }, 7000);
+  } else if(hadLocalData){
+    // Not connected to Sheets but we restored from localStorage
+    const el = $('save-status');
+    if(el){
+      el.style.display='flex'; el.style.color='var(--muted)';
+      el.innerHTML='<span>⬡</span><span>Restored from local cache · <a href="#" onclick="showSheetsModal();return false;" style="color:var(--blue);text-decoration:none">Connect Sheets to sync across devices</a></span>';
+      setTimeout(()=>{ el.style.display='none'; }, 7000);
+    }
   }
-}
+})();
 </script>
 
 <!-- GOOGLE SHEETS MODAL -->
