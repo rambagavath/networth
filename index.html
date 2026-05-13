@@ -740,6 +740,33 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
         <button class="mbtn mbtn-secondary" onclick="hideModal()">Cancel</button>
         <button class="mbtn mbtn-primary" onclick="applyStallion()">Update Stallion value</button>
       </div>
+      <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border);">
+        <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Replace Entire Portfolio</div>
+        <div style="font-size:12px;color:var(--muted2);margin-bottom:8px;line-height:1.6;">
+          Paste holdings from your statement. One per line:<br>
+          <code style="font-size:11px;background:var(--bg2);padding:2px 5px;border-radius:3px;color:var(--text);">SYMBOL, Quantity, Price (₹)</code><br>
+          or with name: <code style="font-size:11px;background:var(--bg2);padding:2px 5px;border-radius:3px;color:var(--text);">SYMBOL, Name, Quantity, Price (₹)</code><br>
+          <span style="color:var(--muted);font-size:11px;">Comma, tab, or pipe separated. Lines starting with # are ignored. CASH row optional.</span>
+        </div>
+        <div id="stallion-pdf-zone"
+          style="background:var(--bg3);border:1.5px dashed var(--border2);border-radius:7px;padding:12px;text-align:center;cursor:pointer;margin-bottom:8px;transition:border-color .15s"
+          onclick="document.getElementById('stallion-pdf-file').click()"
+          ondragover="event.preventDefault();this.style.borderColor='var(--teal)'"
+          ondragleave="this.style.borderColor=''"
+          ondrop="event.preventDefault();this.style.borderColor='';loadStallionPDF(event.dataTransfer.files[0])">
+          <div style="font-size:13px;color:var(--muted2)">📄 Drop Stallion PDF or <u style='cursor:pointer'>click to browse</u></div>
+          <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;">Holdings extracted automatically from the monthly statement</div>
+        </div>
+        <input type="file" id="stallion-pdf-file" accept=".pdf" style="display:none" onchange="loadStallionPDF(this.files[0])">
+        <div id="stallion-pdf-status" style="display:none;font-size:11px;font-family:'DM Mono',monospace;color:var(--teal);margin-bottom:6px;padding:4px 8px;background:rgba(45,212,191,.07);border-radius:5px;"></div>
+        <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;text-align:center;">— or paste CSV manually —</div>
+        <textarea id="stallion-replace-input" rows="5" placeholder="BSE, 245, 4521.50&#10;MUTHOOTFIN, Muthoot Finance, 180, 2050.00&#10;CASH, 0, 0" style="width:100%;box-sizing:border-box;font-family:'DM Mono',monospace;font-size:11px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:8px 10px;resize:vertical;margin-bottom:8px;" oninput="previewStallionReplace()"></textarea>
+        <div id="stallion-replace-preview" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted2);max-height:180px;overflow-y:auto;margin-bottom:8px;"></div>
+        <div class="modal-actions">
+          <button class="mbtn mbtn-secondary" onclick="hideModal()">Cancel</button>
+          <button class="mbtn mbtn-primary" id="stallion-replace-btn" style="background:rgba(251,146,60,.12);color:#fb923c;border-color:rgba(251,146,60,.4);" onclick="applyStallionReplace()" disabled>Replace Portfolio</button>
+        </div>
+      </div>
     </div>
 
     <!-- Niveshaay tab -->
@@ -961,6 +988,15 @@ let holdings = {
   'IXIGO-stallion':       {sym:'IXIGO',       name:'Le Travenues (Ixigo)',           shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
   'TIMEXIND-stallion':    {sym:'TIMEXIND',    name:'Timex Group India',              shares:0,    price:0,   acct:'stallion', prevPrice:0,   inr:true, yahooSym:'TIMEX.BO'},
   'CASH-stallion':        {sym:'CASH',        name:'Cash & Equivalents',             shares:0,price:0,     acct:'stallion', prevPrice:0,     inr:true},
+};
+
+// Yahoo Finance symbol overrides for known Stallion holdings (NSE sym → yahoo ticker)
+const STALLION_YAHOO_MAP = {
+  'JEENASIKHO':  'JSLL.NS',
+  'HDFCNIFSMEP': 'HDFCSML250.NS',
+  'BBGV':        'GROWW.NS',
+  'ADITYAVISION':'AVL.NS',
+  'TIMEXIND':    'TIMEX.BO',
 };
 
 // Account metadata
@@ -1590,6 +1626,317 @@ function applyStallion(){
     stallionHoldings.forEach(h => { h.prevPrice = h.price; h.price = parseFloat((h.price * scale).toFixed(2)); });
   }
   renderHoldingRows(); recalc(); gsSave(); hideModal();
+}
+
+// ─── STALLION PORTFOLIO REPLACE ──────────────────────────────
+let stallionReplaceData = null;
+
+function parseStallionReplace(text){
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+  const parsed = [];
+  for(const line of lines){
+    const parts = line.split(/[\t,|]/).map(p => p.trim());
+    if(parts.length < 3) continue;
+    let sym, name, shares, price;
+    // Detect: SYMBOL, Name, Quantity, Price  vs  SYMBOL, Quantity, Price
+    if(parts.length >= 4 && isNaN(parseFloat(parts[1]))){
+      [sym, name, shares, price] = parts;
+    } else {
+      sym = parts[0]; name = parts[0]; shares = parts[1]; price = parts[2];
+    }
+    sym = sym.toUpperCase().replace(/[^A-Z0-9&\-]/g, '');
+    if(!sym) continue;
+    const sharesNum = parseFloat(String(shares).replace(/,/g,''));
+    const priceNum  = parseFloat(String(price).replace(/,/g,''));
+    if(isNaN(sharesNum) || isNaN(priceNum)) continue;
+    parsed.push({sym, name: name||sym, shares: sharesNum, price: priceNum});
+  }
+  return parsed;
+}
+
+function previewStallionReplace(){
+  const text = ($('stallion-replace-input')||{}).value||'';
+  const data = parseStallionReplace(text);
+  stallionReplaceData = data.length > 0 ? data : null;
+  const preview = $('stallion-replace-preview');
+  const btn = $('stallion-replace-btn');
+  if(!preview) return;
+  if(data.length === 0){
+    preview.innerHTML = '<span style="color:var(--muted)">No valid holdings parsed.</span>';
+    if(btn) btn.disabled = true;
+    return;
+  }
+  const total = data.reduce((s,h) => s + h.shares * h.price, 0);
+  const rows = data.map(h =>
+    `<div style="display:flex;justify-content:space-between;gap:8px;padding:2px 6px;border-radius:3px;background:var(--bg3);margin-bottom:2px;">
+      <span style="color:var(--text);min-width:80px">${h.sym}</span>
+      <span style="color:var(--muted);flex:1">${h.name !== h.sym ? h.name : ''}</span>
+      <span style="color:var(--muted)">${h.shares.toLocaleString()} × ₹${h.price.toLocaleString('en-IN',{maximumFractionDigits:2})}</span>
+      <span style="color:var(--teal)">₹${(h.shares*h.price).toLocaleString('en-IN',{maximumFractionDigits:0})}</span>
+    </div>`
+  ).join('');
+  preview.innerHTML = rows +
+    `<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);display:flex;justify-content:space-between;">
+      <span style="color:var(--muted2)">${data.length} holding${data.length!==1?'s':''}</span>
+      <span style="color:var(--teal);font-weight:600;">₹${total.toLocaleString('en-IN',{maximumFractionDigits:0})}</span>
+    </div>`;
+  if(btn) btn.disabled = false;
+}
+
+function applyStallionReplace(){
+  if(!stallionReplaceData || stallionReplaceData.length === 0) return;
+  const existing = Object.keys(holdings).filter(k => k.endsWith('-stallion')).length;
+  if(!confirm(`Replace all ${existing} existing Stallion holdings with ${stallionReplaceData.length} holdings from statement?`)) return;
+  // Remove all existing stallion holdings
+  Object.keys(holdings).filter(k => k.endsWith('-stallion')).forEach(k => delete holdings[k]);
+  // Add new holdings from statement
+  stallionReplaceData.forEach(h => {
+    const key = `${h.sym}-stallion`;
+    const entry = {sym:h.sym, name:h.name||h.sym, shares:h.shares, price:h.price, prevPrice:h.price, acct:'stallion', inr:true};
+    const yahoo = h.yahooSym || STALLION_YAHOO_MAP[h.sym];
+    if(yahoo) entry.yahooSym = yahoo;
+    holdings[key] = entry;
+  });
+  stallionReplaceData = null;
+  renderHoldingRows(); recalc(); gsSave(); hideModal();
+}
+
+// ─── STALLION PDF IMPORT ─────────────────────────────────────
+// Company name substrings → NSE symbol + optional Yahoo ticker override
+const STALLION_NAME_MAP = [
+  {match:'HDFC NIFTY SMALLCAP 250',       sym:'HDFCNIFSMEP', ticker:'HDFCSML250.NS', name:'HDFC Nifty Smallcap 250 ETF'},
+  {match:'NIPPON INDIA NIFTY PHARMA',      sym:'PHARMABEES',  ticker:'PHARMABEES.NS', name:'Nippon India Nifty Pharma ETF'},
+  {match:'BHARAT HEAVY ELECTRICALS',       sym:'BHEL',        name:'Bharat Heavy Electricals'},
+  {match:'WELSPUN CORP',                   sym:'WELCORP',     name:'Welspun Corp'},
+  {match:'JEENA SIKHO',                    sym:'JEENASIKHO',  ticker:'JSLL.NS',       name:'Jeena Sikho Lifecare'},
+  {match:'SKY GOLD',                       sym:'SKYGOLD',     name:'Sky Gold & Diamonds'},
+  {match:'TIMEX GROUP',                    sym:'TIMEXIND',    ticker:'TIMEX.BO',      name:'Timex Group India'},
+  {match:'INTERGLOBE AVIATION',            sym:'INDIGO',      name:'InterGlobe Aviation (IndiGo)'},
+  {match:'SHIPPING CORPORATION OF INDIA',  sym:'SCI',         name:'Shipping Corporation of India'},
+  {match:'BANK OF MAHARASHTRA',            sym:'MAHABANK',    name:'Bank of Maharashtra'},
+  {match:'STATE BANK OF INDIA',            sym:'SBIN',        name:'State Bank of India'},
+  {match:'INVENTURUS KNOWLEDGE',           sym:'IKS',         name:'Inventurus Knowledge Solutions'},
+  {match:'POLYCAB',                        sym:'POLYCAB',     name:'Polycab India'},
+  {match:'ICICI PRUDENTIAL ASSET',         sym:'ICICIAMC',    name:'ICICI Prudential AMC'},
+  {match:'NIPPON LIFE INDIA ASSET',        sym:'NAM-INDIA',   name:'Nippon Life India AMC'},
+  {match:'GARWARE HI-TECH',               sym:'GARFIBRES',   name:'Garware Hi-Tech Films'},
+  {match:'VARUN BEVERAGES',               sym:'VBL',         name:'Varun Beverages'},
+  {match:'APOLLO HOSPITALS',              sym:'APOLLOHOSP',  name:'Apollo Hospitals'},
+  {match:'STERLITE TECHNOLOGIES',         sym:'STLTECH',     name:'Sterlite Technologies'},
+  {match:'CARTRADE',                       sym:'CARTRADE',    name:'Cartrade Tech'},
+  {match:'ETERNAL',                        sym:'ETERNAL',     name:'Eternal Ltd (Zomato)'},
+  {match:'FSN E-COMMERCE',                sym:'NYKAA',       name:'FSN E-Commerce (Nykaa)'},
+  {match:'VISHAL MEGA MART',              sym:'VMM',         name:'Vishal Mega Mart'},
+  {match:'LLOYDS METALS',                 sym:'LLOYDSME',    name:'Lloyds Metals & Energy'},
+  {match:'BLS INTERNATIONAL',             sym:'BLS',         name:'BLS International Services'},
+  {match:'LE TRAVENUES',                  sym:'IXIGO',       name:'Le Travenues (Ixigo)'},
+  {match:'MUTHOOT FINANCE',               sym:'MUTHOOTFIN',  name:'Muthoot Finance'},
+  {match:'COFORGE',                        sym:'COFORGE',     name:'Coforge'},
+  {match:'RATEGAIN',                       sym:'RATEGAIN',    name:'RateGain Travel Technologies'},
+  {match:'MAHINDRA AND MAHINDRA',          sym:'M&M',         name:'Mahindra & Mahindra'},
+  {match:'MAHINDRA & MAHINDRA',           sym:'M&M',         name:'Mahindra & Mahindra'},
+  {match:'ADITYA VISION',                 sym:'ADITYAVISION',ticker:'AVL.NS',        name:'Aditya Vision'},
+  {match:'TRENT',                          sym:'TRENT',       name:'Trent Ltd'},
+  {match:'V2 RETAIL',                      sym:'V2RETAIL',    name:'V2 Retail'},
+  {match:'ADANI ENERGY SOLUTIONS',         sym:'ADANIENSOL',  name:'Adani Energy Solutions'},
+  {match:'HFCL',                           sym:'HFCL',        name:'HFCL Ltd'},
+  {match:'BSE LTD',                        sym:'BSE',         name:'BSE Ltd'},
+  {match:'MULTI COMMODITY EXCHANGE',       sym:'MCX',         name:'Multi Commodity Exchange'},
+  {match:'ADANI POWER',                    sym:'ADANIPOWER',  name:'Adani Power'},
+  {match:'BILLIONBRAINS',                  sym:'BBGV',        ticker:'GROWW.NS',      name:'BillionBrains Garage Ventures'},
+  {match:'BLACKBUCK',                      sym:'BLACKBUCK',   name:'Blackbuck Ltd'},
+];
+
+function resolveStallionSecurity(secText){
+  const upper = secText.toUpperCase();
+  // Longer matches checked first (more specific)
+  const sorted = [...STALLION_NAME_MAP].sort((a,b) => b.match.length - a.match.length);
+  for(const e of sorted){
+    if(upper.includes(e.match.toUpperCase())){
+      const yahooSym = e.ticker && e.ticker !== e.sym+'.NS' ? e.ticker : null;
+      return {sym:e.sym, name:e.name, yahooSym};
+    }
+  }
+  // Fallback: first word of security name as symbol
+  const sym = upper.split(/\s+/)[0].replace(/[^A-Z0-9&\-]/g,'') || 'UNKNOWN';
+  return {sym, name:secText, yahooSym:null};
+}
+
+async function extractStallionHoldingsFromPDF(pdf){
+  const results = [];
+  let foundTotal = false;
+
+  for(let p = 1; p <= Math.min(pdf.numPages, 3); p++){
+    if(foundTotal) break;
+    const page = await pdf.getPage(p);
+    const tc   = await page.getTextContent();
+    const vp   = page.getViewport({scale:1});
+
+    // Page 1 is two-column; only take right half (portfolio holdings)
+    const xMin = p === 1 ? vp.width * 0.42 : 0;
+
+    // Group items into rows by y-coordinate (2px tolerance)
+    const rowMap = new Map();
+    for(const item of tc.items){
+      if(!item.str.trim()) continue;
+      const x = item.transform[4], y = item.transform[5];
+      if(x < xMin) continue;
+      const yKey = Math.round(y / 2) * 2;
+      let matched = null;
+      for(const k of rowMap.keys()){ if(Math.abs(k - yKey) <= 2){ matched = k; break; } }
+      const key = matched ?? yKey;
+      if(!rowMap.has(key)) rowMap.set(key, []);
+      rowMap.get(key).push({x, text: item.str.trim()});
+    }
+
+    // Sort rows top→bottom (PDF y is bottom-up)
+    const rows = [...rowMap.entries()]
+      .sort((a,b) => b[0]-a[0])
+      .map(([,items]) => items.sort((a,b)=>a.x-b.x).map(i=>i.text).join(' '));
+
+    let inPortfolio = false;
+    for(const row of rows){
+      if(!inPortfolio){ if(/portfolio holdings/i.test(row)) inPortfolio=true; continue; }
+      if(/^sr\.?\s+security/i.test(row)) continue;
+      if(/^total\s+[\d,]/i.test(row)){ foundTotal=true; break; }
+
+      const tokens = row.split(/\s+/);
+      if(!/^\d{1,2}$/.test(tokens[0])) continue;        // must start with row#
+      if(!/^\d+\.\d+%$/.test(tokens[tokens.length-1])) continue; // must end with %
+
+      // Walk backwards to find mkt value (last large integer before %)
+      let mktValue = 0, mktIdx = -1;
+      for(let i = tokens.length-2; i >= 2; i--){
+        const n = parseInt(tokens[i].replace(/,/g,''));
+        if(!isNaN(n) && n > 500){ mktValue = n; mktIdx = i; break; }
+      }
+      if(mktValue <= 0) continue;
+
+      const secText = tokens.slice(1, mktIdx).join(' ');
+      if(/^cash$/i.test(secText)){
+        results.push({sym:'CASH', name:'Cash & Equivalents', mktValue, isCash:true});
+      } else if(!/dividend|interest receivable/i.test(secText)){
+        results.push({secText, mktValue});
+      }
+    }
+  }
+  return results;
+}
+
+async function fetchYahooPriceINR(ticker){
+  const signal = typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(6000) : undefined;
+  for(const host of ['query1','query2']){
+    try{
+      const url = `https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`;
+      const r = await fetch(url, signal ? {signal} : {});
+      if(!r.ok) continue;
+      const d = await r.json();
+      const price = d?.chart?.result?.[0]?.meta?.regularMarketPrice;
+      if(price > 0) return price;
+    } catch(e){ /* try next */ }
+  }
+  return null;
+}
+
+async function loadStallionPDF(file){
+  if(!file?.name?.toLowerCase().endsWith('.pdf')){ alert('Please select a .pdf file'); return; }
+
+  const status = $('stallion-pdf-status');
+  const btn    = $('stallion-replace-btn');
+  const setStatus = (msg, color) => {
+    if(!status) return;
+    status.style.display = 'block';
+    status.style.color   = color || 'var(--teal)';
+    status.textContent   = msg;
+  };
+  if(btn) btn.disabled = true;
+
+  try{
+    // Lazy-load pdf.js
+    if(!window.pdfjsLib){
+      setStatus('Loading PDF parser…');
+      await new Promise((res,rej)=>{
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+        s.onload = res; s.onerror = ()=>rej(new Error('Failed to load pdf.js'));
+        document.head.appendChild(s);
+      });
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
+    setStatus('Reading PDF…');
+    const pdf = await pdfjsLib.getDocument({data: await file.arrayBuffer()}).promise;
+
+    setStatus('Extracting holdings…');
+    const rawRows = await extractStallionHoldingsFromPDF(pdf);
+    if(rawRows.length === 0){
+      setStatus('No holdings found — is this a Stallion statement?', 'var(--amber)'); return;
+    }
+
+    // Resolve symbols
+    const resolved = rawRows.map(h => h.isCash ? h : {...h, ...resolveStallionSecurity(h.secText)});
+    const equities = resolved.filter(h => !h.isCash);
+
+    // Fetch live prices in batches of 4
+    setStatus(`Fetching live prices for ${equities.length} holdings…`);
+    const priceMap = new Map();
+    for(let i = 0; i < equities.length; i += 4){
+      await Promise.all(equities.slice(i, i+4).map(async h => {
+        const ticker = h.yahooSym || (h.sym + '.NS');
+        const p = await fetchYahooPriceINR(ticker);
+        priceMap.set(h.sym, p);
+      }));
+      setStatus(`Fetching prices… ${Math.min(i+4, equities.length)}/${equities.length}`);
+      if(i+4 < equities.length) await new Promise(r=>setTimeout(r, 400));
+    }
+
+    // Build replace data: shares = round(mktValue / livePrice)
+    let failures = 0;
+    stallionReplaceData = resolved.map(h => {
+      if(h.isCash) return {sym:'CASH', name:'Cash & Equivalents', shares:h.mktValue, price:1, yahooSym:null};
+      const price = priceMap.get(h.sym);
+      if(!price){
+        failures++;
+        return {sym:h.sym, name:h.name, shares:1, price:h.mktValue, yahooSym:h.yahooSym}; // fallback
+      }
+      return {sym:h.sym, name:h.name, shares:Math.max(1, Math.round(h.mktValue/price)), price, yahooSym:h.yahooSym};
+    });
+
+    // Show status + preview
+    const stmtTotal = resolved.reduce((s,h)=>s+h.mktValue,0);
+    const calcTotal = stallionReplaceData.reduce((s,h)=>s+h.shares*h.price,0);
+    const failNote  = failures > 0 ? ` · ${failures} price(s) unavailable (fallback used)` : '';
+    setStatus(`${resolved.length} holdings · stmt ₹${stmtTotal.toLocaleString('en-IN',{maximumFractionDigits:0})} · live ₹${Math.round(calcTotal).toLocaleString('en-IN')}${failNote}`);
+
+    const preview = $('stallion-replace-preview');
+    if(preview){
+      preview.innerHTML = stallionReplaceData.map(h => {
+        const val = h.shares * h.price;
+        const detail = h.sym === 'CASH'
+          ? `₹${h.shares.toLocaleString('en-IN',{maximumFractionDigits:0})} cash`
+          : `${h.shares} × ₹${h.price.toLocaleString('en-IN',{maximumFractionDigits:2})}`;
+        return `<div style="display:flex;align-items:center;gap:6px;padding:2px 6px;border-radius:3px;background:var(--bg3);margin-bottom:2px;">
+          <span style="color:var(--text);font-size:11px;min-width:90px">${h.sym}</span>
+          <span style="color:var(--muted);flex:1;font-size:10px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${h.name!==h.sym?h.name:''}</span>
+          <span style="color:var(--muted2);font-size:10px;white-space:nowrap">${detail}</span>
+          <span style="color:var(--teal);font-size:11px;min-width:70px;text-align:right">₹${Math.round(val).toLocaleString('en-IN')}</span>
+        </div>`;
+      }).join('') +
+      `<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);display:flex;justify-content:space-between;">
+        <span style="color:var(--muted2)">${stallionReplaceData.length} holdings</span>
+        <span style="color:var(--teal);font-weight:600">₹${Math.round(calcTotal).toLocaleString('en-IN')}</span>
+      </div>`;
+    }
+
+    if(btn) btn.disabled = false;
+    const ta = $('stallion-replace-input');
+    if(ta) ta.value = '';
+
+  } catch(err){
+    setStatus('Error: ' + (err.message||String(err)), 'var(--red)');
+    console.error('Stallion PDF error:', err);
+  }
 }
 
 // ─── MANUAL EDIT GRID ───────────────────────────────────────
