@@ -1870,7 +1870,7 @@ async function fetchStallionPricesBatch(tickerToSym, dateStr){
       const symParam = tickers.map(s=>encodeURIComponent(s)).join('%2C');
       let url = gsUrl+'?action=prices&symbols='+symParam;
       if(dateStr) url += '&date='+encodeURIComponent(dateStr);
-      const r = await fetchWithTimeout(url, {}, 25000);
+      const r = await fetchWithTimeout(url, {}, 40000);
       if(r.ok){
         const data = await r.json();
         const prices = data.prices||{};
