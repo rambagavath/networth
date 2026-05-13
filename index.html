@@ -1967,15 +1967,20 @@ async function loadStallionPDF(file){
     // Build failure detail block with editable ticker inputs
     const failBlock = stallionPriceMissing.length > 0 ? `
       <div style="margin-bottom:8px;padding:8px 10px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);border-radius:6px;">
-        <div style="color:var(--amber);font-size:11px;font-weight:600;margin-bottom:6px;">Prices not found — enter correct Yahoo ticker (e.g. RELIANCE.NS) and retry:</div>
+        <div style="color:var(--amber);font-size:11px;font-weight:600;margin-bottom:8px;">Prices not found — enter correct Yahoo ticker (e.g. RELIANCE.NS) and retry:</div>
         ${stallionPriceMissing.map(f=>`
-          <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;">
-            <span style="color:var(--amber);font-size:10px;font-family:'DM Mono',monospace;min-width:80px">${f.sym}</span>
-            <span style="color:var(--muted);font-size:10px;flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${f.secText}</span>
-            <input id="fix-ticker-${f.sym}" value="${f.triedTicker}" placeholder="TICKER.NS"
-              style="width:130px;font-family:'DM Mono',monospace;font-size:10px;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;color:var(--text);padding:2px 6px;">
+          <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(251,191,36,.15);">
+            <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px;">
+              <span style="color:var(--amber);font-size:10px;font-family:'DM Mono',monospace;font-weight:700;flex-shrink:0">${f.sym}</span>
+              <span style="color:var(--text);font-size:11px;line-height:1.4">${f.secText}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="color:var(--muted);font-size:9px;font-family:'DM Mono',monospace;flex-shrink:0">Yahoo ticker:</span>
+              <input id="fix-ticker-${f.sym}" value="${f.triedTicker}" placeholder="TICKER.NS"
+                style="flex:1;font-family:'DM Mono',monospace;font-size:11px;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;color:var(--text);padding:3px 7px;">
+            </div>
           </div>`).join('')}
-        <button onclick="retryStallionPrices()" style="margin-top:6px;padding:4px 14px;font-size:11px;background:var(--amber);color:#000;border:none;border-radius:5px;cursor:pointer;font-weight:600;">Retry prices</button>
+        <button onclick="retryStallionPrices()" style="margin-top:4px;padding:5px 16px;font-size:11px;background:var(--amber);color:#000;border:none;border-radius:5px;cursor:pointer;font-weight:600;">Retry prices</button>
       </div>` : '';
 
     const preview = $('stallion-replace-preview');
@@ -2050,15 +2055,20 @@ async function retryStallionPrices(){
 
   const failBlock = stallionPriceMissing.length > 0 ? `
     <div style="margin-bottom:8px;padding:8px 10px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);border-radius:6px;">
-      <div style="color:var(--amber);font-size:11px;font-weight:600;margin-bottom:6px;">Still not found — correct the ticker and retry:</div>
+      <div style="color:var(--amber);font-size:11px;font-weight:600;margin-bottom:8px;">Still not found — correct the ticker and retry:</div>
       ${stallionPriceMissing.map(f=>`
-        <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;">
-          <span style="color:var(--amber);font-size:10px;font-family:'DM Mono',monospace;min-width:80px">${f.sym}</span>
-          <span style="color:var(--muted);font-size:10px;flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${f.secText}</span>
-          <input id="fix-ticker-${f.sym}" value="${document.getElementById('fix-ticker-'+f.sym)?.value||f.triedTicker}" placeholder="TICKER.NS"
-            style="width:130px;font-family:'DM Mono',monospace;font-size:10px;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;color:var(--text);padding:2px 6px;">
+        <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(251,191,36,.15);">
+          <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px;">
+            <span style="color:var(--amber);font-size:10px;font-family:'DM Mono',monospace;font-weight:700;flex-shrink:0">${f.sym}</span>
+            <span style="color:var(--text);font-size:11px;line-height:1.4">${f.secText}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="color:var(--muted);font-size:9px;font-family:'DM Mono',monospace;flex-shrink:0">Yahoo ticker:</span>
+            <input id="fix-ticker-${f.sym}" value="${document.getElementById('fix-ticker-'+f.sym)?.value||f.triedTicker}" placeholder="TICKER.NS"
+              style="flex:1;font-family:'DM Mono',monospace;font-size:11px;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;color:var(--text);padding:3px 7px;">
+          </div>
         </div>`).join('')}
-      <button onclick="retryStallionPrices()" style="margin-top:6px;padding:4px 14px;font-size:11px;background:var(--amber);color:#000;border:none;border-radius:5px;cursor:pointer;font-weight:600;">Retry prices</button>
+      <button onclick="retryStallionPrices()" style="margin-top:4px;padding:5px 16px;font-size:11px;background:var(--amber);color:#000;border:none;border-radius:5px;cursor:pointer;font-weight:600;">Retry prices</button>
     </div>` : '';
 
   const preview = $('stallion-replace-preview');
