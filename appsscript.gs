@@ -73,13 +73,19 @@ function doGet(e) {
             var chartResult = ((parsed.chart || {}).result || [{}])[0];
             var meta = chartResult.meta || {};
             if (histPeriod1) {
-              // Historical: pick the last close strictly before histPeriod2
+              // Historical: try close[], then adjclose[], then meta price as last resort
               var timestamps = chartResult.timestamp || [];
-              var closes = ((chartResult.indicators || {}).quote || [{}])[0].close || [];
+              var closes    = ((chartResult.indicators || {}).quote    || [{}])[0].close    || [];
+              var adjcloses = ((chartResult.indicators || {}).adjclose || [{}])[0].adjclose || [];
               price = null;
               for (var ti = timestamps.length - 1; ti >= 0; ti--) {
-                if (timestamps[ti] < histPeriod2 && closes[ti] != null) { price = closes[ti]; break; }
+                if (timestamps[ti] < histPeriod2) {
+                  var c = (closes[ti] != null) ? closes[ti] : (adjcloses[ti] != null ? adjcloses[ti] : null);
+                  if (c != null) { price = c; break; }
+                }
               }
+              // If chart gave no usable close, fall back to meta (current price)
+              if (!price) price = meta.regularMarketPrice || meta.previousClose || meta.chartPreviousClose;
             } else {
               price = meta.regularMarketPrice || meta.previousClose;
             }
@@ -94,8 +100,7 @@ function doGet(e) {
               return;
             }
           }
-          // Skip current-price fallbacks when fetching historical (they return today's price)
-          if (histPeriod1) { errors.push(sym + ':no historical data'); return; }
+          // In historical mode keep trying fallbacks — they return current price but better than nothing
           // Fallback 1: v8 quote endpoint (stocks + some mutual funds)
           url = 'https://query2.finance.yahoo.com/v8/finance/quote?symbols=' + sym
               + '&fields=regularMarketPrice,navPrice,price,regularMarketPreviousClose,previousClose';
