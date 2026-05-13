@@ -47,27 +47,55 @@ function doGet(e) {
       var symList = symbols.split(',');
       var resp, code, parsed, result, price;
 
+      // Optional historical date — if provided, fetch closing price on that date
+      var dateStr = e.parameter.date || '';
+      var histPeriod1 = 0, histPeriod2 = 0;
+      if (dateStr) {
+        try {
+          var targetDate = new Date(dateStr + 'T00:00:00Z');
+          histPeriod2 = Math.floor(targetDate.getTime() / 1000) + 2 * 86400; // +2 days covers IST offset
+          histPeriod1 = histPeriod2 - 9 * 86400; // 9 days back handles weekends + holidays
+        } catch(de) {}
+      }
+
       symList.forEach(function(sym) {
         sym = sym.trim();
         if (!sym) return;
         try {
-          // Use the chart endpoint — more reliable than quote for Apps Script
-          var url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + sym + '?interval=1d&range=1d';
+          // Chart endpoint — supports both current (range=1d) and historical (period1/period2)
+          var url = histPeriod1
+            ? 'https://query1.finance.yahoo.com/v8/finance/chart/' + sym + '?interval=1d&period1=' + histPeriod1 + '&period2=' + histPeriod2
+            : 'https://query1.finance.yahoo.com/v8/finance/chart/' + sym + '?interval=1d&range=1d';
           resp = UrlFetchApp.fetch(url, {muteHttpExceptions: true, headers: headers});
           code = resp.getResponseCode();
           if (code === 200) {
             parsed = JSON.parse(resp.getContentText());
-            var meta = ((parsed.chart || {}).result || [{}])[0].meta || {};
-            price = meta.regularMarketPrice || meta.previousClose;
+            var chartResult = ((parsed.chart || {}).result || [{}])[0];
+            var meta = chartResult.meta || {};
+            if (histPeriod1) {
+              // Historical: pick the last close strictly before histPeriod2
+              var timestamps = chartResult.timestamp || [];
+              var closes = ((chartResult.indicators || {}).quote || [{}])[0].close || [];
+              price = null;
+              for (var ti = timestamps.length - 1; ti >= 0; ti--) {
+                if (timestamps[ti] < histPeriod2 && closes[ti] != null) { price = closes[ti]; break; }
+              }
+            } else {
+              price = meta.regularMarketPrice || meta.previousClose;
+            }
             if (price) {
               var clean = sym.replace(/\.(NS|BO)$/i, '');
               prices[clean] = price;
               prices[sym] = price;
-              var pc = meta.chartPreviousClose || meta.previousClose || meta.regularMarketPreviousClose;
-              if (pc) { prevCloses[clean] = pc; prevCloses[sym] = pc; }
+              if (!histPeriod1) {
+                var pc = meta.chartPreviousClose || meta.previousClose || meta.regularMarketPreviousClose;
+                if (pc) { prevCloses[clean] = pc; prevCloses[sym] = pc; }
+              }
               return;
             }
           }
+          // Skip current-price fallbacks when fetching historical (they return today's price)
+          if (histPeriod1) { errors.push(sym + ':no historical data'); return; }
           // Fallback 1: v8 quote endpoint (stocks + some mutual funds)
           url = 'https://query2.finance.yahoo.com/v8/finance/quote?symbols=' + sym
               + '&fields=regularMarketPrice,navPrice,price,regularMarketPreviousClose,previousClose';
@@ -163,9 +191,24 @@ function doGet(e) {
           var tmpName = '_PriceTemp';
           var tmp = ss.getSheetByName(tmpName);
           if (!tmp) { tmp = ss.insertSheet(tmpName); tmp.hideSheet(); }
+          // Build a date tuple for GOOGLEFINANCE historical if dateStr was provided
+          var gfDateParts = null;
+          if (dateStr) {
+            var dp = dateStr.split('-');
+            if (dp.length === 3) gfDateParts = [parseInt(dp[0]), parseInt(dp[1]), parseInt(dp[2])];
+          }
           stillMissing.forEach(function(s, i) {
             var sym = s.trim().replace(/\.NS$/i, '').replace(/-SM$/i, '');
-            tmp.getRange(i + 1, 1).setFormula('=IFERROR(GOOGLEFINANCE("NSE:' + sym + '","price"),0)');
+            var formula;
+            if (gfDateParts) {
+              // Historical: INDEX picks the close value from the 2-row result
+              formula = '=IFERROR(INDEX(GOOGLEFINANCE("NSE:' + sym + '","close",'
+                + 'DATE(' + gfDateParts[0] + ',' + gfDateParts[1] + ',' + gfDateParts[2] + ')'
+                + '),2,2),0)';
+            } else {
+              formula = '=IFERROR(GOOGLEFINANCE("NSE:' + sym + '","price"),0)';
+            }
+            tmp.getRange(i + 1, 1).setFormula(formula);
           });
           SpreadsheetApp.flush();
           Utilities.sleep(2500);
