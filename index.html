@@ -753,11 +753,11 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
           onclick="document.getElementById('stallion-pdf-file').click()"
           ondragover="event.preventDefault();this.style.borderColor='var(--teal)'"
           ondragleave="this.style.borderColor=''"
-          ondrop="event.preventDefault();this.style.borderColor='';loadStallionPDF(event.dataTransfer.files[0])">
-          <div style="font-size:13px;color:var(--muted2)">📄 Drop Stallion PDF or <u style='cursor:pointer'>click to browse</u></div>
-          <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;">Holdings extracted automatically from the monthly statement</div>
+          ondrop="event.preventDefault();this.style.borderColor='';loadStallionCSV(event.dataTransfer.files[0])">
+          <div style="font-size:13px;color:var(--muted2)">📊 Drop Stallion CSV or <u style='cursor:pointer'>click to browse</u></div>
+          <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;">Export "Current Portfolio" CSV from the Stallion portal</div>
         </div>
-        <input type="file" id="stallion-pdf-file" accept=".pdf" style="display:none" onchange="loadStallionPDF(this.files[0])">
+        <input type="file" id="stallion-pdf-file" accept=".csv" style="display:none" onchange="loadStallionCSV(this.files[0])">
         <div id="stallion-pdf-status" style="display:none;font-size:11px;font-family:'DM Mono',monospace;color:var(--teal);margin-bottom:6px;padding:4px 8px;background:rgba(45,212,191,.07);border-radius:5px;"></div>
         <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;text-align:center;">— or paste CSV manually —</div>
         <textarea id="stallion-replace-input" rows="5" placeholder="BSE, 245, 4521.50&#10;MUTHOOTFIN, Muthoot Finance, 180, 2050.00&#10;CASH, 0, 0" style="width:100%;box-sizing:border-box;font-family:'DM Mono',monospace;font-size:11px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:8px 10px;resize:vertical;margin-bottom:8px;" oninput="previewStallionReplace()"></textarea>
@@ -1630,8 +1630,7 @@ function applyStallion(){
 
 // ─── STALLION PORTFOLIO REPLACE ──────────────────────────────
 let stallionReplaceData = null;
-let stallionPdfDate = null;       // portfolio date extracted from PDF
-let stallionPriceMissing = [];    // [{sym, name, secText, triedTicker}] — populated by loadStallionPDF
+let stallionPdfDate = null;
 
 function parseStallionReplace(text){
   const lines = text.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
@@ -1764,150 +1763,20 @@ function resolveStallionSecurity(secText){
   return {sym, name:secText, yahooSym:null};
 }
 
-async function extractStallionHoldingsFromPDF(pdf){
-  // Collect all text items from pages 1-2, sorted reading-order (top→bottom, left→right)
-  const allItems = [];
-  for(let p = 1; p <= Math.min(pdf.numPages, 2); p++){
-    const page = await pdf.getPage(p);
-    const tc   = await page.getTextContent();
-    for(const it of tc.items){
-      const text = it.str.trim();
-      if(text) allItems.push({x:it.transform[4], y:it.transform[5], text, p});
-    }
+function parseCSVRow(line){
+  const result=[]; let inQuote=false, cur='';
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(c==='"'){ inQuote=!inQuote; continue; }
+    if(c===','&&!inQuote){ result.push(cur); cur=''; continue; }
+    cur+=c;
   }
-  allItems.sort((a,b) => a.p!==b.p ? a.p-b.p : Math.abs(a.y-b.y)>1 ? b.y-a.y : a.x-b.x);
-
-  // Extract portfolio date from all page-1 text (before column filtering)
-  const page1Text = allItems.filter(i=>i.p===1).map(i=>i.text).join(' ');
-  let portfolioDate = null;
-  const MMAP = {jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12'};
-  // "31 January 2025" / "31-Jan-2025" / "31st March, 2025"
-  let dm = page1Text.match(/\b(\d{1,2})(?:st|nd|rd|th)?[-\/\s,]+(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)[a-z]*[-\/\s,]+(\d{4})\b/i);
-  if(dm){ const mo=MMAP[dm[2].slice(0,3).toLowerCase()]; if(mo) portfolioDate=`${dm[3]}-${mo}-${String(parseInt(dm[1])).padStart(2,'0')}`; }
-  // "January 31, 2025"
-  if(!portfolioDate){
-    dm = page1Text.match(/\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)[a-z]*\s+(\d{1,2})[,\s]+(\d{4})\b/i);
-    if(dm){ const mo=MMAP[dm[1].slice(0,3).toLowerCase()]; if(mo) portfolioDate=`${dm[3]}-${mo}-${String(parseInt(dm[2])).padStart(2,'0')}`; }
-  }
-  // "31/01/2025" or "31-01-2025" (DD/MM/YYYY)
-  if(!portfolioDate){
-    dm = page1Text.match(/\b(\d{2})[\/\-](\d{2})[\/\-](\d{4})\b/);
-    if(dm && parseInt(dm[1])<=31 && parseInt(dm[2])<=12 && parseInt(dm[3])>=2020)
-      portfolioDate=`${dm[3]}-${dm[2]}-${dm[1]}`;
-  }
-
-  // Find "Portfolio Holdings" header to get the x-position of the right column
-  let phX = -1;
-  for(let i = 0; i < allItems.length-1; i++){
-    if(/portfolio/i.test(allItems[i].text)){
-      if(/holdings/i.test(allItems[i].text) || /holdings/i.test(allItems[i+1]?.text||'')){
-        phX = allItems[i].x; break;
-      }
-    }
-  }
-
-  // On page 1 (two-column layout) only keep items in the right column
-  const items = allItems.filter(it => it.p > 1 || phX < 0 || it.x >= phX - 5);
-  const toks  = items.map(it => it.text);
-
-  // Advance past the "Portfolio Holdings" header
-  let pos = 0;
-  for(; pos < toks.length-1; pos++){
-    if(/portfolio/i.test(toks[pos])){
-      if(/holdings/i.test(toks[pos])){ pos++; break; }
-      if(/holdings/i.test(toks[pos+1])){ pos+=2; break; }
-    }
-  }
-  // Skip table-header row (Sr. Security Sector Mkt Value %Assets) — advance to first "1"
-  while(pos < toks.length && toks[pos] !== '1') pos++;
-
-  // Parse by sequential row number — collects ALL tokens between row numbers
-  const results = [];
-  let expected = 1;
-  while(pos < toks.length && expected <= 50){
-    if(toks[pos] !== String(expected)){ pos++; continue; }
-    pos++;
-
-    const row = [];
-    while(pos < toks.length){
-      const t = toks[pos];
-      if(t === String(expected+1)) break;
-      if(/^total$/i.test(t)) return {holdings:results, date:portfolioDate};
-      row.push(t); pos++;
-    }
-    expected++;
-    if(row.length < 2) continue;
-
-    // Last token must be a percentage (e.g. "2.99%")
-    if(!/^\d+\.\d+%$/.test(row[row.length-1])) continue;
-
-    // Find mkt value: rightmost integer > 10 000 before the trailing %
-    let mv = 0, mi = -1;
-    for(let j = row.length-2; j >= 0; j--){
-      const n = parseInt(row[j].replace(/,/g,''));
-      if(!isNaN(n) && n > 10000){ mv = n; mi = j; break; }
-    }
-    if(!mv) continue;
-
-    // Everything before mkt value is company-name + sector text joined together.
-    // Strip the sector suffix by truncating at the last LTD/LIMITED —
-    // listed Indian companies always end with LTD/LIMITED, so anything after it is sector text.
-    let sec = row.slice(0, mi).join(' ').trim();
-    const ltdM = sec.match(/^(.*\bLTD\.?|.*\bLIMITED)\b/i);
-    if(ltdM) sec = ltdM[1].replace(/\.$/, '').trim();
-
-    if(/^cash/i.test(sec)){
-      results.push({sym:'CASH', name:'Cash & Equivalents', mktValue:mv, isCash:true});
-    } else if(sec && !/dividend|interest/i.test(sec)){
-      results.push({secText:sec, mktValue:mv});
-    }
-  }
-  return {holdings: results, date: portfolioDate};
-}
-
-// Batch-fetch prices via Apps Script (same mechanism as refreshAllPrices)
-// Falls back to direct Yahoo Finance if Apps Script not connected
-async function fetchStallionPricesBatch(tickerToSym, dateStr){
-  const tickers = [...tickerToSym.keys()];
-  const result  = new Map(); // sym → price
-
-  if(gsUrl){
-    try{
-      const symParam = tickers.map(s=>encodeURIComponent(s)).join('%2C');
-      let url = gsUrl+'?action=prices&symbols='+symParam;
-      if(dateStr) url += '&date='+encodeURIComponent(dateStr);
-      const r = await fetchWithTimeout(url, {}, 40000);
-      if(r.ok){
-        const data = await r.json();
-        const prices = data.prices||{};
-        for(const [ticker, sym] of tickerToSym){
-          const clean = ticker.replace(/\.(NS|BO)$/i,'');
-          const p = prices[clean]||prices[ticker];
-          if(p>0) result.set(sym, p);
-        }
-        return result; // done via Apps Script
-      }
-    } catch(e){ /* fall through */ }
-  }
-
-  // Direct Yahoo Finance fallback (may hit CORS in some browsers)
-  await Promise.all(tickers.map(async ticker => {
-    const sym = tickerToSym.get(ticker);
-    for(const host of ['query1','query2']){
-      try{
-        const r = await fetch(`https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`);
-        if(!r.ok) continue;
-        const d = await r.json();
-        const p = d?.chart?.result?.[0]?.meta?.regularMarketPrice;
-        if(p>0){ result.set(sym, p); return; }
-      } catch(e){ /* next host */ }
-    }
-  }));
+  result.push(cur);
   return result;
 }
 
-async function loadStallionPDF(file){
-  if(!file?.name?.toLowerCase().endsWith('.pdf')){ alert('Please select a .pdf file'); return; }
+async function loadStallionCSV(file){
+  if(!file?.name?.toLowerCase().endsWith('.csv')){ alert('Please select a .csv file'); return; }
 
   const status = $('stallion-pdf-status');
   const btn    = $('stallion-replace-btn');
@@ -1918,92 +1787,77 @@ async function loadStallionPDF(file){
   if(btn) btn.disabled = true;
 
   try{
-    if(!window.pdfjsLib){
-      setStatus('Loading PDF parser…');
-      await new Promise((res,rej)=>{
-        const s = document.createElement('script');
-        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-        s.onload = res; s.onerror = ()=>rej(new Error('Failed to load pdf.js'));
-        document.head.appendChild(s);
-      });
-      pdfjsLib.GlobalWorkerOptions.workerSrc =
-        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const text  = await file.text();
+    const lines = text.split(/\r?\n/);
+
+    // Extract report date: "Report Date : 28/04/2026"
+    let reportDate = null;
+    for(const line of lines){
+      const m = line.match(/Report\s+Date\s*:\s*(\d{2})\/(\d{2})\/(\d{4})/i);
+      if(m){ reportDate=`${m[3]}-${m[2]}-${m[1]}`; break; }
     }
+    stallionPdfDate = reportDate;
 
-    setStatus('Reading PDF…');
-    const pdf = await pdfjsLib.getDocument({data: await file.arrayBuffer()}).promise;
+    // Parse holding rows
+    const rawRows = [];
+    let inData = false;
+    for(const line of lines){
+      if(!line.trim()) continue;
+      const cols = parseCSVRow(line);
+      const name = (cols[0]||'').trim();
 
-    setStatus('Extracting holdings…');
-    const {holdings: rawRows, date: pdfDate} = await extractStallionHoldingsFromPDF(pdf);
-    if(rawRows.length === 0){
-      setStatus('No holdings found — is this a Stallion statement?', 'var(--amber)'); return;
-    }
+      // Detect column-header row to start parsing
+      if(/^security$/i.test(name) && cols.length >= 8){ inData=true; continue; }
+      if(!inData) continue;
 
-    // Resolve company names → NSE symbols
-    const resolved = rawRows.map(h => h.isCash ? h : {...h, ...resolveStallionSecurity(h.secText)});
-    const equities  = resolved.filter(h => !h.isCash);
+      // Skip category / subtotal rows
+      if(!name) continue;
+      if(/^(?:equity|shares|cash and equivalent|cash \/ bank)$/i.test(name)) continue;
+      if(/total$/i.test(name)) continue;
 
-    // Single batch price fetch via Apps Script — historical date if found in PDF
-    const dateLabel = pdfDate || 'current';
-    setStatus(`Fetching prices as of ${dateLabel} for ${equities.length} holdings…`);
-    const tickerToSym = new Map(equities.map(h => [h.yahooSym||(h.sym+'.NS'), h.sym]));
-    const priceMap = await fetchStallionPricesBatch(tickerToSym, pdfDate);
-
-    // shares = round(mktValue / livePrice)
-    stallionPdfDate = pdfDate;
-    stallionPriceMissing = [];
-    let failures = 0;
-    stallionReplaceData = resolved.map(h => {
-      if(h.isCash) return {sym:'CASH', name:'Cash & Equivalents', shares:h.mktValue, price:1, yahooSym:null};
-      const price = priceMap.get(h.sym);
-      if(!price){
-        failures++;
-        stallionPriceMissing.push({sym:h.sym, name:h.name, secText:h.secText||h.name, triedTicker:h.yahooSym||(h.sym+'.NS'), mktValue:h.mktValue});
-        return {sym:h.sym, name:h.name, shares:1, price:h.mktValue, yahooSym:h.yahooSym, priceMissing:true};
+      // Cash row: col[0]="Cash", col[7]=market value
+      if(/^cash$/i.test(name)){
+        const mv = parseFloat((cols[7]||'').replace(/,/g,''));
+        if(mv>0) rawRows.push({isCash:true, mktValue:mv});
+        continue;
       }
-      return {sym:h.sym, name:h.name, shares:Math.max(1, Math.round(h.mktValue/price)), price, yahooSym:h.yahooSym};
+
+      // Equity row: col[3]=qty, col[6]=market price, col[7]=market value
+      const qty      = parseFloat((cols[3]||'').replace(/,/g,''));
+      const mktPrice = parseFloat((cols[6]||'').replace(/,/g,''));
+      const mktValue = parseFloat((cols[7]||'').replace(/,/g,''));
+      if(isNaN(qty)||isNaN(mktPrice)||mktPrice<=0||qty<=0) continue;
+      rawRows.push({secText:name, shares:Math.round(qty), price:mktPrice, mktValue});
+    }
+
+    if(rawRows.length===0){
+      setStatus('No holdings found — is this a Stallion Current Portfolio CSV?','var(--amber)'); return;
+    }
+
+    // Build stallionReplaceData — prices come directly from CSV, no fetching needed
+    stallionReplaceData = rawRows.map(h => {
+      if(h.isCash) return {sym:'CASH', name:'Cash & Equivalents', shares:h.mktValue, price:1, yahooSym:null};
+      const r = resolveStallionSecurity(h.secText);
+      return {sym:r.sym, name:r.name||h.secText, shares:h.shares, price:h.price, yahooSym:r.yahooSym};
     });
 
-    const stmtTotal = resolved.reduce((s,h)=>s+h.mktValue,0);
-    const calcTotal = stallionReplaceData.reduce((s,h)=>s+h.shares*h.price,0);
-    const failNote  = failures>0 ? ` · ${failures} price(s) unavailable` : '';
-    const priceAsOf = pdfDate ? ` · prices @ ${pdfDate}` : '';
-    setStatus(`${resolved.length} holdings · stmt ₹${stmtTotal.toLocaleString('en-IN',{maximumFractionDigits:0})} · calc ₹${Math.round(calcTotal).toLocaleString('en-IN')}${priceAsOf}${failNote}`);
+    const calcTotal = stallionReplaceData.reduce((s,h)=>s+h.shares*h.price, 0);
+    const dateLabel = reportDate ? ` · prices @ ${reportDate}` : '';
+    setStatus(`${stallionReplaceData.length} holdings · ₹${Math.round(calcTotal).toLocaleString('en-IN')}${dateLabel}`);
 
-    // Build failure detail block with editable ticker inputs
-    const failBlock = stallionPriceMissing.length > 0 ? `
-      <div style="margin-bottom:8px;padding:8px 10px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);border-radius:6px;">
-        <div style="color:var(--amber);font-size:11px;font-weight:600;margin-bottom:8px;">Prices not found — enter correct Yahoo ticker (e.g. RELIANCE.NS) and retry:</div>
-        ${stallionPriceMissing.map(f=>`
-          <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(251,191,36,.15);">
-            <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px;">
-              <span style="color:var(--amber);font-size:10px;font-family:'DM Mono',monospace;font-weight:700;flex-shrink:0">${f.sym}</span>
-              <span style="color:var(--text);font-size:11px;line-height:1.4">${f.secText}</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:6px;">
-              <span style="color:var(--muted);font-size:9px;font-family:'DM Mono',monospace;flex-shrink:0">Yahoo ticker:</span>
-              <input id="fix-ticker-${f.sym}" value="${f.triedTicker}" placeholder="TICKER.NS"
-                style="flex:1;font-family:'DM Mono',monospace;font-size:11px;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;color:var(--text);padding:3px 7px;">
-            </div>
-          </div>`).join('')}
-        <button onclick="retryStallionPrices()" style="margin-top:4px;padding:5px 16px;font-size:11px;background:var(--amber);color:#000;border:none;border-radius:5px;cursor:pointer;font-weight:600;">Retry prices</button>
-      </div>` : '';
-
+    // Render preview
     const preview = $('stallion-replace-preview');
     if(preview){
-      preview.innerHTML = failBlock + stallionReplaceData.map(h=>{
-        const val = h.shares*h.price;
-        const isMissing = !!h.priceMissing;
+      preview.innerHTML = stallionReplaceData.map(h=>{
+        const val    = h.shares*h.price;
         const detail = h.sym==='CASH'
           ? `₹${h.shares.toLocaleString('en-IN',{maximumFractionDigits:0})} cash`
-          : isMissing
-            ? `⚠ no price`
-            : `${h.shares} × ₹${h.price.toLocaleString('en-IN',{maximumFractionDigits:2})}`;
-        return `<div style="display:flex;align-items:center;gap:6px;padding:2px 6px;border-radius:3px;background:${isMissing?'rgba(251,191,36,.08)':'var(--bg3)'};margin-bottom:2px;${isMissing?'border:1px solid rgba(251,191,36,.2)':''}">
-          <span style="color:${isMissing?'var(--amber)':'var(--text)'};font-size:11px;min-width:90px">${h.sym}</span>
+          : `${h.shares.toLocaleString('en-IN')} × ₹${h.price.toLocaleString('en-IN',{maximumFractionDigits:2})}`;
+        return `<div style="display:flex;align-items:center;gap:6px;padding:2px 6px;border-radius:3px;background:var(--bg3);margin-bottom:2px;">
+          <span style="color:var(--text);font-size:11px;min-width:90px">${h.sym}</span>
           <span style="color:var(--muted);flex:1;font-size:10px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${h.name!==h.sym?h.name:''}</span>
-          <span style="color:${isMissing?'var(--amber)':'var(--muted2)'};font-size:10px;white-space:nowrap">${detail}</span>
-          <span style="color:${isMissing?'var(--amber)':'var(--teal)'};font-size:11px;min-width:70px;text-align:right">₹${Math.round(val).toLocaleString('en-IN')}</span>
+          <span style="color:var(--muted2);font-size:10px;white-space:nowrap">${detail}</span>
+          <span style="color:var(--teal);font-size:11px;min-width:70px;text-align:right">₹${Math.round(val).toLocaleString('en-IN')}</span>
         </div>`;
       }).join('') +
       `<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);display:flex;justify-content:space-between;">
@@ -2018,85 +1872,7 @@ async function loadStallionPDF(file){
 
   } catch(err){
     setStatus('Error: '+(err.message||String(err)), 'var(--red)');
-    console.error('Stallion PDF error:', err);
-  }
-}
-
-async function retryStallionPrices(){
-  if(!stallionPriceMissing.length || !stallionReplaceData) return;
-  const btn = document.querySelector('[onclick="retryStallionPrices()"]');
-  if(btn){ btn.disabled=true; btn.textContent='Fetching…'; }
-
-  // Read corrected tickers from inputs
-  const tickerToSym = new Map();
-  stallionPriceMissing.forEach(f => {
-    const input = document.getElementById('fix-ticker-'+f.sym);
-    const ticker = (input?.value||'').trim();
-    if(ticker) tickerToSym.set(ticker, f.sym);
-  });
-
-  const priceMap = await fetchStallionPricesBatch(tickerToSym, stallionPdfDate);
-
-  // Update stallionReplaceData for the holdings that now have prices
-  let stillMissing = 0;
-  stallionReplaceData = stallionReplaceData.map(h => {
-    if(!h.priceMissing) return h;
-    const price = priceMap.get(h.sym);
-    if(!price){ stillMissing++; return h; }
-    const missing = stallionPriceMissing.find(f=>f.sym===h.sym);
-    return {sym:h.sym, name:h.name, shares:Math.max(1, Math.round((missing?.mktValue||1)/price)), price, yahooSym:h.yahooSym};
-  });
-  stallionPriceMissing = stallionPriceMissing.filter(f => !priceMap.has(f.sym));
-
-  // Re-render preview
-  const calcTotal = stallionReplaceData.reduce((s,h)=>s+h.shares*h.price,0);
-  const status = $('stallion-pdf-status');
-  if(status){
-    const stmtTotal = stallionReplaceData.reduce((s,h)=>s+(stallionPriceMissing.find(f=>f.sym===h.sym)?.mktValue||h.shares*h.price),0);
-    const failNote  = stillMissing>0 ? ` · ${stillMissing} still unavailable` : ' · all prices resolved';
-    const priceAsOf = stallionPdfDate ? ` · prices @ ${stallionPdfDate}` : '';
-    status.textContent = `${stallionReplaceData.length} holdings · calc ₹${Math.round(calcTotal).toLocaleString('en-IN')}${priceAsOf}${failNote}`;
-    status.style.color = stillMissing>0 ? 'var(--amber)' : 'var(--teal)';
-  }
-
-  const failBlock = stallionPriceMissing.length > 0 ? `
-    <div style="margin-bottom:8px;padding:8px 10px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);border-radius:6px;">
-      <div style="color:var(--amber);font-size:11px;font-weight:600;margin-bottom:8px;">Still not found — correct the ticker and retry:</div>
-      ${stallionPriceMissing.map(f=>`
-        <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(251,191,36,.15);">
-          <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px;">
-            <span style="color:var(--amber);font-size:10px;font-family:'DM Mono',monospace;font-weight:700;flex-shrink:0">${f.sym}</span>
-            <span style="color:var(--text);font-size:11px;line-height:1.4">${f.secText}</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:6px;">
-            <span style="color:var(--muted);font-size:9px;font-family:'DM Mono',monospace;flex-shrink:0">Yahoo ticker:</span>
-            <input id="fix-ticker-${f.sym}" value="${document.getElementById('fix-ticker-'+f.sym)?.value||f.triedTicker}" placeholder="TICKER.NS"
-              style="flex:1;font-family:'DM Mono',monospace;font-size:11px;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;color:var(--text);padding:3px 7px;">
-          </div>
-        </div>`).join('')}
-      <button onclick="retryStallionPrices()" style="margin-top:4px;padding:5px 16px;font-size:11px;background:var(--amber);color:#000;border:none;border-radius:5px;cursor:pointer;font-weight:600;">Retry prices</button>
-    </div>` : '';
-
-  const preview = $('stallion-replace-preview');
-  if(preview){
-    preview.innerHTML = failBlock + stallionReplaceData.map(h=>{
-      const val = h.shares*h.price;
-      const isMissing = !!h.priceMissing;
-      const detail = h.sym==='CASH'
-        ? `₹${h.shares.toLocaleString('en-IN',{maximumFractionDigits:0})} cash`
-        : isMissing ? `⚠ no price`
-        : `${h.shares} × ₹${h.price.toLocaleString('en-IN',{maximumFractionDigits:2})}`;
-      return `<div style="display:flex;align-items:center;gap:6px;padding:2px 6px;border-radius:3px;background:${isMissing?'rgba(251,191,36,.08)':'var(--bg3)'};margin-bottom:2px;${isMissing?'border:1px solid rgba(251,191,36,.2)':''}">
-        <span style="color:${isMissing?'var(--amber)':'var(--text)'};font-size:11px;min-width:90px">${h.sym}</span>
-        <span style="color:var(--muted);flex:1;font-size:10px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${h.name!==h.sym?h.name:''}</span>
-        <span style="color:${isMissing?'var(--amber)':'var(--muted2)'};font-size:10px;white-space:nowrap">${detail}</span>
-        <span style="color:${isMissing?'var(--amber)':'var(--teal)'};font-size:11px;min-width:70px;text-align:right">₹${Math.round(val).toLocaleString('en-IN')}</span>
-      </div>`;
-    }).join('') +
-    `<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);display:flex;justify-content:space-between;">
-      <span style="color:var(--muted2)">${stallionReplaceData.length} holdings</span>
-      <span style="color:var(--teal);font-weight:600">₹${Math.round(calcTotal).toLocaleString('en-IN')}</span>
-    </div>`;
+    console.error('Stallion CSV error:', err);
   }
 }
 
