@@ -384,7 +384,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 <!-- METRICS -->
 <div class="metrics">
   <div class="mc"><div class="mc-accent" style="background:rgba(96,165,250,.08)"></div><div class="mc-label">Total Net Worth</div><div class="mc-val" id="m-total">—</div><div class="mc-sub" id="m-total-sub">loading…</div><div class="mc-chg" id="m-total-chg"></div></div>
-  <div class="mc"><div class="mc-accent" style="background:rgba(45,212,191,.08)"></div><div class="mc-label">INR Equivalent</div><div class="mc-val" id="m-inr">—</div><div class="mc-sub">at 94.55 INR/USD</div></div>
+  <div class="mc"><div class="mc-accent" style="background:rgba(45,212,191,.08)"></div><div class="mc-label">INR Equivalent</div><div class="mc-val" id="m-inr">—</div><div class="mc-sub">at <span id="m-inr-rate">94.55</span> INR/USD</div></div>
   <div class="mc"><div class="mc-accent" style="background:rgba(96,165,250,.06)"></div><div class="mc-label">US Portfolio</div><div class="mc-val" id="m-us">—</div><div class="mc-sub" id="m-us-sub">Taxable + Retirement</div><div class="mc-chg" id="m-us-chg"></div></div>
   <div class="mc"><div class="mc-accent" style="background:rgba(251,191,36,.06)"></div><div class="mc-label">India + Gold</div><div class="mc-val" id="m-india">—</div><div class="mc-sub" id="m-india-sub">₹ · PMS + AIF + Gold</div><div class="mc-chg" id="m-india-chg"></div></div>
 </div>
@@ -735,7 +735,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 
     <!-- Stallion tab -->
     <div id="tab-stallion" style="display:none">
-      <div class="instructions"><b>Update Stallion PMS value:</b><br>Get your monthly PDF from the Stallion client portal.<br><br><b>Current portfolio value:</b><br><input style="font-family:'DM Mono',monospace;font-size:13px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:5px 10px;width:160px;margin:4px 0;" type="number" id="stallion-inr-input" value="0" placeholder="INR value"><span style="font-size:11px;color:var(--muted);margin-left:6px;font-family:'DM Mono',monospace;">INR</span><br><br><b>Conversion:</b> <span id="stallion-usd-preview" style="color:var(--teal);font-family:'DM Mono',monospace;font-size:13px;">—</span> at 94.55 INR/USD</div>
+      <div class="instructions"><b>Update Stallion PMS value:</b><br>Get your monthly PDF from the Stallion client portal.<br><br><b>Current portfolio value:</b><br><input style="font-family:'DM Mono',monospace;font-size:13px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:5px 10px;width:160px;margin:4px 0;" type="number" id="stallion-inr-input" value="0" placeholder="INR value"><span style="font-size:11px;color:var(--muted);margin-left:6px;font-family:'DM Mono',monospace;">INR</span><br><br><b>Conversion:</b> <span id="stallion-usd-preview" style="color:var(--teal);font-family:'DM Mono',monospace;font-size:13px;">—</span> at <span id="stallion-forex-display">94.55</span> INR/USD</div>
       <div class="modal-actions">
         <button class="mbtn mbtn-secondary" onclick="hideModal()">Cancel</button>
         <button class="mbtn mbtn-primary" onclick="applyStallion()">Update Stallion value</button>
@@ -1519,7 +1519,7 @@ const stallionInput = document.getElementById('stallion-inr-input');
 if(stallionInput){
   stallionInput.addEventListener('input',()=>{
     const inr = parseFloat(stallionInput.value)||0;
-    const usdV = inr/USD_INR;
+    const usdV = inr/(USD_INR_LIVE || USD_INR);
     const el=$('stallion-usd-preview');
     if(el) el.textContent = '~$'+Math.round(usdV).toLocaleString();
   });
@@ -2694,6 +2694,10 @@ async function fetchForex(){
       USD_INR_LIVE = data.INR;
       const el = $('forex-display');
       if(el) el.textContent = USD_INR_LIVE.toFixed(2);
+      const stallionRate = $('stallion-forex-display');
+      if(stallionRate) stallionRate.textContent = USD_INR_LIVE.toFixed(2);
+      const inrRate = $('m-inr-rate');
+      if(inrRate) inrRate.textContent = USD_INR_LIVE.toFixed(2);
       recalc();
       console.log('INR/USD updated:', USD_INR_LIVE);
     }
