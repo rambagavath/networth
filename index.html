@@ -384,7 +384,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 <!-- METRICS -->
 <div class="metrics">
   <div class="mc"><div class="mc-accent" style="background:rgba(96,165,250,.08)"></div><div class="mc-label">Total Net Worth</div><div class="mc-val" id="m-total">—</div><div class="mc-sub" id="m-total-sub">loading…</div><div class="mc-chg" id="m-total-chg"></div></div>
-  <div class="mc"><div class="mc-accent" style="background:rgba(45,212,191,.08)"></div><div class="mc-label">INR Equivalent</div><div class="mc-val" id="m-inr">—</div><div class="mc-sub">at 94.55 INR/USD</div></div>
+  <div class="mc"><div class="mc-accent" style="background:rgba(45,212,191,.08)"></div><div class="mc-label">INR Equivalent</div><div class="mc-val" id="m-inr">—</div><div class="mc-sub">at <span id="m-inr-rate">94.55</span> INR/USD</div></div>
   <div class="mc"><div class="mc-accent" style="background:rgba(96,165,250,.06)"></div><div class="mc-label">US Portfolio</div><div class="mc-val" id="m-us">—</div><div class="mc-sub" id="m-us-sub">Taxable + Retirement</div><div class="mc-chg" id="m-us-chg"></div></div>
   <div class="mc"><div class="mc-accent" style="background:rgba(251,191,36,.06)"></div><div class="mc-label">India + Gold</div><div class="mc-val" id="m-india">—</div><div class="mc-sub" id="m-india-sub">₹ · PMS + AIF + Gold</div><div class="mc-chg" id="m-india-chg"></div></div>
 </div>
@@ -735,7 +735,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 
     <!-- Stallion tab -->
     <div id="tab-stallion" style="display:none">
-      <div class="instructions"><b>Update Stallion PMS value:</b><br>Get your monthly PDF from the Stallion client portal.<br><br><b>Current portfolio value:</b><br><input style="font-family:'DM Mono',monospace;font-size:13px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:5px 10px;width:160px;margin:4px 0;" type="number" id="stallion-inr-input" value="0" placeholder="INR value"><span style="font-size:11px;color:var(--muted);margin-left:6px;font-family:'DM Mono',monospace;">INR</span><br><br><b>Conversion:</b> <span id="stallion-usd-preview" style="color:var(--teal);font-family:'DM Mono',monospace;font-size:13px;">—</span> at 94.55 INR/USD</div>
+      <div class="instructions"><b>Update Stallion PMS value:</b><br>Get your monthly PDF from the Stallion client portal.<br><br><b>Current portfolio value:</b><br><input style="font-family:'DM Mono',monospace;font-size:13px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:5px 10px;width:160px;margin:4px 0;" type="number" id="stallion-inr-input" value="0" placeholder="INR value"><span style="font-size:11px;color:var(--muted);margin-left:6px;font-family:'DM Mono',monospace;">INR</span><br><br><b>Conversion:</b> <span id="stallion-usd-preview" style="color:var(--teal);font-family:'DM Mono',monospace;font-size:13px;">—</span> at <span id="stallion-forex-display">94.55</span> INR/USD</div>
       <div class="modal-actions">
         <button class="mbtn mbtn-secondary" onclick="hideModal()">Cancel</button>
         <button class="mbtn mbtn-primary" onclick="applyStallion()">Update Stallion value</button>
@@ -964,13 +964,15 @@ let holdings = {
   'ICICIPRAMC-stallion':  {sym:'ICICIAMC',    name:'ICICI Prudential AMC',           shares:0,    price:0,  acct:'stallion', prevPrice:0,  inr:true},
   'VBL-stallion':         {sym:'VBL',         name:'Varun Beverages',                shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
   'HDFCNIFSMEP-stallion': {sym:'HDFCNIFSMEP', name:'HDFC Nifty Smallcap 250 ETF',   shares:0,  price:0,   acct:'stallion', prevPrice:0,   inr:true, yahooSym:'HDFCSML250.NS'},
-  'BLACKBUCK-stallion':   {sym:'BLACKBUCK',   name:'Blackbuck Ltd',                  shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
+  'MAHABANK-stallion':    {sym:'MAHABANK',    name:'Bank of Maharashtra',            shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
   'BLS-stallion':         {sym:'BLS',         name:'BLS International Services',     shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
   'PHARMABEES-stallion':  {sym:'PHARMABEES',  name:'Nippon India Nifty Pharma ETF',  shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
   'LLOYDME-stallion':     {sym:'LLOYDSME',    name:'Lloyds Metals & Energy',         shares:0,   price:0,  acct:'stallion', prevPrice:0,  inr:true},
   'NAM-INDIA-stallion':   {sym:'NAM-INDIA',   name:'Nippon Life India AMC',          shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
   'NYKAA-stallion':       {sym:'NYKAA',       name:'FSN E-Commerce (Nykaa)',         shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
-  'BBGV-stallion':        {sym:'BBGV',        name:'BillionBrains Garage Ventures',  shares:0,   price:0,  acct:'stallion', prevPrice:0,  inr:true, yahooSym:'GROWW.NS'},
+  'HFCL-stallion':        {sym:'HFCL',        name:'HFCL Ltd',                       shares:0,   price:0,  acct:'stallion', prevPrice:0,  inr:true},
+  'SCI-stallion':         {sym:'SCI',         name:'Shipping Corporation of India',  shares:0,   price:0,  acct:'stallion', prevPrice:0,  inr:true},
+  'WELCORP-stallion':     {sym:'WELCORP',     name:'Welspun Corp',                   shares:0,   price:0,  acct:'stallion', prevPrice:0,  inr:true},
   'SBIN-stallion':        {sym:'SBIN',        name:'State Bank of India',            shares:0,   price:0,  acct:'stallion', prevPrice:0,  inr:true},
   'V2RETAIL-stallion':    {sym:'V2RETAIL',    name:'V2 Retail',                      shares:0,   price:0,  acct:'stallion', prevPrice:0,  inr:true},
   'SKYGOLD-stallion':     {sym:'SKYGOLD',     name:'Sky Gold & Diamonds',            shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
@@ -994,7 +996,6 @@ let holdings = {
 const STALLION_YAHOO_MAP = {
   'JEENASIKHO':  'JSLL.NS',
   'HDFCNIFSMEP': 'HDFCSML250.NS',
-  'BBGV':        'GROWW.NS',
   'ADITYAVISION':'AVL.NS',
   'TIMEXIND':    'TIMEX.BO',
 };
@@ -1173,13 +1174,14 @@ function recalc(){
   // Stallion live value box
   const slv = $('stallion-live-val');
   if(slv){
-    const liveINR = Object.entries(holdings)
+    const equityINR = Object.entries(holdings)
       .filter(([,h]) => h.acct==='stallion' && h.sym!=='CASH')
       .reduce((s,[,h]) => s + h.shares * h.price, 0);
-    const lakh = liveINR / 100000;
-    slv.textContent = '₹' + lakh.toFixed(2) + 'L';
-    const stmtINR = 0;
-    slv.style.color = liveINR >= stmtINR ? 'var(--green)' : 'var(--red)';
+    const cashHolding = Object.values(holdings).find(h => h.acct==='stallion' && h.sym==='CASH');
+    const cashINR = cashHolding ? cashHolding.shares : 0;
+    const liveINR = equityINR + cashINR;
+    slv.textContent = '₹' + (liveINR / 100000).toFixed(2) + 'L';
+    slv.style.color = 'var(--green)';
   }
 
   // Section totals
@@ -1519,7 +1521,7 @@ const stallionInput = document.getElementById('stallion-inr-input');
 if(stallionInput){
   stallionInput.addEventListener('input',()=>{
     const inr = parseFloat(stallionInput.value)||0;
-    const usdV = inr/USD_INR;
+    const usdV = inr/(USD_INR_LIVE || USD_INR);
     const el=$('stallion-usd-preview');
     if(el) el.textContent = '~$'+Math.round(usdV).toLocaleString();
   });
@@ -1905,9 +1907,9 @@ function applyManual(){
     } else if(key==='gold-price-manual'){
       $('gold-price').value = val;
     } else if(key==='stallion-total'){
-      ACCTS.stallion.val = val/USD_INR;
+      ACCTS.stallion.val = val/(USD_INR_LIVE || USD_INR);
     } else if(key==='niveshaay-total'){
-      ACCTS.niveshaay.val = val/USD_INR;
+      ACCTS.niveshaay.val = val/(USD_INR_LIVE || USD_INR);
     } else if(holdings[key]){
       holdings[key].price = val;
     }
@@ -2694,6 +2696,10 @@ async function fetchForex(){
       USD_INR_LIVE = data.INR;
       const el = $('forex-display');
       if(el) el.textContent = USD_INR_LIVE.toFixed(2);
+      const stallionRate = $('stallion-forex-display');
+      if(stallionRate) stallionRate.textContent = USD_INR_LIVE.toFixed(2);
+      const inrRate = $('m-inr-rate');
+      if(inrRate) inrRate.textContent = USD_INR_LIVE.toFixed(2);
       recalc();
       console.log('INR/USD updated:', USD_INR_LIVE);
     }
