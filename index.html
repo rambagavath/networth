@@ -386,7 +386,8 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
   <div class="mc"><div class="mc-accent" style="background:rgba(96,165,250,.08)"></div><div class="mc-label">Total Net Worth</div><div class="mc-val" id="m-total">—</div><div class="mc-sub" id="m-total-sub">loading…</div><div class="mc-chg" id="m-total-chg"></div></div>
   <div class="mc"><div class="mc-accent" style="background:rgba(45,212,191,.08)"></div><div class="mc-label">INR Equivalent</div><div class="mc-val" id="m-inr">—</div><div class="mc-sub">at <span id="m-inr-rate">94.55</span> INR/USD</div></div>
   <div class="mc"><div class="mc-accent" style="background:rgba(96,165,250,.06)"></div><div class="mc-label">US Portfolio</div><div class="mc-val" id="m-us">—</div><div class="mc-sub" id="m-us-sub">Taxable + Retirement</div><div class="mc-chg" id="m-us-chg"></div></div>
-  <div class="mc"><div class="mc-accent" style="background:rgba(251,191,36,.06)"></div><div class="mc-label">India + Gold</div><div class="mc-val" id="m-india">—</div><div class="mc-sub" id="m-india-sub">₹ · PMS + AIF + Gold</div><div class="mc-chg" id="m-india-chg"></div></div>
+  <div class="mc"><div class="mc-accent" style="background:rgba(45,212,191,.06)"></div><div class="mc-label">India Portfolio</div><div class="mc-val" id="m-india">—</div><div class="mc-sub" id="m-india-sub">₹ · PMS + AIF</div><div class="mc-chg" id="m-india-chg"></div></div>
+  <div class="mc"><div class="mc-accent" style="background:rgba(251,191,36,.06)"></div><div class="mc-label">Physical Gold</div><div class="mc-val" id="m-gold">—</div><div class="mc-sub" id="m-gold-sub">₹ · 86 Sovereigns</div><div class="mc-chg" id="m-gold-chg"></div></div>
 </div>
 
 <!-- ALLOC BAR -->
@@ -1240,18 +1241,22 @@ function recalc(){
 
   // Aggregate daily changes
   const usDayChg    = dayChgs['fid-ind'] + dayChgs['merrill'] + dayChgs['fid-ira'] + dayChgs['hartford'] + dayChgs['fid-rh'];
-  const indiaDayChg = dayChgs['stallion'] + dayChgs['gold'] + dayChgs['india-ind'] + dayChgs['india-ira'];
-  const totalDayChg = usDayChg + indiaDayChg;
-  const usHasLive   = ['fid-ind','fid-ira','hartford','merrill','fid-rh'].some(k => hasLiveChg(k));
-  const indiaHasLive = ['stallion','gold','india-ind','india-ira'].some(k => hasLiveChg(k));
-  const totalHasLive = usHasLive || indiaHasLive;
+  const indiaDayChg = dayChgs['stallion'] + dayChgs['india-ind'] + dayChgs['india-ira'];
+  const goldDayChg  = dayChgs['gold'];
+  const totalDayChg = usDayChg + indiaDayChg + goldDayChg;
+  const usHasLive    = ['fid-ind','fid-ira','hartford','merrill','fid-rh'].some(k => hasLiveChg(k));
+  const indiaHasLive = ['stallion','india-ind','india-ira'].some(k => hasLiveChg(k));
+  const goldHasLive  = hasLiveChg('gold');
+  const totalHasLive = usHasLive || indiaHasLive || goldHasLive;
 
   // Metrics
   if($('m-total')) $('m-total').textContent = usd(grand);
   if($('m-inr'))   $('m-inr').textContent   = inrCr(grand);
   if($('m-us'))    $('m-us').textContent     = usd(usTaxable+retirement);
-  if($('m-india')) $('m-india').textContent  = usd(india+gold);
-  if($('m-india-sub')) $('m-india-sub').textContent = inrCr((india+gold)) + ' · PMS+AIF+Gold';
+  if($('m-india')) $('m-india').textContent      = usd(india);
+  if($('m-india-sub')) $('m-india-sub').textContent = inrCr(india) + ' · PMS+AIF';
+  if($('m-gold')) $('m-gold').textContent        = usd(gold);
+  if($('m-gold-sub')) $('m-gold-sub').textContent   = inrCr(gold) + ' · 86 Sovereigns';
   if($('m-total-sub')){
     if(afterTaxOn){
       $('m-total-sub').innerHTML = `<span style="color:var(--amber)">After-tax view · 30% deducted on pre-tax · saved ${usd(taxDeduction)}</span>`;
@@ -1272,7 +1277,8 @@ function recalc(){
   // Metric card daily change badges
   if($('m-total-chg')) $('m-total-chg').innerHTML = fmtMetricChg(totalDayChg, grand - totalDayChg, totalHasLive);
   if($('m-us-chg'))    $('m-us-chg').innerHTML    = fmtMetricChg(usDayChg,    (usTaxable+retirement) - usDayChg, usHasLive);
-  if($('m-india-chg')) $('m-india-chg').innerHTML = fmtMetricChg(indiaDayChg, (india+gold) - indiaDayChg, indiaHasLive);
+  if($('m-india-chg')) $('m-india-chg').innerHTML = fmtMetricChg(indiaDayChg, india - indiaDayChg, indiaHasLive);
+  if($('m-gold-chg'))  $('m-gold-chg').innerHTML  = fmtMetricChg(goldDayChg,  gold - goldDayChg,  goldHasLive);
 
   // Alloc bar
   const segments = [
@@ -1295,7 +1301,7 @@ function recalc(){
   }
 
   // Group view
-  buildGroupView(usTaxable, retirement, india+gold, gold, grand, vals);
+  buildGroupView(usTaxable, retirement, india, gold, grand, vals);
 
   // Manage panel
   buildManagePanel(vals);
@@ -1310,7 +1316,7 @@ function recalc(){
     ? `30% withheld on 401k · Trad IRA · Pension (−${usd(taxDeduction)})`
     : inrCr(grand) + ' · 9 accounts + gold · 2 countries';
   if($('sum-breakdown')) $('sum-breakdown').innerHTML =
-    `US Taxable: <span style="color:var(--blue)">${usd(usTaxable)}</span><br>Retirement: <span style="color:var(--purple)">${usd(retirement)}</span>${afterTaxOn ? ` <span style="color:var(--amber);font-size:10px">(after 30% tax)</span>` : ''}<br>India+Gold: <span style="color:var(--teal)">${usd(india+gold)}</span>`;
+    `US Taxable: <span style="color:var(--blue)">${usd(usTaxable)}</span><br>Retirement: <span style="color:var(--purple)">${usd(retirement)}</span>${afterTaxOn ? ` <span style="color:var(--amber);font-size:10px">(after 30% tax)</span>` : ''}<br>India: <span style="color:var(--teal)">${usd(india)}</span><br>Gold: <span style="color:var(--amber)">${usd(gold)}</span>`;
 
   // Excluded sections
   Object.keys(ACCTS).forEach(k=>{
@@ -1335,15 +1341,17 @@ function maybeAutoSnapshot(){
   if(last.date !== today){ saveHistorySnapshot(); }
 }
 
-function buildGroupView(usTax, retire, indiaGold, gold, grand, vals){
+function buildGroupView(usTax, retire, india, gold, grand, vals){
   const gc = $('group-grid'); if(!gc) return;
   const groups = [
     {label:'US Taxable Brokerage', val:usTax, color:'#60a5fa', grad:'linear-gradient(90deg,#60a5fa,#3b82f6)',
      rows:[{n:'Fidelity Individual TOD',s:'QQQM · SCHG · TSLA · BMNR',v:vals['fid-ind']},{n:'Merrill CMA',s:'450 sh QQQM · cash',v:vals['merrill']}]},
     {label:'Retirement Accounts', val:retire, color:'#a78bfa', grad:'linear-gradient(90deg,#a78bfa,#8b5cf6)',
      rows:[{n:'Fidelity Traditional IRA',s:'QQQM · TSLA · AMZN',v:vals['fid-ira']},{n:'Hartford 401(k)',s:'SS S&P 500 Index K',v:vals['hartford']},{n:'Fidelity Roth + HSA',s:'QQQM · BMNR',v:vals['fid-rh']},{n:'Pension Plan',s:'As of Dec 2025',v:vals['pension']}]},
-    {label:'India + Physical Gold', val:indiaGold, color:'#2dd4bf', grad:'linear-gradient(90deg,#2dd4bf,#0f766e)',
-     rows:[{n:'Stallion Asset PMS',s:'36 holdings · live prices',v:vals['stallion']},{n:'Niveshaay AIF B9',s:'units · —',v:vals['niveshaay']},{n:'Physical Gold (86 Sovereigns)',s:'688g 22K · live price',v:vals['gold']},...(vals['india-ind']>0?[{n:'India Individual',s:'NSE/BSE custom holdings',v:vals['india-ind']}]:[]),...(vals['india-ira']>0?[{n:'India Retirement',s:'NPS/PPF/EPF holdings',v:vals['india-ira']}]:[])]},
+    {label:'India Portfolio', val:india, color:'#2dd4bf', grad:'linear-gradient(90deg,#2dd4bf,#0f766e)',
+     rows:[{n:'Stallion Asset PMS',s:'40 holdings · live prices',v:vals['stallion']},{n:'Niveshaay AIF B9',s:'units · —',v:vals['niveshaay']},...(vals['india-ind']>0?[{n:'India Individual',s:'NSE/BSE custom holdings',v:vals['india-ind']}]:[]),...(vals['india-ira']>0?[{n:'India Retirement',s:'NPS/PPF/EPF holdings',v:vals['india-ira']}]:[])]},
+    {label:'Physical Gold', val:gold, color:'#f59e0b', grad:'linear-gradient(90deg,#f59e0b,#d97706)',
+     rows:[{n:'Physical Gold (86 Sovereigns)',s:'688g 22K · live price',v:vals['gold']}]},
   ];
   gc.innerHTML = groups.map((g,i)=>`
     <div class="gc" id="gc-${i}" onclick="this.classList.toggle('open')">
