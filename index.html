@@ -712,6 +712,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
       <button class="broker-tab" id="tab-niveshaay-btn" onclick="switchTab('niveshaay')">Niveshaay</button>
       <button class="broker-tab" id="tab-manual-btn" onclick="switchTab('manual')">Manual Edit</button>
       <button class="broker-tab" id="tab-add-btn" onclick="switchTab('add')" style="color:var(--green)">+ Add Stock</button>
+      <button class="broker-tab" id="tab-trade-btn" onclick="switchTab('trade')" style="color:var(--amber)">Log Trade</button>
       <button class="broker-tab" id="tab-pdf-btn" onclick="switchTab('pdf')">PDF Upload</button>
     </div>
 
@@ -900,6 +901,58 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
       <div class="modal-actions" style="margin-top:14px;">
         <button class="mbtn mbtn-secondary" onclick="hideModal()">Cancel</button>
         <button class="mbtn mbtn-primary" style="background:rgba(52,211,153,.12);color:var(--green);border-color:rgba(52,211,153,.4);" onclick="addStock()">+ Add to Portfolio</button>
+      </div>
+    </div>
+
+    <!-- Log Trade tab -->
+    <div id="tab-trade" style="display:none">
+      <div class="instructions"><b>Log a manual trade:</b><br>Records a buy or sell against an existing holding and updates the share count.</div>
+      <div style="display:grid;gap:10px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div>
+            <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;">Account *</div>
+            <select id="trade-acct" onchange="updateTradeCurrency()" style="font-family:'DM Mono',monospace;font-size:12px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:6px 10px;width:100%;box-sizing:border-box;">
+              <option value="fid-ind">Fidelity Individual</option>
+              <option value="fid-ira">Fidelity IRA</option>
+              <option value="hartford">Hartford 401(k)</option>
+              <option value="merrill">Merrill CMA</option>
+              <option value="fid-rh">Fidelity Roth + HSA</option>
+              <option value="stallion">Stallion PMS</option>
+              <option value="india-ind">India Individual</option>
+              <option value="india-ira">India Retirement</option>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;">Action *</div>
+            <select id="trade-action" style="font-family:'DM Mono',monospace;font-size:12px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:6px 10px;width:100%;box-sizing:border-box;">
+              <option value="Buy">Buy</option>
+              <option value="Sell">Sell</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;">Symbol *</div>
+          <input type="text" id="trade-sym" list="trade-sym-list" placeholder="e.g. BSE or AAPL" style="font-family:'DM Mono',monospace;font-size:13px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:6px 10px;width:100%;box-sizing:border-box;" oninput="this.value=this.value.toUpperCase()">
+          <datalist id="trade-sym-list"></datalist>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div>
+            <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;">Shares *</div>
+            <input type="number" id="trade-shares" min="0" step="0.001" placeholder="e.g. 10" style="font-family:'DM Mono',monospace;font-size:13px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:6px 10px;width:100%;box-sizing:border-box;">
+          </div>
+          <div>
+            <div id="trade-price-label" style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;">Price per share (USD $) *</div>
+            <input type="number" id="trade-price" min="0" step="0.01" placeholder="e.g. 135.50" style="font-family:'DM Mono',monospace;font-size:13px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:6px 10px;width:100%;box-sizing:border-box;">
+          </div>
+        </div>
+        <div>
+          <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;">Note (optional)</div>
+          <input type="text" id="trade-note" placeholder="e.g. Monthly SIP" style="font-family:'DM Mono',monospace;font-size:13px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:6px 10px;width:100%;box-sizing:border-box;">
+        </div>
+      </div>
+      <div class="modal-actions" style="margin-top:16px;">
+        <button class="mbtn mbtn-secondary" onclick="hideModal()">Cancel</button>
+        <button class="mbtn mbtn-primary" onclick="applyTrade()" style="background:rgba(251,191,36,.15);color:var(--amber);border-color:rgba(251,191,36,.4);">Log Trade</button>
       </div>
     </div>
 
@@ -1107,6 +1160,7 @@ function renderHoldingRows(){
             <input class="h-edit-input" id="edit-price-${key}" type="number" value="${h.price}" step="${h.inr?0.05:0.01}" min="0" style="width:90px">
             <button class="h-edit-save" onclick="saveEdit('${key}')">Save</button>
             <button class="h-edit-cancel" onclick="cancelEdit('${key}')">✕</button>
+            <button class="h-edit-cancel" style="background:rgba(239,68,68,.12);color:#f87171;border-color:rgba(239,68,68,.3);margin-left:4px;" onclick="deleteHolding('${key}')">🗑</button>
           </div>
         </div>
         <div class="h-right">
@@ -1117,6 +1171,15 @@ function renderHoldingRows(){
       </div>`;
     }).join('');
   });
+}
+
+function deleteHolding(key){
+  const h = holdings[key];
+  if(!h) return;
+  if(!confirm(`Delete ${h.sym}? This removes the holding and cannot be undone.`)) return;
+  logTransaction('Deleted', h.sym, h.acct, h.shares, h.price, 'Manual delete');
+  delete holdings[key];
+  renderHoldingRows(); recalc(); gsSave();
 }
 
 function openEdit(key){
@@ -1196,6 +1259,7 @@ function recalc(){
     if($(tv)) $(tv).textContent = usd(vals[k] ?? acctVal(k));
     if($(lv)) $(lv).textContent = optionsOn ? 'equities + options' : 'equities only';
   });
+  if($('tot-stallion')) $('tot-stallion').textContent = usd(vals['stallion']);
 
   // Gold display
   const gUSD = goldUSD();
@@ -1464,12 +1528,58 @@ function hideModal(){
 }
 
 function switchTab(t){
-  ['fidelity','merrill','stallion','niveshaay','manual','add','pdf'].forEach(name=>{
+  ['fidelity','merrill','stallion','niveshaay','manual','add','trade','pdf'].forEach(name=>{
     $('tab-'+name).style.display = name===t?'block':'none';
     $('tab-'+name+'-btn').classList.toggle('active', name===t);
   });
   if(t==='manual') buildManualEditGrid();
   if(t==='niveshaay') populateNiveshaayTab();
+  if(t==='trade') buildTradeSymList();
+}
+
+function buildTradeSymList(){
+  const dl = $('trade-sym-list'); if(!dl) return;
+  const syms = [...new Set(Object.values(holdings).map(h=>h.sym))].sort();
+  dl.innerHTML = syms.map(s=>`<option value="${s}">`).join('');
+}
+
+function updateTradeCurrency(){
+  const acct = ($('trade-acct')||{}).value||'';
+  const isInr = ACCTS[acct]?.inr;
+  const lbl = $('trade-price-label');
+  const inp = $('trade-price');
+  if(lbl) lbl.textContent = isInr ? 'Price per share (INR ₹) *' : 'Price per share (USD $) *';
+  if(inp) inp.placeholder = isInr ? 'e.g. 3500' : 'e.g. 135.50';
+}
+
+function applyTrade(){
+  const acct   = ($('trade-acct')||{}).value||'';
+  const action = ($('trade-action')||{}).value||'Buy';
+  const sym    = (($('trade-sym')||{}).value||'').toUpperCase().trim();
+  const shares = parseFloat(($('trade-shares')||{}).value);
+  const price  = parseFloat(($('trade-price')||{}).value);
+  const note   = (($('trade-note')||{}).value||'').trim();
+
+  if(!sym || isNaN(shares) || shares <= 0 || isNaN(price) || price <= 0){
+    alert('Symbol, Shares, and Price are required.'); return;
+  }
+
+  const key = sym + '-' + acct;
+  const isInr = !!ACCTS[acct]?.inr;
+
+  if(!holdings[key]){
+    holdings[key] = {sym, name:sym, shares:0, price, prevPrice:price, acct, inr:isInr};
+  }
+
+  if(action === 'Buy'){
+    holdings[key].shares = parseFloat((holdings[key].shares + shares).toFixed(6));
+  } else {
+    holdings[key].shares = parseFloat(Math.max(0, holdings[key].shares - shares).toFixed(6));
+  }
+  holdings[key].price = price;
+
+  logTransaction(action, sym, acct, shares, price, note || 'Manual trade');
+  renderHoldingRows(); recalc(); gsSave(); hideModal();
 }
 
 // ─── CSV PARSER (Fidelity) ──────────────────────────────────
@@ -2953,9 +3063,9 @@ function renderTransactions(){
     el.innerHTML = '<div class="tx-empty">No transactions yet. Add or edit holdings to begin tracking.</div>';
     return;
   }
-  el.innerHTML = '<table class="tx-table"><thead><tr><th>Date</th><th>Action</th><th>Symbol</th><th>Account</th><th style="text-align:right">Shares</th><th style="text-align:right">Price</th><th style="text-align:right">Value</th><th>Note</th></tr></thead><tbody>' +
-    transactions.slice(0,100).map(tx => {
-      const cls = tx.action==='Added'?'tx-add':tx.action==='Deleted'?'tx-del':'tx-edit';
+  el.innerHTML = '<table class="tx-table"><thead><tr><th>Date</th><th>Action</th><th>Symbol</th><th>Account</th><th style="text-align:right">Shares</th><th style="text-align:right">Price</th><th style="text-align:right">Value</th><th>Note</th><th></th></tr></thead><tbody>' +
+    transactions.slice(0,100).map((tx, i) => {
+      const cls = tx.action==='Added'||tx.action==='Buy'?'tx-add':tx.action==='Deleted'||tx.action==='Sell'?'tx-del':'tx-edit';
       return `<tr>
         <td style="color:var(--muted)">${tx.date}</td>
         <td><span class="${cls}">${tx.action}</span></td>
@@ -2965,10 +3075,18 @@ function renderTransactions(){
         <td style="text-align:right">$${tx.price}</td>
         <td style="text-align:right;color:var(--teal)">$${tx.value.toLocaleString()}</td>
         <td style="color:var(--muted)">${tx.note||'—'}</td>
+        <td><button onclick="deleteTransaction(${i})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px;padding:2px 4px;border-radius:3px;" title="Delete">✕</button></td>
       </tr>`;
     }).join('') +
     '</tbody></table>' +
     (transactions.length > 100 ? `<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;padding:8px 0;text-align:center;">Showing 100 of ${transactions.length} · Older records in Google Sheets</div>` : '');
+}
+
+function deleteTransaction(index){
+  if(index < 0 || index >= transactions.length) return;
+  transactions.splice(index, 1);
+  saveTxLocal();
+  renderTransactions();
 }
 
 function toggleTxLog(){
