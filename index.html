@@ -1117,7 +1117,7 @@ function renderHoldingRows(){
   };
   Object.entries(acctMap).forEach(([acct, containerId])=>{
     const el = $(containerId); if(!el) return;
-    const acctHoldings = Object.entries(holdings).filter(([,h])=>h.acct===acct);
+    const acctHoldings = Object.entries(holdings).filter(([,h])=>h.acct===acct && h.shares > 0);
 
     // Show/hide India sections dynamically
     if(acct === 'india-ind'){ const sec=$('sec-india-ind'); if(sec) sec.style.display=acctHoldings.length?'':'none'; }
