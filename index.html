@@ -525,7 +525,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
   <div class="sec-hdr" onclick="toggleSec(this)">
     <div class="sec-hdr-left">
       <div class="sec-icon" style="background:rgba(45,212,191,.12);color:#2dd4bf">ST</div>
-      <div><div class="sec-name">Stallion Asset PMS — Core Fund</div><div class="sec-sub">36 holdings · as of Apr 13, 2026</div></div>
+      <div><div class="sec-name">Stallion Asset PMS — Core Fund</div><div class="sec-sub" id="stallion-sec-sub">36 holdings · as of Apr 13, 2026</div></div>
     </div>
     <div class="sec-hdr-right"><div class="sec-val" style="color:var(--teal)" id="hdr-stallion">—</div><div class="sec-chg" id="chg-stallion"></div><div class="chevron">▼</div></div>
   </div>
@@ -1306,9 +1306,13 @@ function recalc(){
     legEl.innerHTML=segments.map(s=>`<div class="alloc-item"><div class="alloc-dot" style="background:${s.color}"></div>${s.label} ${usd(s.val)}</div>`).join('');
   }
 
+  // Stallion holding count (non-CASH, shares > 0)
+  const stallionCount = Object.values(holdings).filter(h => h.acct === 'stallion' && h.sym !== 'CASH' && h.shares > 0).length;
+  if($('stallion-sec-sub')) $('stallion-sec-sub').textContent = stallionCount + ' holdings · live prices';
+
   // Group view
-  buildGroupView(usTaxable, retirement, india, gold, grand, vals);
-  buildCountryView(usTaxable, retirement, india, gold, grand, vals);
+  buildGroupView(usTaxable, retirement, india, gold, grand, vals, stallionCount);
+  buildCountryView(usTaxable, retirement, india, gold, grand, vals, stallionCount);
 
   // Manage panel
   buildManagePanel(vals);
@@ -1348,7 +1352,7 @@ function maybeAutoSnapshot(){
   if(last.date !== today){ saveHistorySnapshot(); }
 }
 
-function buildGroupView(usTax, retire, india, gold, grand, vals){
+function buildGroupView(usTax, retire, india, gold, grand, vals, stallionCount){
   const gc = $('group-grid'); if(!gc) return;
   const groups = [
     {label:'US Taxable Brokerage', val:usTax, color:'#60a5fa', grad:'linear-gradient(90deg,#60a5fa,#3b82f6)',
@@ -1356,7 +1360,7 @@ function buildGroupView(usTax, retire, india, gold, grand, vals){
     {label:'Retirement Accounts', val:retire, color:'#a78bfa', grad:'linear-gradient(90deg,#a78bfa,#8b5cf6)',
      rows:[{n:'Fidelity Traditional IRA',s:'QQQM · TSLA · AMZN',v:vals['fid-ira']},{n:'Hartford 401(k)',s:'SS S&P 500 Index K',v:vals['hartford']},{n:'Fidelity Roth + HSA',s:'QQQM · BMNR',v:vals['fid-rh']},{n:'Pension Plan',s:'As of Dec 2025',v:vals['pension']}]},
     {label:'India Portfolio', val:india, color:'#2dd4bf', grad:'linear-gradient(90deg,#2dd4bf,#0f766e)',
-     rows:[{n:'Stallion Asset PMS',s:'40 holdings · live prices',v:vals['stallion']},{n:'Niveshaay AIF B9',s:'units · —',v:vals['niveshaay']},...(vals['india-ind']>0?[{n:'India Individual',s:'NSE/BSE custom holdings',v:vals['india-ind']}]:[]),...(vals['india-ira']>0?[{n:'India Retirement',s:'NPS/PPF/EPF holdings',v:vals['india-ira']}]:[])]},
+     rows:[{n:'Stallion Asset PMS',s:(stallionCount||'—')+' holdings · live prices',v:vals['stallion']},{n:'Niveshaay AIF B9',s:'units · —',v:vals['niveshaay']},...(vals['india-ind']>0?[{n:'India Individual',s:'NSE/BSE custom holdings',v:vals['india-ind']}]:[]),...(vals['india-ira']>0?[{n:'India Retirement',s:'NPS/PPF/EPF holdings',v:vals['india-ira']}]:[])]},
     {label:'Physical Gold', val:gold, color:'#f59e0b', grad:'linear-gradient(90deg,#f59e0b,#d97706)',
      rows:[{n:'Physical Gold (86 Sovereigns)',s:'688g 22K · live price',v:vals['gold']}]},
   ];
@@ -1376,7 +1380,7 @@ function buildGroupView(usTax, retire, india, gold, grand, vals){
     </div>`).join('');
 }
 
-function buildCountryView(usTax, retire, india, gold, grand, vals){
+function buildCountryView(usTax, retire, india, gold, grand, vals, stallionCount){
   const gc = $('country-grid'); if(!gc) return;
   const indiaTotal = india + gold;
   const groups = [
@@ -1385,7 +1389,7 @@ function buildCountryView(usTax, retire, india, gold, grand, vals){
     {label:'US Pre-Tax', val:retire, color:'#a78bfa', grad:'linear-gradient(90deg,#a78bfa,#8b5cf6)',
      rows:[{n:'Fidelity Traditional IRA',s:'QQQM · TSLA · AMZN',v:vals['fid-ira']},{n:'Hartford 401(k)',s:'SS S&P 500 Index K',v:vals['hartford']},{n:'Fidelity Roth + HSA',s:'QQQM · BMNR',v:vals['fid-rh']},{n:'Pension Plan',s:'As of Dec 2025',v:vals['pension']}]},
     {label:'India', val:indiaTotal, color:'#2dd4bf', grad:'linear-gradient(90deg,#2dd4bf,#f59e0b)',
-     rows:[{n:'Stallion Asset PMS',s:'40 holdings · live prices',v:vals['stallion']},{n:'Niveshaay AIF B9',s:'units · —',v:vals['niveshaay']},{n:'Physical Gold (86 Sovereigns)',s:'688g 22K · live price',v:vals['gold']},...(vals['india-ind']>0?[{n:'India Individual',s:'NSE/BSE custom holdings',v:vals['india-ind']}]:[]),...(vals['india-ira']>0?[{n:'India Retirement',s:'NPS/PPF/EPF holdings',v:vals['india-ira']}]:[])]},
+     rows:[{n:'Stallion Asset PMS',s:(stallionCount||'—')+' holdings · live prices',v:vals['stallion']},{n:'Niveshaay AIF B9',s:'units · —',v:vals['niveshaay']},{n:'Physical Gold (86 Sovereigns)',s:'688g 22K · live price',v:vals['gold']},...(vals['india-ind']>0?[{n:'India Individual',s:'NSE/BSE custom holdings',v:vals['india-ind']}]:[]),...(vals['india-ira']>0?[{n:'India Retirement',s:'NPS/PPF/EPF holdings',v:vals['india-ira']}]:[])]},
   ];
   gc.innerHTML = groups.map((g,i)=>`
     <div class="gc" id="cgc-${i}" onclick="this.classList.toggle('open')">
