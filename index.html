@@ -1564,8 +1564,9 @@ function applyTrade(){
     alert('Symbol, Shares, and Price are required.'); return;
   }
 
-  const key = sym + '-' + acct;
   const isInr = !!ACCTS[acct]?.inr;
+  const key = Object.keys(holdings).find(k => holdings[k].sym === sym && holdings[k].acct === acct)
+              || sym + '-' + acct;
 
   if(!holdings[key]){
     holdings[key] = {sym, name:sym, shares:0, price, prevPrice:price, acct, inr:isInr};
@@ -2137,9 +2138,10 @@ function addStock(){
   if(isNaN(shares)||shares<=0){ errEl.textContent='Enter a valid number of shares.'; errEl.style.display='block'; return; }
   if(isNaN(price)||price<=0){ errEl.textContent='Enter a valid price per share.'; errEl.style.display='block'; return; }
 
-  // Build unique key
+  // Build key — reuse existing if same sym+acct already exists under any key
   let key = sym + '-' + acct;
-  if(holdings[key]){ key = sym + '-' + acct + '-' + Date.now(); }
+  const existingKey = Object.keys(holdings).find(k => holdings[k].sym === sym && holdings[k].acct === acct);
+  if(existingKey) key = existingKey;
 
   holdings[key] = { sym, name, shares, price, acct, prevPrice: price, inr: isIndia, custom: true };
 
@@ -2596,6 +2598,24 @@ function applyPayload(data){
         });
       } else {
         holdings[key] = saved; // unknown key (manually added) — restore fully
+      }
+    });
+
+    // Deduplicate: if two keys share the same sym+acct, keep the one with more shares
+    const seen = {}; // "sym|acct" → key
+    Object.keys(holdings).forEach(key => {
+      const h = holdings[key];
+      const id = h.sym + '|' + h.acct;
+      if(seen[id]){
+        const other = seen[id];
+        if((h.shares || 0) >= (holdings[other]?.shares || 0)){
+          delete holdings[other];
+          seen[id] = key;
+        } else {
+          delete holdings[key];
+        }
+      } else {
+        seen[id] = key;
       }
     });
 
