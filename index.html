@@ -2845,13 +2845,25 @@ function setRefreshStatus(msg){
 
 // ── ENH-08: Live INR/USD rate ──────────────────────────────────
 async function fetchForex(){
-  if(!gsUrl){ console.log('Sheets not connected — using stored rate'); return; }
   try {
-    const r = await fetchWithTimeout(gsUrl + '?action=forex', {}, 8000);
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    const data = await r.json();
-    if(data.INR && data.INR > 0){
-      USD_INR_LIVE = data.INR;
+    let rate = null;
+    if(gsUrl){
+      const r = await fetchWithTimeout(gsUrl + '?action=forex', {}, 8000);
+      if(r.ok){
+        const data = await r.json();
+        if(data.INR && data.INR > 0) rate = data.INR;
+      }
+    }
+    if(!rate){
+      // Fallback: Frankfurter public API (no key required)
+      const r = await fetchWithTimeout('https://api.frankfurter.app/latest?from=USD&to=INR', {}, 8000);
+      if(r.ok){
+        const data = await r.json();
+        if(data.rates?.INR > 0) rate = data.rates.INR;
+      }
+    }
+    if(rate){
+      USD_INR_LIVE = rate;
       const el = $('forex-display');
       if(el) el.textContent = USD_INR_LIVE.toFixed(2);
       const stallionRate = $('stallion-forex-display');
