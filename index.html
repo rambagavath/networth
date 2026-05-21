@@ -1194,6 +1194,7 @@ function renderHoldingRows(){
         <div class="h-left">
           <div class="h-ticker"><a href="${tickerUrl}" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${h.sym}</a>${exchBadge}</div>
           <div class="h-name">${h.name}</div>
+          <div class="h-meta">${h.shares.toLocaleString('en-IN', {maximumFractionDigits: h.inr?0:3})} sh · ${curr}${h.price.toLocaleString('en-IN')}/sh <span class="${chgCls}">${chgSign}${chgPct}% ${chgLabel}</span></div>
           <div class="h-edit-row" id="edit-row-${key}">
             <span class="h-edit-label">Shares</span>
             <input class="h-edit-input" id="edit-shares-${key}" type="number" value="${h.shares}" step="${h.inr?1:0.001}" min="0" style="width:90px">
@@ -1203,10 +1204,6 @@ function renderHoldingRows(){
             <button class="h-edit-cancel" onclick="cancelEdit('${key}')">✕</button>
             <button class="h-edit-cancel" style="background:rgba(234,67,53,.12);color:var(--red);border-color:rgba(234,67,53,.3);margin-left:4px;" onclick="deleteHolding('${key}')">Delete</button>
           </div>
-        </div>
-        <div class="h-mid">
-          <div class="h-shares">${h.shares.toLocaleString('en-IN', {maximumFractionDigits: h.inr?0:3})} sh</div>
-          <div class="h-price">${curr}${h.price.toLocaleString('en-IN')} <span class="${chgCls}" style="font-size:11px">${chgSign}${chgPct}%</span></div>
         </div>
         <div class="h-right">
           <div class="h-val">${dispVal}</div>
