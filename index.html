@@ -684,6 +684,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
       <span id="tx-count" style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-left:8px;">0 transactions</span>
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
+      <button class="chart-btn" onclick="event.stopPropagation();showModal();switchTab('trade')" style="color:var(--amber);border-color:rgba(251,191,36,.3);">+ Log Trade</button>
       <button class="chart-btn" onclick="event.stopPropagation();clearTransactions()" style="color:var(--red);border-color:rgba(248,113,113,.3);">Clear</button>
       <span id="tx-chevron" style="color:var(--muted);font-size:9px;">▼</span>
     </div>
@@ -1574,10 +1575,11 @@ function applyTrade(){
 
   if(action === 'Buy'){
     holdings[key].shares = parseFloat((holdings[key].shares + shares).toFixed(6));
+    holdings[key].price = price; // buy price updates the displayed cost/price
   } else {
     holdings[key].shares = parseFloat(Math.max(0, holdings[key].shares - shares).toFixed(6));
+    // sell: don't overwrite market price
   }
-  holdings[key].price = price;
 
   logTransaction(action, sym, acct, shares, price, note || 'Manual trade');
   renderHoldingRows(); recalc(); gsSave(); hideModal();
