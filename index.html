@@ -2929,10 +2929,11 @@ async function refreshAllPrices(){
     }
 
     lastRefresh = new Date();
+    const dateStr = lastRefresh.toLocaleDateString([],{month:'short',day:'numeric'});
     const timeStr = lastRefresh.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
     const skipMsg = skipped > 0 ? ` · ${skipped} not found` : '';
     const lrEl = $('last-refreshed');
-    if(lrEl){ lrEl.textContent = `Last refreshed: ${timeStr}${skipMsg}`; lrEl.style.color='var(--green)'; }
+    if(lrEl){ lrEl.textContent = `Last refreshed: ${dateStr}, ${timeStr}${skipMsg}`; lrEl.style.color='var(--green)'; }
     setRefreshStatus('');
     renderHoldingRows();
     recalc();
