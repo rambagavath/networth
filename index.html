@@ -342,23 +342,9 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
   .tx-del { color:var(--red); }
   .tx-empty { text-align:center; padding:20px 0; font-size:12px; color:var(--muted); }
 
-  /* ── ENH-01: Refresh bar ────────────────────────── */
-  .refresh-bar {
-    display:flex; align-items:center; gap:8px; padding:8px 14px;
-    background:var(--bg2); border:1px solid var(--border); border-radius:8px;
-    margin-bottom:1rem; flex-wrap:wrap;
-  }
-  .refresh-btn {
-    font-size:12px; padding:5px 14px;
-    border-radius:20px; border:1px solid var(--border2); background:transparent;
-    color:var(--muted2); cursor:pointer; transition:all .15s; white-space:nowrap;
-    font-family:'Roboto',sans-serif;
-  }
-  .refresh-btn:hover { color:var(--text); border-color:var(--blue); background:var(--blue-bg); }
-  .refresh-btn.refreshing { color:var(--blue); border-color:rgba(138,180,248,.4); animation:pulse 1s infinite; }
-  .refresh-status { font-size:12px; font-family:'Roboto Mono',monospace; color:var(--muted); flex:1; }
-  .forex-display { font-size:12px; font-family:'Roboto Mono',monospace; color:var(--muted2); margin-left:auto; }
-  .forex-display b { color:var(--text); }
+  /* ── ENH-01: Refresh (now in header) ────────────── */
+  .refresh-bar { display:none; } /* removed — refresh is now in the header */
+  .refresh-btn.refreshing { animation:pulse 1s infinite; opacity:.7; }
 
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
@@ -380,6 +366,12 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
       <button class="hdr-btn" id="btn-upload" onclick="showModal()">↑ Upload</button>
       <button class="hdr-btn" id="btn-manage" onclick="toggleManage()">Manage</button>
       <button class="hdr-btn" id="btn-sheets" onclick="showSheetsModal()" style="color:var(--green);border-color:rgba(52,168,83,.3)">⬡ Sheets</button>
+      <button class="hdr-btn" id="refresh-btn" onclick="refreshAllPrices()" style="color:var(--blue);border-color:rgba(138,180,248,.3)">↻ Refresh</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;font-size:11px;font-family:'Roboto Mono',monospace;padding-bottom:10px;flex-wrap:wrap;">
+      <span id="refresh-status" style="color:var(--muted)">Prices not yet refreshed</span>
+      <span style="color:var(--muted2)">USD/INR: <b id="forex-display" style="color:var(--text)">94.55</b> <button class="chart-btn" onclick="fetchForex()" style="padding:1px 6px;margin-left:2px;font-size:11px;">↻</button></span>
+      <button onclick="debugRefresh()" style="font-size:10px;padding:2px 8px;border-radius:12px;border:1px solid rgba(167,139,250,.3);background:transparent;color:var(--purple);cursor:pointer;">Debug</button>
     </div>
   </div>
 </div>
@@ -676,13 +668,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 </div>
 
 
-<!-- ENH-01: Live price refresh bar -->
-<div class="refresh-bar">
-  <button class="refresh-btn" id="refresh-btn" onclick="refreshAllPrices()">↻ Refresh live prices</button>
-  <button class="refresh-btn" onclick="debugRefresh()" style="border-color:rgba(167,139,250,.4);color:var(--purple)">⬡ Debug</button>
-  <span class="refresh-status" id="refresh-status">Last refresh: never · Connect Google Sheets to enable live refresh</span>
-  <span class="forex-display">USD/INR: <b id="forex-display">94.55</b> <button class="chart-btn" onclick="fetchForex()" style="padding:2px 7px;margin-left:4px;">↻</button></span>
-</div>
+
 
 <!-- Debug modal -->
 <div class="modal-backdrop" id="debug-modal" onclick="if(event.target===this)this.classList.remove('open')" style="display:none">
