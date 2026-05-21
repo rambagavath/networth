@@ -456,7 +456,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
   <div class="sec-hdr" onclick="toggleSec(this)">
     <div class="sec-hdr-left">
       <div class="sec-icon" style="background:rgba(96,165,250,.12);color:#60a5fa">FI</div>
-      <div><div class="sec-name">Fidelity Individual (TOD)</div><div class="sec-sub">Taxable brokerage · equities + options</div></div>
+      <div><div class="sec-name">Fidelity Individual (TOD)</div><div class="sec-sub" id="sub-fid-ind">Taxable brokerage</div></div>
     </div>
     <div class="sec-hdr-right"><div class="sec-val" style="color:var(--blue)" id="hdr-fid-ind">—</div><div class="sec-chg" id="chg-fid-ind"></div><div class="chevron">▼</div></div>
   </div>
@@ -480,7 +480,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
   <div class="sec-hdr" onclick="toggleSec(this)">
     <div class="sec-hdr-left">
       <div class="sec-icon" style="background:rgba(59,130,246,.12);color:#3b82f6">TR</div>
-      <div><div class="sec-name">Fidelity Traditional IRA</div><div class="sec-sub">Tax-deferred retirement</div></div>
+      <div><div class="sec-name">Fidelity Traditional IRA</div><div class="sec-sub" id="sub-fid-ira">Tax-deferred retirement</div></div>
     </div>
     <div class="sec-hdr-right"><div class="sec-val" style="color:var(--blue)" id="hdr-fid-ira">—</div><div class="sec-chg" id="chg-fid-ira"></div><div class="chevron">▼</div></div>
   </div>
@@ -518,7 +518,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
   <div class="sec-hdr" onclick="toggleSec(this)">
     <div class="sec-hdr-left">
       <div class="sec-icon" style="background:rgba(29,78,216,.15);color:#60a5fa">ME</div>
-      <div><div class="sec-name">Merrill CMA</div><div class="sec-sub">CMA Account · Preferred Rewards Platinum Honors</div></div>
+      <div><div class="sec-name">Merrill CMA</div><div class="sec-sub" id="sub-merrill">CMA Account · Preferred Rewards Platinum Honors</div></div>
     </div>
     <div class="sec-hdr-right"><div class="sec-val" style="color:var(--blue)" id="hdr-merrill">—</div><div class="sec-chg" id="chg-merrill"></div><div class="chevron">▼</div></div>
   </div>
@@ -532,7 +532,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
   <div class="sec-hdr" onclick="toggleSec(this)">
     <div class="sec-hdr-left">
       <div class="sec-icon" style="background:rgba(96,165,250,.08);color:#93c5fd">R+H</div>
-      <div><div class="sec-name">Fidelity Roth IRA & HSA</div><div class="sec-sub">····</div></div>
+      <div><div class="sec-name">Fidelity Roth IRA & HSA</div><div class="sec-sub" id="sub-fid-rh">Roth IRA + HSA</div></div>
     </div>
     <div class="sec-hdr-right"><div class="sec-val" style="color:var(--blue)" id="hdr-fid-rh">—</div><div class="sec-chg" id="chg-fid-rh"></div><div class="chevron">▼</div></div>
   </div>
@@ -1440,9 +1440,19 @@ function recalc(){
     legEl.innerHTML=segments.map(s=>`<div class="alloc-item"><div class="alloc-dot" style="background:${s.color}"></div>${s.label} ${usd(s.val)}</div>`).join('');
   }
 
-  // Stallion holding count (non-CASH, shares > 0)
+  // Dynamic holding counts per section
   const stallionCount = Object.values(holdings).filter(h => h.acct === 'stallion' && h.sym !== 'CASH' && h.shares > 0).length;
   if($('stallion-sec-sub')) $('stallion-sec-sub').textContent = stallionCount + ' holdings · live prices';
+
+  const countOf = acct => Object.values(holdings).filter(h => h.acct === acct && h.shares > 0).length;
+  const fidIndCount = countOf('fid-ind');
+  const fidIraCount = countOf('fid-ira');
+  const merrillCount = countOf('merrill');
+  const fidRhCount = countOf('fid-rh');
+  if($('sub-fid-ind')) $('sub-fid-ind').textContent = `Taxable brokerage · ${fidIndCount} holding${fidIndCount!==1?'s':''}` + (optionsOn ? ' + options' : '');
+  if($('sub-fid-ira')) $('sub-fid-ira').textContent = `Tax-deferred retirement · ${fidIraCount} holding${fidIraCount!==1?'s':''}`;
+  if($('sub-merrill'))  $('sub-merrill').textContent  = `CMA · Preferred Rewards Platinum · ${merrillCount} holding${merrillCount!==1?'s':''}`;
+  if($('sub-fid-rh'))  $('sub-fid-rh').textContent   = `Roth IRA + HSA · ${fidRhCount} holding${fidRhCount!==1?'s':''}`;
 
   // Group view
   buildGroupView(usTaxable, retirement, india, gold, grand, vals, stallionCount);
