@@ -369,7 +369,8 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
       <button class="hdr-btn" id="refresh-btn" onclick="refreshAllPrices()" style="color:var(--blue);border-color:rgba(138,180,248,.3)">↻ Refresh</button>
     </div>
     <div style="display:flex;align-items:center;gap:10px;font-size:11px;font-family:'Roboto Mono',monospace;padding-bottom:10px;flex-wrap:wrap;">
-      <span id="refresh-status" style="color:var(--muted)">Prices not yet refreshed</span>
+      <span id="last-refreshed" style="color:var(--muted)">Prices not yet refreshed</span>
+      <span id="refresh-status" style="color:var(--muted)"></span>
       <span style="color:var(--muted2)">USD/INR: <b id="forex-display" style="color:var(--text)">94.55</b> <button class="chart-btn" onclick="fetchForex()" style="padding:1px 6px;margin-left:2px;font-size:11px;">↻</button></span>
       <button onclick="debugRefresh()" style="font-size:10px;padding:2px 8px;border-radius:12px;border:1px solid rgba(167,139,250,.3);background:transparent;color:var(--purple);cursor:pointer;">Debug</button>
     </div>
@@ -2928,20 +2929,24 @@ async function refreshAllPrices(){
     }
 
     lastRefresh = new Date();
-    const timeStr = lastRefresh.toLocaleTimeString();
-    const skipMsg = skipped > 0 ? ' (' + skipped + ' not found on Yahoo)' : '';
-    setRefreshStatus('✓ ' + updated + ' prices updated at ' + timeStr + skipMsg);
+    const timeStr = lastRefresh.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    const skipMsg = skipped > 0 ? ` · ${skipped} not found` : '';
+    const lrEl = $('last-refreshed');
+    if(lrEl){ lrEl.textContent = `Last refreshed: ${timeStr}${skipMsg}`; lrEl.style.color='var(--green)'; }
+    setRefreshStatus('');
     renderHoldingRows();
     recalc();
     gsSave();
     const fNote = $('footer-note');
     if(fNote) fNote.textContent = 'Live prices refreshed ' + timeStr + ' via Apps Script · USD/INR ' + USD_INR_LIVE.toFixed(2);
   } catch(e){
-    setRefreshStatus('✗ Refresh failed: ' + e.message + ' — check Apps Script deployment');
+    const lrEl = $('last-refreshed');
+    if(lrEl){ lrEl.textContent = '✗ Refresh failed · ' + e.message; lrEl.style.color='var(--red)'; }
+    setRefreshStatus('');
     console.warn('Price refresh error:', e);
   } finally {
     btn.classList.remove('refreshing');
-    btn.textContent = '↻ Refresh live prices';
+    btn.textContent = '↻ Refresh';
   }
 }
 
