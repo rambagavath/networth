@@ -371,7 +371,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
     <div style="display:flex;align-items:center;gap:10px;font-size:11px;font-family:'Roboto Mono',monospace;padding-bottom:10px;flex-wrap:wrap;">
       <span id="last-refreshed" style="color:var(--muted)">Prices not yet refreshed</span>
       <span id="refresh-status" style="color:var(--muted)"></span>
-      <span style="color:var(--muted2)">USD/INR: <b id="forex-display" style="color:var(--text)">94.55</b> <button class="chart-btn" onclick="fetchForex()" style="padding:1px 6px;margin-left:2px;font-size:11px;">↻</button></span>
+      <span style="color:var(--muted2)">USD/INR: <b id="forex-display" style="color:var(--text)">94.55</b></span>
       <button onclick="debugRefresh()" style="font-size:10px;padding:2px 8px;border-radius:12px;border:1px solid rgba(167,139,250,.3);background:transparent;color:var(--purple);cursor:pointer;">Debug</button>
     </div>
   </div>
@@ -2847,10 +2847,11 @@ function getRefreshSymbols(){
 }
 
 async function refreshAllPrices(){
-  if(!gsUrl){ 
-    setRefreshStatus('Connect Google Sheets to enable live price refresh'); 
-    return; 
+  if(!gsUrl){
+    setRefreshStatus('Connect Google Sheets to enable live price refresh');
+    return;
   }
+  fetchForex(); // refresh USD/INR rate in parallel
   const symMap = getRefreshSymbols();
   const symList = [...Object.keys(symMap), 'GC=F']; // GC=F = gold spot
   if(!symList.length){ setRefreshStatus('No refreshable holdings found'); return; }
