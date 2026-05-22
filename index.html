@@ -2957,7 +2957,13 @@ async function gsLoadManual(){
       setModalStatus('No data found in Sheets yet. Save first!', false);
       return;
     }
-    const ok = applyPayload(text, true);
+    // Validate before wiping anything
+    let parsed;
+    try{ parsed = JSON.parse(text); } catch(e){ setModalStatus('✗ Invalid data in Sheets', false); return; }
+    if(!parsed || !parsed.holdings){ setModalStatus('✗ No holdings found in Sheets data', false); return; }
+    // Hard-clear all current holdings so removed/sold stocks don't linger
+    Object.keys(holdings).forEach(k => delete holdings[k]);
+    const ok = applyPayload(parsed);
     if(ok){
       setSaveStatus('loaded');
       setModalStatus('✓ Portfolio loaded from Sheets', true);
