@@ -3200,7 +3200,20 @@ function renderHistoryChart(){
 
   if(chartInstance) chartInstance.destroy();
 
-  const labels   = historySnapshots.map(s => s.date);
+  const labels = historySnapshots.map(s => {
+    const d = new Date(s.date);
+    if(isNaN(d)) return s.date;
+    const mon = d.toLocaleString([],{month:'short'});
+    const day = d.getDate();
+    const yr  = d.getFullYear();
+    // Show year only when it changes from the previous snapshot
+    return { full: s.date, short: `${mon} ${day}`, yr };
+  });
+  const xLabels = labels.map((l, i) =>
+    (i === 0 || labels[i].yr !== labels[i-1].yr)
+      ? `${l.short} '${String(l.yr).slice(2)}`
+      : l.short
+  );
   const afterTax = historySnapshots.map(s => {
     const us  = Number(s.us)         || 0;
     const ret = Number(s.retirement) || 0;
@@ -3216,7 +3229,7 @@ function renderHistoryChart(){
   const cfg = {
     type: chartMode,
     data: {
-      labels,
+      labels: xLabels,
       datasets: [
         {
           label: 'Net Worth (after tax)',
@@ -3238,7 +3251,7 @@ function renderHistoryChart(){
         tooltip:{ callbacks:{ label: ctx => ' $' + ctx.raw.toLocaleString() } }
       },
       scales:{
-        x:{ ticks:{ color:'#6b7280', font:{family:'DM Mono',size:10} }, grid:{ color:'rgba(255,255,255,.04)' } },
+        x:{ ticks:{ color:'#6b7280', font:{family:'DM Mono',size:10}, maxRotation:45, autoSkip:true, maxTicksLimit:10 }, grid:{ color:'rgba(255,255,255,.04)' } },
         y:{
           min: Math.floor((minVal - pad) / 1000) * 1000,
           max: Math.ceil( (maxVal + pad) / 1000) * 1000,
