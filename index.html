@@ -3200,33 +3200,51 @@ function renderHistoryChart(){
 
   if(chartInstance) chartInstance.destroy();
 
-  const labels = historySnapshots.map(s => s.date);
-  const total  = historySnapshots.map(s => s.total);
-  const us     = historySnapshots.map(s => s.us);
-  const ret    = historySnapshots.map(s => s.retirement);
-  const india  = historySnapshots.map(s => s.india);
+  const labels   = historySnapshots.map(s => s.date);
+  const afterTax = historySnapshots.map(s => {
+    const us  = Number(s.us)         || 0;
+    const ret = Number(s.retirement) || 0;
+    const ind = Number(s.india)      || 0;
+    const gld = Number(s.gold)       || 0;
+    return Math.round(us + ret * 0.7 + ind + gld);
+  });
+
+  const minVal = Math.min(...afterTax);
+  const maxVal = Math.max(...afterTax);
+  const pad    = Math.max((maxVal - minVal) * 0.1, 5000);
 
   const cfg = {
     type: chartMode,
     data: {
       labels,
       datasets: [
-        { label:'Total', data:total, borderColor:'#60a5fa', backgroundColor:'rgba(96,165,250,.15)', tension:.4, fill: chartMode==='line', pointRadius:4, borderWidth:2 },
-        { label:'US Taxable', data:us, borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,.1)', tension:.4, fill:false, pointRadius:3, borderWidth:1.5 },
-        { label:'Retirement', data:ret, borderColor:'#a78bfa', backgroundColor:'rgba(167,139,250,.1)', tension:.4, fill:false, pointRadius:3, borderWidth:1.5 },
-        { label:'India+Gold', data:india, borderColor:'#2dd4bf', backgroundColor:'rgba(45,212,191,.1)', tension:.4, fill:false, pointRadius:3, borderWidth:1.5 },
+        {
+          label: 'Net Worth (after tax)',
+          data: afterTax,
+          borderColor: '#34a853',
+          backgroundColor: 'rgba(52,168,83,.12)',
+          tension: .4,
+          fill: chartMode === 'line',
+          pointRadius: 4,
+          borderWidth: 2,
+        },
       ]
     },
     options: {
-      responsive:true, maintainAspectRatio:false,
-      interaction:{ mode:'index', intersect:false },
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode:'index', intersect:false },
       plugins:{
         legend:{ labels:{ color:'#9ca3af', font:{family:'DM Mono',size:10}, boxWidth:10 } },
         tooltip:{ callbacks:{ label: ctx => ' $' + ctx.raw.toLocaleString() } }
       },
       scales:{
         x:{ ticks:{ color:'#6b7280', font:{family:'DM Mono',size:10} }, grid:{ color:'rgba(255,255,255,.04)' } },
-        y:{ ticks:{ color:'#6b7280', font:{family:'DM Mono',size:10}, callback: v => '$' + (v>=1e6?(v/1e6).toFixed(1)+'M':(v/1000).toFixed(0)+'k') }, grid:{ color:'rgba(255,255,255,.04)' } }
+        y:{
+          min: Math.floor((minVal - pad) / 1000) * 1000,
+          max: Math.ceil( (maxVal + pad) / 1000) * 1000,
+          ticks:{ color:'#6b7280', font:{family:'DM Mono',size:10}, callback: v => '$' + (v>=1e6?(v/1e6).toFixed(1)+'M':(v/1000).toFixed(0)+'k') },
+          grid:{ color:'rgba(255,255,255,.04)' }
+        }
       }
     }
   };
