@@ -2721,9 +2721,7 @@ function applyPayload(data){
       if(obj.acctOverrides.pension){
         ACCTS.pension.val = obj.acctOverrides.pension;
         // Apply 5% annual compounding for each Jan 1st crossed since last save
-        // Default to 2025 (statement year) so the first load after this feature
-        // was added correctly compounds once for 2026.
-        const savedYear = obj.acctOverrides.pensionLastCompoundYear || 2025;
+        const savedYear = obj.acctOverrides.pensionLastCompoundYear || 2026;
         const currentYear = new Date().getFullYear();
         const yearsMissed = currentYear - savedYear;
         if(yearsMissed > 0){
