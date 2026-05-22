@@ -549,7 +549,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
     <div class="sec-hdr-right"><div class="sec-val" style="color:var(--amber)" id="hdr-pension">—</div><div class="chevron">▼</div></div>
   </div>
   <div class="sec-body">
-    <div class="holding"><div class="h-left"><div class="h-ticker" style="color:var(--amber)">PENSION PLAN</div><div class="h-name">Closing balance Dec 31, 2025</div><div class="h-meta">—</div></div><div class="h-right"><div class="h-val">—</div><div class="h-gl pos">—</div></div></div>
+    <div class="holding"><div class="h-left"><div class="h-ticker" style="color:var(--amber)">PENSION PLAN</div><div class="h-name" id="pension-balance-label">Balance as of Dec 31, 2025</div><div class="h-meta" id="pension-compound-note">5% annual interest</div></div><div class="h-right"><div class="h-val" id="pension-balance-val">—</div><div class="h-gl pos" id="pension-balance-gl">—</div></div></div>
   </div>
 </div>
 
@@ -1270,6 +1270,13 @@ function recalc(){
     'india-ind':'hdr-india-ind','india-ira':'hdr-india-ira'
   };
   Object.entries(hdrMap).forEach(([k,id])=>{ if($(id)) $(id).textContent = usd(vals[k] ?? acctVal(k)); });
+
+  // Pension display
+  const pensionVal = ACCTS.pension.val;
+  const pensionYear = ACCTS.pension.lastCompoundYear || new Date().getFullYear();
+  if($('pension-balance-val')) $('pension-balance-val').textContent = usd(pensionVal);
+  if($('pension-balance-label')) $('pension-balance-label').textContent = `Balance as of Dec 31, ${pensionYear - 1}`;
+  if($('pension-compound-note')) $('pension-compound-note').textContent = `5% annual interest · compounded through Jan 1, ${pensionYear}`;
 
   // Stallion live value box
   const slv = $('stallion-live-val');
@@ -2654,6 +2661,7 @@ function buildSavePayload(){
       stallion: ACCTS.stallion.val,
       niveshaay: ACCTS.niveshaay.val,
       pension: ACCTS.pension.val,
+      pensionLastCompoundYear: ACCTS.pension.lastCompoundYear || new Date().getFullYear(),
     },
     niveshaayData: {
       units:   ACCTS.niveshaay.units   || 0,
@@ -2710,7 +2718,21 @@ function applyPayload(data){
     if(obj.acctOverrides){
       if(obj.acctOverrides.stallion)   ACCTS.stallion.val   = obj.acctOverrides.stallion;
       if(obj.acctOverrides.niveshaay)  ACCTS.niveshaay.val  = obj.acctOverrides.niveshaay;
-      if(obj.acctOverrides.pension)    ACCTS.pension.val    = obj.acctOverrides.pension;
+      if(obj.acctOverrides.pension){
+        ACCTS.pension.val = obj.acctOverrides.pension;
+        // Apply 5% annual compounding for each Jan 1st crossed since last save
+        const savedYear = obj.acctOverrides.pensionLastCompoundYear || new Date().getFullYear();
+        const currentYear = new Date().getFullYear();
+        const yearsMissed = currentYear - savedYear;
+        if(yearsMissed > 0){
+          const oldVal = ACCTS.pension.val;
+          ACCTS.pension.val = parseFloat((oldVal * Math.pow(1.05, yearsMissed)).toFixed(2));
+          console.log(`Pension compounded ${yearsMissed}yr(s): $${oldVal.toFixed(2)} → $${ACCTS.pension.val.toFixed(2)}`);
+          logTransaction('Edit', 'PENSION', 'pension', 0, ACCTS.pension.val,
+            `Auto 5% annual interest · ${yearsMissed} year(s) · was $${oldVal.toFixed(2)}`);
+        }
+        ACCTS.pension.lastCompoundYear = currentYear;
+      }
     }
     if(obj.niveshaayData){
       const nd = obj.niveshaayData;
