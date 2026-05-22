@@ -3867,6 +3867,7 @@ function doGet(e) {
 
     // 3. Forex — live INR/USD rate
     if (action === 'forex') {
+      try {
         const url = 'https://api.exchangerate-api.com/v4/latest/USD';
         const resp = UrlFetchApp.fetch(url, {muteHttpExceptions: true});
         const data = JSON.parse(resp.getContentText());
