@@ -214,33 +214,33 @@ function doGet(e) {
 
     // 2b. Historical price for a symbol on a given date
     if (action === 'histPrice') {
-      var sym  = e.parameter.sym  || '';
-      var date = e.parameter.date || ''; // YYYY-MM-DD
-      if (!sym || !date) return json({error: 'sym and date required'});
+      var histSym  = e.parameter.sym  || '';
+      var histDate = e.parameter.date || ''; // YYYY-MM-DD
+      if (!histSym || !histDate) return json({error: 'sym and date required'});
       try {
-        var d = new Date(date + 'T12:00:00Z');
-        var p1 = Math.floor(d.getTime() / 1000);
-        var p2 = p1 + 86400 * 4; // look ahead a few days in case of weekend/holiday
-        var url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(sym)
-          + '?period1=' + p1 + '&period2=' + p2 + '&interval=1d';
-        var headers = {'User-Agent':'Mozilla/5.0','Accept':'application/json','Referer':'https://finance.yahoo.com/'};
-        var resp = UrlFetchApp.fetch(url, {muteHttpExceptions: true, headers: headers});
-        var histData = JSON.parse(resp.getContentText());
-        var result = ((histData.chart || {}).result || [null])[0];
-        if (!result) return json({error: 'No data for ' + sym});
-        var closes = ((result.indicators || {}).quote || [{}])[0].close || [];
-        var timestamps = result.timestamp || [];
+        var histD  = new Date(histDate + 'T12:00:00Z');
+        var histP1 = Math.floor(histD.getTime() / 1000);
+        var histP2 = histP1 + 86400 * 4; // look ahead a few days in case of weekend/holiday
+        var histUrl = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(histSym)
+          + '?period1=' + histP1 + '&period2=' + histP2 + '&interval=1d';
+        var histHeaders = {'User-Agent':'Mozilla/5.0','Accept':'application/json','Referer':'https://finance.yahoo.com/'};
+        var histResp = UrlFetchApp.fetch(histUrl, {muteHttpExceptions: true, headers: histHeaders});
+        var histData = JSON.parse(histResp.getContentText());
+        var histResult = ((histData.chart || {}).result || [null])[0];
+        if (!histResult) return json({error: 'No data for ' + histSym});
+        var histCloses = ((histResult.indicators || {}).quote || [{}])[0].close || [];
+        var histTimestamps = histResult.timestamp || [];
         // find closest trading day at or after the requested date
-        var price = null, actualDate = null;
-        for (var i = 0; i < closes.length; i++) {
-          if (closes[i] != null) {
-            price = closes[i];
-            actualDate = new Date(timestamps[i] * 1000).toISOString().slice(0, 10);
+        var histPriceVal = null, histActualDate = null;
+        for (var hi = 0; hi < histCloses.length; hi++) {
+          if (histCloses[hi] != null) {
+            histPriceVal = histCloses[hi];
+            histActualDate = new Date(histTimestamps[hi] * 1000).toISOString().slice(0, 10);
             break;
           }
         }
-        if (price == null) return json({error: 'No closing price found near ' + date});
-        return json({price: price, date: actualDate, sym: sym});
+        if (histPriceVal == null) return json({error: 'No closing price found near ' + histDate});
+        return json({price: histPriceVal, date: histActualDate, sym: histSym});
       } catch(err) {
         return json({error: err.message});
       }
