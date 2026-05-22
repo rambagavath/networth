@@ -225,8 +225,8 @@ function doGet(e) {
           + '?period1=' + p1 + '&period2=' + p2 + '&interval=1d';
         var headers = {'User-Agent':'Mozilla/5.0','Accept':'application/json','Referer':'https://finance.yahoo.com/'};
         var resp = UrlFetchApp.fetch(url, {muteHttpExceptions: true, headers: headers});
-        var data = JSON.parse(resp.getContentText());
-        var result = ((data.chart || {}).result || [null])[0];
+        var histData = JSON.parse(resp.getContentText());
+        var result = ((histData.chart || {}).result || [null])[0];
         if (!result) return json({error: 'No data for ' + sym});
         var closes = ((result.indicators || {}).quote || [{}])[0].close || [];
         var timestamps = result.timestamp || [];
