@@ -549,7 +549,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
     <div class="sec-hdr-right"><div class="sec-val" style="color:var(--amber)" id="hdr-pension">—</div><div class="chevron">▼</div></div>
   </div>
   <div class="sec-body">
-    <div class="holding"><div class="h-left"><div class="h-ticker" style="color:var(--amber)">PENSION PLAN</div><div class="h-name">Closing balance Dec 31, 2025</div><div class="h-meta">—</div></div><div class="h-right"><div class="h-val">—</div><div class="h-gl pos">—</div></div></div>
+    <div class="holding"><div class="h-left"><div class="h-ticker" style="color:var(--amber)">PENSION PLAN</div><div class="h-name" id="pension-balance-label">Balance as of Dec 31, 2025</div><div class="h-meta" id="pension-compound-note">5% annual interest</div></div><div class="h-right"><div class="h-val" id="pension-balance-val">—</div><div class="h-gl pos" id="pension-balance-gl">—</div></div></div>
   </div>
 </div>
 
@@ -859,14 +859,14 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 
     <!-- Add Stock tab -->
     <div id="tab-add" style="display:none">
-      <div class="instructions"><b>Add a new position to your portfolio:</b><br>Enter the ticker, name, quantity, price, and which account it belongs to.</div>
+      <div class="instructions"><b>Add a new position to your portfolio:</b><br>Enter the ticker, account, and either shares + price, or total value + purchase date.</div>
 
       <div style="display:grid;gap:10px;">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
           <div style="position:relative;">
-            <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;">Ticker Symbol *</div>
+            <div style="font-size:10px;font-family:'Roboto Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;">Ticker Symbol *</div>
             <input id="add-sym" type="text" placeholder="e.g. NVDA or RELIANCE" autocomplete="off"
-              style="font-family:'DM Mono',monospace;font-size:13px;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;color:var(--text);padding:8px 10px;width:100%;text-transform:uppercase;"
+              style="font-family:'Roboto Mono',monospace;font-size:13px;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;color:var(--text);padding:8px 10px;width:100%;text-transform:uppercase;"
               oninput="this.value=this.value.toUpperCase();tickerSearch(this.value)"
               onkeydown="tickerKeyNav(event)"
               onfocus="tickerSearch(this.value)"
@@ -874,8 +874,8 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
             <div id="ticker-suggestions" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:999;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;margin-top:3px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.5);max-height:220px;overflow-y:auto;"></div>
           </div>
           <div>
-            <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;">Account *</div>
-            <select id="add-acct" style="font-family:'DM Mono',monospace;font-size:12px;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;color:var(--text);padding:8px 10px;width:100%;cursor:pointer;" onchange="updateAddCurrency()">
+            <div style="font-size:10px;font-family:'Roboto Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;">Account *</div>
+            <select id="add-acct" style="font-family:'Roboto Mono',monospace;font-size:12px;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;color:var(--text);padding:8px 10px;width:100%;cursor:pointer;" onchange="updateAddCurrency()">
               <optgroup label="🇺🇸 US Accounts (USD)">
                 <option value="fid-ind">Fidelity Individual (TOD)</option>
                 <option value="fid-ira">Fidelity Traditional IRA</option>
@@ -892,19 +892,42 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
         </div>
 
         <div>
-          <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;">Description / Name</div>
-          <input id="add-name" type="text" placeholder="e.g. Nvidia Corporation" style="font-family:'DM Mono',monospace;font-size:13px;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;color:var(--text);padding:8px 10px;width:100%;">
+          <div style="font-size:10px;font-family:'Roboto Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;">Description / Name</div>
+          <input id="add-name" type="text" placeholder="e.g. Nvidia Corporation" style="font-family:'Roboto Mono',monospace;font-size:13px;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;color:var(--text);padding:8px 10px;width:100%;">
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <!-- Mode toggle -->
+        <div style="display:flex;gap:0;border-bottom:1px solid var(--border);">
+          <button id="add-mode-shares-btn" onclick="setAddMode('shares')" style="font-size:12px;font-family:'Roboto',sans-serif;padding:6px 14px;border:none;border-bottom:3px solid var(--blue);margin-bottom:-1px;background:transparent;color:var(--blue);cursor:pointer;">Shares + Price</button>
+          <button id="add-mode-value-btn" onclick="setAddMode('value')" style="font-size:12px;font-family:'Roboto',sans-serif;padding:6px 14px;border:none;border-bottom:3px solid transparent;margin-bottom:-1px;background:transparent;color:var(--muted);cursor:pointer;">Total Value + Date</button>
+        </div>
+
+        <!-- Shares + Price mode -->
+        <div id="add-mode-shares" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
           <div>
-            <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;">Shares / Quantity *</div>
-            <input id="add-shares" type="number" placeholder="e.g. 10" step="0.001" min="0" style="font-family:'DM Mono',monospace;font-size:13px;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;color:var(--text);padding:8px 10px;width:100%;text-align:right;">
+            <div style="font-size:10px;font-family:'Roboto Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;">Shares / Quantity *</div>
+            <input id="add-shares" type="number" placeholder="e.g. 10" step="0.001" min="0" style="font-family:'Roboto Mono',monospace;font-size:13px;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;color:var(--text);padding:8px 10px;width:100%;text-align:right;" oninput="updateAddPreview()">
           </div>
           <div>
-            <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;" id="add-price-label">Price per share (USD) *</div>
-            <input id="add-price" type="number" placeholder="e.g. 135.50" step="0.01" min="0" style="font-family:'DM Mono',monospace;font-size:13px;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;color:var(--text);padding:8px 10px;width:100%;text-align:right;">
+            <div style="font-size:10px;font-family:'Roboto Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;" id="add-price-label">Price per share (USD) *</div>
+            <input id="add-price" type="number" placeholder="e.g. 135.50" step="0.01" min="0" style="font-family:'Roboto Mono',monospace;font-size:13px;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;color:var(--text);padding:8px 10px;width:100%;text-align:right;" oninput="updateAddPreview()">
           </div>
+        </div>
+
+        <!-- Total Value + Date mode -->
+        <div id="add-mode-value" style="display:none;grid-template-columns:1fr 1fr;gap:8px;">
+          <div>
+            <div style="font-size:10px;font-family:'Roboto Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;" id="add-totalval-label">Total Value (USD) *</div>
+            <input id="add-total-value" type="number" placeholder="e.g. 5000" step="0.01" min="0" style="font-family:'Roboto Mono',monospace;font-size:13px;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;color:var(--text);padding:8px 10px;width:100%;text-align:right;">
+          </div>
+          <div>
+            <div style="font-size:10px;font-family:'Roboto Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;">Purchase Date *</div>
+            <input id="add-purchase-date" type="date" style="font-family:'Roboto Mono',monospace;font-size:13px;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;color:var(--text);padding:8px 10px;width:100%;">
+          </div>
+        </div>
+        <div id="add-hist-lookup" style="display:none;">
+          <button onclick="lookupHistPrice()" style="font-size:12px;padding:6px 16px;border-radius:20px;border:1px solid rgba(138,180,248,.4);background:rgba(138,180,248,.1);color:var(--blue);cursor:pointer;font-family:'Roboto',sans-serif;" id="add-lookup-btn">Look up closing price →</button>
+          <span id="add-hist-result" style="font-size:12px;font-family:'Roboto Mono',monospace;color:var(--muted);margin-left:10px;"></span>
         </div>
 
         <!-- Live preview -->
@@ -1270,6 +1293,13 @@ function recalc(){
     'india-ind':'hdr-india-ind','india-ira':'hdr-india-ira'
   };
   Object.entries(hdrMap).forEach(([k,id])=>{ if($(id)) $(id).textContent = usd(vals[k] ?? acctVal(k)); });
+
+  // Pension display
+  const pensionVal = ACCTS.pension.val;
+  const pensionYear = ACCTS.pension.lastCompoundYear || new Date().getFullYear();
+  if($('pension-balance-val')) $('pension-balance-val').textContent = usd(pensionVal);
+  if($('pension-balance-label')) $('pension-balance-label').textContent = `Balance as of Dec 31, ${pensionYear - 1}`;
+  if($('pension-compound-note')) $('pension-compound-note').textContent = `5% annual interest · compounded through Jan 1, ${pensionYear}`;
 
   // Stallion live value box
   const slv = $('stallion-live-val');
@@ -2151,7 +2181,71 @@ function updateAddCurrency(){
   const inp = $('add-price');
   if(lbl) lbl.textContent = isIndia ? 'Price per share (INR ₹) *' : 'Price per share (USD $) *';
   if(inp){ inp.placeholder = isIndia ? 'e.g. 3500' : 'e.g. 135.50'; inp.step = isIndia ? '0.05' : '0.01'; }
+  const tvLbl = $('add-totalval-label');
+  if(tvLbl) tvLbl.textContent = isIndia ? 'Total Value (INR ₹) *' : 'Total Value (USD $) *';
   updateAddPreview();
+}
+
+function setAddMode(mode){
+  const sharesDiv = $('add-mode-shares');
+  const valueDiv  = $('add-mode-value');
+  const lookupDiv = $('add-hist-lookup');
+  const sbtn = $('add-mode-shares-btn');
+  const vbtn = $('add-mode-value-btn');
+  if(mode === 'shares'){
+    sharesDiv.style.display = 'grid';
+    valueDiv.style.display  = 'none';
+    lookupDiv.style.display = 'none';
+    sbtn.style.color = 'var(--blue)'; sbtn.style.borderBottomColor = 'var(--blue)';
+    vbtn.style.color = 'var(--muted)'; vbtn.style.borderBottomColor = 'transparent';
+  } else {
+    sharesDiv.style.display = 'none';
+    valueDiv.style.display  = 'grid';
+    lookupDiv.style.display = 'block';
+    vbtn.style.color = 'var(--blue)'; vbtn.style.borderBottomColor = 'var(--blue)';
+    sbtn.style.color = 'var(--muted)'; sbtn.style.borderBottomColor = 'transparent';
+    // set default date to today
+    const dateEl = $('add-purchase-date');
+    if(dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0,10);
+  }
+}
+
+async function lookupHistPrice(){
+  const sym = ($('add-sym')?.value||'').trim().toUpperCase();
+  const date = $('add-purchase-date')?.value;
+  const totalVal = parseFloat($('add-total-value')?.value);
+  const resultEl = $('add-hist-result');
+  const btn = $('add-lookup-btn');
+
+  if(!sym){ if(resultEl) resultEl.textContent = 'Enter a ticker first.'; return; }
+  if(!date){ if(resultEl) resultEl.textContent = 'Enter a purchase date.'; return; }
+  if(isNaN(totalVal) || totalVal <= 0){ if(resultEl) resultEl.textContent = 'Enter a total value.'; return; }
+  if(!gsUrl){ if(resultEl) resultEl.textContent = 'Connect Google Sheets to look up historical prices.'; return; }
+
+  btn.textContent = 'Looking up…'; btn.disabled = true;
+  if(resultEl) resultEl.textContent = '';
+  try {
+    const r = await fetchWithTimeout(`${gsUrl}?action=histPrice&sym=${encodeURIComponent(sym)}&date=${encodeURIComponent(date)}`, {}, 10000);
+    const d = await r.json();
+    if(d.error || !d.price){ if(resultEl) resultEl.textContent = 'Not found: ' + (d.error||'no data'); return; }
+
+    const isIndia = isIndiaAcct();
+    const price = d.price;
+    const shares = parseFloat((totalVal / price).toFixed(isIndia ? 0 : 6));
+    const curr = isIndia ? '₹' : '$';
+    if(resultEl) resultEl.innerHTML = `<span style="color:var(--green)">Closing price on ${d.date}: ${curr}${price.toLocaleString()} → <b>${shares.toLocaleString()} shares</b></span>`;
+
+    // auto-fill shares and price fields
+    const sharesEl = $('add-shares'); if(sharesEl) sharesEl.value = shares;
+    const priceEl  = $('add-price');  if(priceEl)  priceEl.value  = price;
+    // switch to shares mode to show the result
+    setAddMode('shares');
+    updateAddPreview();
+  } catch(e) {
+    if(resultEl) resultEl.textContent = 'Error: ' + e.message;
+  } finally {
+    btn.textContent = 'Look up closing price →'; btn.disabled = false;
+  }
 }
 
 // Live preview as user types
@@ -2654,6 +2748,7 @@ function buildSavePayload(){
       stallion: ACCTS.stallion.val,
       niveshaay: ACCTS.niveshaay.val,
       pension: ACCTS.pension.val,
+      pensionLastCompoundYear: ACCTS.pension.lastCompoundYear || new Date().getFullYear(),
     },
     niveshaayData: {
       units:   ACCTS.niveshaay.units   || 0,
@@ -2710,7 +2805,21 @@ function applyPayload(data){
     if(obj.acctOverrides){
       if(obj.acctOverrides.stallion)   ACCTS.stallion.val   = obj.acctOverrides.stallion;
       if(obj.acctOverrides.niveshaay)  ACCTS.niveshaay.val  = obj.acctOverrides.niveshaay;
-      if(obj.acctOverrides.pension)    ACCTS.pension.val    = obj.acctOverrides.pension;
+      if(obj.acctOverrides.pension){
+        ACCTS.pension.val = obj.acctOverrides.pension;
+        // Apply 5% annual compounding for each Jan 1st crossed since last save
+        const savedYear = obj.acctOverrides.pensionLastCompoundYear || 2026;
+        const currentYear = new Date().getFullYear();
+        const yearsMissed = currentYear - savedYear;
+        if(yearsMissed > 0){
+          const oldVal = ACCTS.pension.val;
+          ACCTS.pension.val = parseFloat((oldVal * Math.pow(1.05, yearsMissed)).toFixed(2));
+          console.log(`Pension compounded ${yearsMissed}yr(s): $${oldVal.toFixed(2)} → $${ACCTS.pension.val.toFixed(2)}`);
+          logTransaction('Edit', 'PENSION', 'pension', 0, ACCTS.pension.val,
+            `Auto 5% annual interest · ${yearsMissed} year(s) · was $${oldVal.toFixed(2)}`);
+        }
+        ACCTS.pension.lastCompoundYear = currentYear;
+      }
     }
     if(obj.niveshaayData){
       const nd = obj.niveshaayData;
@@ -3722,9 +3831,42 @@ function doGet(e) {
       });
     }
 
+    // 2b. Historical price for a symbol on a given date
+    if (action === 'histPrice') {
+      var sym  = e.parameter.sym  || '';
+      var date = e.parameter.date || ''; // YYYY-MM-DD
+      if (!sym || !date) return json({error: 'sym and date required'});
+      try {
+        var d = new Date(date + 'T12:00:00Z');
+        var p1 = Math.floor(d.getTime() / 1000);
+        var p2 = p1 + 86400 * 4; // look ahead a few days in case of weekend/holiday
+        var url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(sym)
+          + '?period1=' + p1 + '&period2=' + p2 + '&interval=1d';
+        var headers = {'User-Agent':'Mozilla/5.0','Accept':'application/json','Referer':'https://finance.yahoo.com/'};
+        var resp = UrlFetchApp.fetch(url, {muteHttpExceptions: true, headers: headers});
+        var data = JSON.parse(resp.getContentText());
+        var result = ((data.chart || {}).result || [null])[0];
+        if (!result) return json({error: 'No data for ' + sym});
+        var closes = ((result.indicators || {}).quote || [{}])[0].close || [];
+        var timestamps = result.timestamp || [];
+        // find closest trading day at or after the requested date
+        var price = null, actualDate = null;
+        for (var i = 0; i < closes.length; i++) {
+          if (closes[i] != null) {
+            price = closes[i];
+            actualDate = new Date(timestamps[i] * 1000).toISOString().slice(0, 10);
+            break;
+          }
+        }
+        if (price == null) return json({error: 'No closing price found near ' + date});
+        return json({price: price, date: actualDate, sym: sym});
+      } catch(err) {
+        return json({error: err.message});
+      }
+    }
+
     // 3. Forex — live INR/USD rate
     if (action === 'forex') {
-      try {
         const url = 'https://api.exchangerate-api.com/v4/latest/USD';
         const resp = UrlFetchApp.fetch(url, {muteHttpExceptions: true});
         const data = JSON.parse(resp.getContentText());
