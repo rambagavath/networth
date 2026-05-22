@@ -1039,69 +1039,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 const USD_INR = 94.55;
 
 // Holdings — each has shares, price (live), name, account key
-let holdings = {
-  'QQQM-fid-ind':  {sym:'QQQM', name:'Invesco Nasdaq 100 ETF',  shares:0,  price:0, acct:'fid-ind',  prevPrice:0},
-  'SCHG-fid-ind':  {sym:'SCHG', name:'Schwab US Large-Cap ETF', shares:0, price:0,  acct:'fid-ind',  prevPrice:0},
-  'TSLA-fid-ind':  {sym:'TSLA', name:'Tesla Inc',               shares:0,  price:0, acct:'fid-ind',  prevPrice:0},
-  'BMNR-fid-ind':  {sym:'BMNR', name:'Bitmine Immersion Tech',  shares:0, price:0,  acct:'fid-ind',  prevPrice:0},
-  'SPAXX-fid-ind': {sym:'SPAXX',name:'Fidelity Gov. Money Mkt', shares:0,    price:0,   acct:'fid-ind',  prevPrice:0},
-
-  'QQQM-fid-ira':  {sym:'QQQM', name:'Invesco Nasdaq 100 ETF',  shares:0,  price:0, acct:'fid-ira',  prevPrice:0},
-  'TSLA-fid-ira':  {sym:'TSLA', name:'Tesla Inc',               shares:0,  price:0, acct:'fid-ira',  prevPrice:0},
-  'AMZN-fid-ira':  {sym:'AMZN', name:'Amazon.com Inc',          shares:0,   price:0, acct:'fid-ira',  prevPrice:0},
-  'SPAXX-fid-ira': {sym:'SPAXX',name:'Fidelity Gov. Money Mkt', shares:0,   price:0,   acct:'fid-ira',  prevPrice:0},
-
-  'SP500-hartford':{sym:'SS S&P 500 INDEX K', name:'Hartford 401k · Large Blend', shares:0, price:0, acct:'hartford', prevPrice:0, yahooSym:'VOO'},
-
-  'QQQM-merrill':  {sym:'QQQM', name:'Invesco Nasdaq 100 ETF',  shares:0,    price:0, acct:'merrill',  prevPrice:0},
-  'CASH-merrill':  {sym:'CASH', name:'ML Direct Deposit Program',shares:0,    price:0,   acct:'merrill',  prevPrice:0},
-
-  'QQQM-fid-rh':   {sym:'QQQM', name:'Invesco Nasdaq 100 ETF (Roth)', shares:0, price:0, acct:'fid-rh', prevPrice:0},
-  'SPAXX-fid-rh':  {sym:'SPAXX',name:'Fidelity Gov. Money Mkt (Roth)', shares:0, price:0,  acct:'fid-rh', prevPrice:0},
-  'BMNR-fid-rh':   {sym:'BMNR', name:'Bitmine Immersion (HSA)',  shares:0,  price:0,  acct:'fid-rh',   prevPrice:0},
-  'FDRXX-fid-rh':  {sym:'FDRXX',name:'Fidelity Gov. Cash Reserves (HSA)', shares:0, price:0, acct:'fid-rh', prevPrice:0},
-  // ── Stallion Asset PMS — Core Fund (36 holdings, Apr 13 2026 statement) ─────
-  // Shares derived from stmt INR value ÷ Apr 28 live price (approximate)
-  // Stallion holdings — quantities & prices as of 13-Apr-2026 statement date
-  'BSE-stallion':         {sym:'BSE',         name:'BSE Ltd',                        shares:0,   price:0,  acct:'stallion', prevPrice:0,  inr:true},
-  'MUTHOOTFIN-stallion':  {sym:'MUTHOOTFIN',  name:'Muthoot Finance',                shares:0,   price:0,  acct:'stallion', prevPrice:0,  inr:true},
-  'M&M-stallion':         {sym:'M&M',         name:'Mahindra & Mahindra',            shares:0,   price:0,  acct:'stallion', prevPrice:0,  inr:true},
-  'ETERNAL-stallion':     {sym:'ETERNAL',     name:'Eternal Ltd (Zomato)',           shares:0,  price:0,   acct:'stallion', prevPrice:0,   inr:true},
-  'JEENASIKHO-stallion':  {sym:'JEENASIKHO',  name:'Jeena Sikho Lifecare',           shares:0,  price:0,   acct:'stallion', prevPrice:0,   inr:true, yahooSym:'JSLL.NS'},
-  'VMM-stallion':         {sym:'VMM',         name:'Vishal Mega Mart',               shares:0,  price:0,   acct:'stallion', prevPrice:0,   inr:true},
-  'POLYCAB-stallion':     {sym:'POLYCAB',     name:'Polycab India',                  shares:0,    price:0,  acct:'stallion', prevPrice:0,  inr:true},
-  'APOLLOHOSP-stallion':  {sym:'APOLLOHOSP',  name:'Apollo Hospitals',               shares:0,    price:0,  acct:'stallion', prevPrice:0,  inr:true},
-  'MCX-stallion':         {sym:'MCX',         name:'Multi Commodity Exchange',       shares:0,   price:0,  acct:'stallion', prevPrice:0,  inr:true},
-  'ICICIAMC-stallion':    {sym:'ICICIAMC',    name:'ICICI Prudential AMC',           shares:0,    price:0,  acct:'stallion', prevPrice:0,  inr:true},
-  'VBL-stallion':         {sym:'VBL',         name:'Varun Beverages',                shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
-  'HDFCNIFSMEP-stallion': {sym:'HDFCNIFSMEP', name:'HDFC Nifty Smallcap 250 ETF',   shares:0,  price:0,   acct:'stallion', prevPrice:0,   inr:true, yahooSym:'HDFCSML250.NS'},
-  'MAHABANK-stallion':    {sym:'MAHABANK',    name:'Bank of Maharashtra',            shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
-  'BLS-stallion':         {sym:'BLS',         name:'BLS International Services',     shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
-  'PHARMABEES-stallion':  {sym:'PHARMABEES',  name:'Nippon India Nifty Pharma ETF',  shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
-  'LLOYDSME-stallion':    {sym:'LLOYDSME',    name:'Lloyds Metals & Energy',         shares:0,   price:0,  acct:'stallion', prevPrice:0,  inr:true},
-  'NAM-INDIA-stallion':   {sym:'NAM-INDIA',   name:'Nippon Life India AMC',          shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
-  'NYKAA-stallion':       {sym:'NYKAA',       name:'FSN E-Commerce (Nykaa)',         shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
-  'HFCL-stallion':        {sym:'HFCL',        name:'HFCL Ltd',                       shares:0,   price:0,  acct:'stallion', prevPrice:0,  inr:true},
-  'SCI-stallion':         {sym:'SCI',         name:'Shipping Corporation of India',  shares:0,   price:0,  acct:'stallion', prevPrice:0,  inr:true},
-  'WELCORP-stallion':     {sym:'WELCORP',     name:'Welspun Corp',                   shares:0,   price:0,  acct:'stallion', prevPrice:0,  inr:true},
-  'SBIN-stallion':        {sym:'SBIN',        name:'State Bank of India',            shares:0,   price:0,  acct:'stallion', prevPrice:0,  inr:true},
-  'V2RETAIL-stallion':    {sym:'V2RETAIL',    name:'V2 Retail',                      shares:0,   price:0,  acct:'stallion', prevPrice:0,  inr:true},
-  'SKYGOLD-stallion':     {sym:'SKYGOLD',     name:'Sky Gold & Diamonds',            shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
-  'INDIGO-stallion':      {sym:'INDIGO',      name:'InterGlobe Aviation (IndiGo)',   shares:0,    price:0,  acct:'stallion', prevPrice:0,  inr:true},
-  'IKS-stallion':         {sym:'IKS',         name:'Inventurus Knowledge Solutions', shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
-  'ADANIPOWER-stallion':  {sym:'ADANIPOWER',  name:'Adani Power',                    shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
-  'COFORGE-stallion':     {sym:'COFORGE',     name:'Coforge Ltd',                    shares:0,    price:0,  acct:'stallion', prevPrice:0,  inr:true},
-  'ADANIENSOL-stallion':  {sym:'ADANIENSOL',  name:'Adani Energy Solutions',         shares:0,    price:0,  acct:'stallion', prevPrice:0,  inr:true},
-  'BHEL-stallion':        {sym:'BHEL',        name:'Bharat Heavy Electricals',       shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
-  'TRENT-stallion':       {sym:'TRENT',       name:'Trent Ltd',                      shares:0,    price:0,  acct:'stallion', prevPrice:0,  inr:true},
-  'ADITYAVISION-stallion':{sym:'ADITYAVISION',name:'Aditya Vision',                  shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true, yahooSym:'AVL.NS'},
-  'CARTRADE-stallion':    {sym:'CARTRADE',    name:'Cartrade Tech',                  shares:0,    price:0,  acct:'stallion', prevPrice:0,  inr:true},
-  'RATEGAIN-stallion':    {sym:'RATEGAIN',    name:'RateGain Travel Technologies',   shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
-  'GARFIBRES-stallion':   {sym:'GARFIBRES',   name:'Garware Hi-Tech Films',          shares:0,    price:0,  acct:'stallion', prevPrice:0,  inr:true},
-  'IXIGO-stallion':       {sym:'IXIGO',       name:'Le Travenues (Ixigo)',           shares:0,   price:0,   acct:'stallion', prevPrice:0,   inr:true},
-  'TIMEXIND-stallion':    {sym:'TIMEXIND',    name:'Timex Group India',              shares:0,    price:0,   acct:'stallion', prevPrice:0,   inr:true, yahooSym:'TIMEX.BO'},
-  'CASH-stallion':        {sym:'CASH',        name:'Cash & Equivalents',             shares:0,price:0,     acct:'stallion', prevPrice:0,     inr:true},
-};
+let holdings = {}; // populated entirely from Sheets / localStorage — nothing hardcoded
 
 // Yahoo Finance symbol overrides for known Stallion holdings (NSE sym → yahoo ticker)
 const STALLION_YAHOO_MAP = {
@@ -2767,23 +2705,12 @@ function applyPayload(data, fullReplace=false){
     const obj = typeof data==='string' ? JSON.parse(data) : data;
     if(!obj || !obj.holdings) return false;
 
-    // Restore holdings — only merge runtime values so code-level changes
-    // (yahooSym, sym, name, acct, inr, cusip) always take effect on reload
-    const RUNTIME_KEYS = ['price','shares','prevPrice','dayPrevClose'];
+    // Restore all holdings fully from saved data — nothing is hardcoded
     Object.entries(obj.holdings || {}).forEach(([key, saved]) => {
-      if(holdings[key]){
-        RUNTIME_KEYS.forEach(k => {
-          if(saved[k] === undefined) return;
-          // Guard: never overwrite a non-zero hardcoded value with zero
-          if((k === 'shares' || k === 'price') && saved[k] === 0 && holdings[key][k] > 0) return;
-          holdings[key][k] = saved[k];
-        });
-      } else {
-        holdings[key] = saved; // unknown key (manually added) — restore fully
-      }
+      holdings[key] = Object.assign(holdings[key] || {}, saved);
     });
 
-    // Full replace: remove any local holding not present in the saved data
+    // Remove any local holding not present in the saved data
     if(fullReplace){
       Object.keys(holdings).forEach(key => {
         if(!obj.holdings[key]) delete holdings[key];
