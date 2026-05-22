@@ -3039,6 +3039,7 @@ async function refreshAllPrices(){
     renderHoldingRows();
     recalc();
     gsSave();
+    saveHistorySnapshot();
     const fNote = $('footer-note');
     if(fNote) fNote.textContent = 'Live prices refreshed ' + timeStr + ' via Apps Script · USD/INR ' + USD_INR_LIVE.toFixed(2);
   } catch(e){
@@ -3135,17 +3136,19 @@ async function saveHistorySnapshot(manual=false){
     forex: USD_INR_LIVE,
   };
 
-  // Add to local history
-  historySnapshots.push(snap);
+  // Overwrite existing entry for today, or append if first snapshot of this date
+  const existingIdx = historySnapshots.findIndex(s => s.date === snap.date);
+  if(existingIdx >= 0) historySnapshots[existingIdx] = snap;
+  else historySnapshots.push(snap);
   saveHistoryLocal();
   renderHistoryChart();
 
-  // Push to Sheets
+  // Push to Sheets — update existing row for this date, or append new
   if(gsUrl){
     try {
       await fetchWithTimeout(gsUrl, {
         method: 'POST',
-        body: JSON.stringify({_action:'saveHistory', ...snap}),
+        body: JSON.stringify({_action:'upsertHistory', ...snap}),
       }, 8000);
       if(manual) setRefreshStatus('✓ Snapshot saved to Google Sheets');
     } catch(e){ console.warn('History save failed:', e.message); }
@@ -3955,7 +3958,7 @@ function doPost(e) {
     const body = JSON.parse(e.postData.contents);
     const action = body._action || 'save';
 
-    // Save history snapshot
+    // Save history snapshot (append)
     if (action === 'saveHistory') {
       const ss = SpreadsheetApp.getActiveSpreadsheet();
       let sheet = ss.getSheetByName(HISTORY_SHEET);
@@ -3966,6 +3969,29 @@ function doPost(e) {
       }
       sheet.appendRow([body.date, body.total, body.us, body.retirement, body.india, body.gold, body.forex]);
       return json({ok: true});
+    }
+
+    // Upsert history snapshot — update existing row for this date, or append
+    if (action === 'upsertHistory') {
+      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      let sheet = ss.getSheetByName(HISTORY_SHEET);
+      if (!sheet) {
+        sheet = ss.insertSheet(HISTORY_SHEET);
+        sheet.appendRow(['Date', 'Total (USD)', 'US Taxable', 'Retirement', 'India+Gold', 'Gold only', 'INR/USD']);
+        sheet.getRange(1,1,1,7).setFontWeight('bold').setBackground('#1E3A5F').setFontColor('#FFFFFF');
+      }
+      var newRow = [body.date, body.total, body.us, body.retirement, body.india, body.gold, body.forex];
+      var data = sheet.getDataRange().getValues();
+      var found = false;
+      for (var i = 1; i < data.length; i++) {
+        if (String(data[i][0]).trim() === String(body.date).trim()) {
+          sheet.getRange(i + 1, 1, 1, newRow.length).setValues([newRow]);
+          found = true;
+          break;
+        }
+      }
+      if (!found) sheet.appendRow(newRow);
+      return json({ok: true, updated: found});
     }
 
     // Save transaction
