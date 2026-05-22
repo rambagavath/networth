@@ -2762,7 +2762,7 @@ function buildSavePayload(){
   });
 }
 
-function applyPayload(data){
+function applyPayload(data, fullReplace=false){
   try{
     const obj = typeof data==='string' ? JSON.parse(data) : data;
     if(!obj || !obj.holdings) return false;
@@ -2782,6 +2782,13 @@ function applyPayload(data){
         holdings[key] = saved; // unknown key (manually added) — restore fully
       }
     });
+
+    // Full replace: remove any local holding not present in the saved data
+    if(fullReplace){
+      Object.keys(holdings).forEach(key => {
+        if(!obj.holdings[key]) delete holdings[key];
+      });
+    }
 
     // Deduplicate: if two keys share the same sym+acct, keep the one with more shares
     const seen = {}; // "sym|acct" → key
@@ -2950,7 +2957,7 @@ async function gsLoadManual(){
       setModalStatus('No data found in Sheets yet. Save first!', false);
       return;
     }
-    const ok = applyPayload(text);
+    const ok = applyPayload(text, true);
     if(ok){
       setSaveStatus('loaded');
       setModalStatus('✓ Portfolio loaded from Sheets', true);
