@@ -2762,7 +2762,7 @@ function buildSavePayload(){
   });
 }
 
-function applyPayload(data){
+function applyPayload(data, fullReplace=false){
   try{
     const obj = typeof data==='string' ? JSON.parse(data) : data;
     if(!obj || !obj.holdings) return false;
@@ -2782,6 +2782,13 @@ function applyPayload(data){
         holdings[key] = saved; // unknown key (manually added) — restore fully
       }
     });
+
+    // Full replace: remove any local holding not present in the saved data
+    if(fullReplace){
+      Object.keys(holdings).forEach(key => {
+        if(!obj.holdings[key]) delete holdings[key];
+      });
+    }
 
     // Deduplicate: if two keys share the same sym+acct, keep the one with more shares
     const seen = {}; // "sym|acct" → key
@@ -2912,6 +2919,52 @@ function scheduleGsSave(){
   if(!gsUrl) return;
   clearTimeout(gsSaveTimer);
   gsSaveTimer = setTimeout(()=>gsSave(), 2000);
+}
+
+function setModalStatus(msg, ok){
+  const el = $('gs-modal-status'); if(!el) return;
+  el.textContent = msg;
+  el.style.display = msg ? 'block' : 'none';
+  el.style.background = ok ? 'rgba(52,168,83,0.12)' : 'rgba(234,67,53,0.12)';
+  el.style.color = ok ? 'var(--green)' : 'var(--red)';
+  if(msg && ok) setTimeout(()=>setModalStatus(''), 4000);
+}
+
+async function gsSaveManual(){
+  if(!gsUrl){ setModalStatus('Not connected to Sheets.', false); return; }
+  setModalStatus('Saving…', true);
+  const payload = buildSavePayload();
+  try{
+    const r = await fetchWithTimeout(gsUrl, {method:'POST', body:payload}, 10000);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const now = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    setSaveStatus('saved', now);
+    setModalStatus('✓ Saved to Sheets at ' + now, true);
+  } catch(e){
+    setSaveStatus('error');
+    setModalStatus('✗ Save failed: ' + e.message, false);
+  }
+}
+
+async function gsLoadManual(){
+  if(!gsUrl){ setModalStatus('Not connected to Sheets.', false); return; }
+  setModalStatus('Loading…', true);
+  try{
+    const r = await fetchWithTimeout(gsUrl+'?load=1', {}, 10000);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const text = await r.text();
+    if(!text || text==='{}'){
+      setModalStatus('No data found in Sheets yet. Save first!', false);
+      return;
+    }
+    const ok = applyPayload(text, true);
+    if(ok){
+      setSaveStatus('loaded');
+      setModalStatus('✓ Portfolio loaded from Sheets', true);
+    }
+  } catch(e){
+    setModalStatus('✗ Load failed: ' + e.message, false);
+  }
 }
 
 
@@ -4026,9 +4079,10 @@ function json(obj) {
         <div id="td-key-status" style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:5px;min-height:14px;"></div>
       </div>
 
-      <div class="modal-actions" style="margin-top:16px;gap:8px;flex-wrap:wrap;">
-        <button class="mbtn" onclick="gsSave(true)" style="flex:1;min-width:120px;">⬆ Save to Sheets</button>
-        <button class="mbtn" onclick="gsLoad()" style="flex:1;min-width:120px;">⬇ Load from Sheets</button>
+      <div id="gs-modal-status" style="display:none;margin-top:12px;padding:9px 12px;border-radius:6px;font-size:12px;text-align:center;"></div>
+      <div class="modal-actions" style="margin-top:12px;gap:8px;flex-wrap:wrap;">
+        <button class="mbtn" onclick="gsSaveManual()" style="flex:1;min-width:120px;">⬆ Save to Sheets</button>
+        <button class="mbtn" onclick="gsLoadManual()" style="flex:1;min-width:120px;">⬇ Load from Sheets</button>
         <button class="mbtn mbtn-primary" onclick="hideSheetsModal()" style="flex:1;min-width:80px;">Done</button>
       </div>
     </div>
