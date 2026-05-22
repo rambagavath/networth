@@ -2950,7 +2950,8 @@ async function gsLoadManual(){
   if(!gsUrl){ setModalStatus('Not connected to Sheets.', false); return; }
   setModalStatus('Loading…', true);
   try{
-    const r = await fetchWithTimeout(gsUrl+'?load=1', {}, 10000);
+    // Cache-bust so browser doesn't serve a stale response
+    const r = await fetchWithTimeout(gsUrl+'?load=1&_t='+Date.now(), {cache:'no-store'}, 10000);
     if(!r.ok) throw new Error('HTTP '+r.status);
     const text = await r.text();
     if(!text || text==='{}'){
@@ -2961,12 +2962,16 @@ async function gsLoadManual(){
     let parsed;
     try{ parsed = JSON.parse(text); } catch(e){ setModalStatus('✗ Invalid data in Sheets', false); return; }
     if(!parsed || !parsed.holdings){ setModalStatus('✗ No holdings found in Sheets data', false); return; }
+
+    const sheetsSyms = Object.values(parsed.holdings).map(h=>h.sym).join(', ');
+    const sheetsCount = Object.keys(parsed.holdings).length;
+
     // Hard-clear all current holdings so removed/sold stocks don't linger
     Object.keys(holdings).forEach(k => delete holdings[k]);
     const ok = applyPayload(parsed);
     if(ok){
       setSaveStatus('loaded');
-      setModalStatus('✓ Portfolio loaded from Sheets', true);
+      setModalStatus(`✓ Loaded ${sheetsCount} holdings from Sheets: ${sheetsSyms}`, true);
     }
   } catch(e){
     setModalStatus('✗ Load failed: ' + e.message, false);
