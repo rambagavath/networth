@@ -12,7 +12,7 @@ function doGet(e) {
       const q = e.parameter.q || '';
       if (!q) return json({quotes: []});
       const url = 'https://query1.finance.yahoo.com/v1/finance/search?q='
-        + encodeURIComponent(q) + '&quotesCount=10&newsCount=0';
+        + encodeURIComponent(q) + '"esCount=10&newsCount=0';
       try {
         const resp = UrlFetchApp.fetch(url, {muteHttpExceptions: true});
         const data = JSON.parse(resp.getContentText());
@@ -47,60 +47,27 @@ function doGet(e) {
       var symList = symbols.split(',');
       var resp, code, parsed, result, price;
 
-      // Optional historical date — if provided, fetch closing price on that date
-      var dateStr = e.parameter.date || '';
-      var histPeriod1 = 0, histPeriod2 = 0;
-      if (dateStr) {
-        try {
-          var targetDate = new Date(dateStr + 'T00:00:00Z');
-          histPeriod2 = Math.floor(targetDate.getTime() / 1000) + 2 * 86400; // +2 days covers IST offset
-          histPeriod1 = histPeriod2 - 9 * 86400; // 9 days back handles weekends + holidays
-        } catch(de) {}
-      }
-
       symList.forEach(function(sym) {
         sym = sym.trim();
         if (!sym) return;
         try {
-          // Chart endpoint — supports both current (range=1d) and historical (period1/period2)
-          var url = histPeriod1
-            ? 'https://query1.finance.yahoo.com/v8/finance/chart/' + sym + '?interval=1d&period1=' + histPeriod1 + '&period2=' + histPeriod2
-            : 'https://query1.finance.yahoo.com/v8/finance/chart/' + sym + '?interval=1d&range=1d';
+          // Use the chart endpoint — more reliable than quote for Apps Script
+          var url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + sym + '?interval=1d&range=1d';
           resp = UrlFetchApp.fetch(url, {muteHttpExceptions: true, headers: headers});
           code = resp.getResponseCode();
           if (code === 200) {
             parsed = JSON.parse(resp.getContentText());
-            var chartResult = ((parsed.chart || {}).result || [{}])[0];
-            var meta = chartResult.meta || {};
-            if (histPeriod1) {
-              // Historical: try close[], then adjclose[], then meta price as last resort
-              var timestamps = chartResult.timestamp || [];
-              var closes    = ((chartResult.indicators || {}).quote    || [{}])[0].close    || [];
-              var adjcloses = ((chartResult.indicators || {}).adjclose || [{}])[0].adjclose || [];
-              price = null;
-              for (var ti = timestamps.length - 1; ti >= 0; ti--) {
-                if (timestamps[ti] < histPeriod2) {
-                  var c = (closes[ti] != null) ? closes[ti] : (adjcloses[ti] != null ? adjcloses[ti] : null);
-                  if (c != null) { price = c; break; }
-                }
-              }
-              // If chart gave no usable close, fall back to meta (current price)
-              if (!price) price = meta.regularMarketPrice || meta.previousClose || meta.chartPreviousClose;
-            } else {
-              price = meta.regularMarketPrice || meta.previousClose;
-            }
+            var meta = ((parsed.chart || {}).result || [{}])[0].meta || {};
+            price = meta.regularMarketPrice || meta.previousClose;
             if (price) {
               var clean = sym.replace(/\.(NS|BO)$/i, '');
               prices[clean] = price;
               prices[sym] = price;
-              if (!histPeriod1) {
-                var pc = meta.chartPreviousClose || meta.previousClose || meta.regularMarketPreviousClose;
-                if (pc) { prevCloses[clean] = pc; prevCloses[sym] = pc; }
-              }
+              var pc = meta.chartPreviousClose || meta.previousClose || meta.regularMarketPreviousClose;
+              if (pc) { prevCloses[clean] = pc; prevCloses[sym] = pc; }
               return;
             }
           }
-          // In historical mode keep trying fallbacks — they return current price but better than nothing
           // Fallback 1: v8 quote endpoint (stocks + some mutual funds)
           url = 'https://query2.finance.yahoo.com/v8/finance/quote?symbols=' + sym
               + '&fields=regularMarketPrice,navPrice,price,regularMarketPreviousClose,previousClose';
@@ -196,24 +163,10 @@ function doGet(e) {
           var tmpName = '_PriceTemp';
           var tmp = ss.getSheetByName(tmpName);
           if (!tmp) { tmp = ss.insertSheet(tmpName); tmp.hideSheet(); }
-          // Build a date tuple for GOOGLEFINANCE historical if dateStr was provided
-          var gfDateParts = null;
-          if (dateStr) {
-            var dp = dateStr.split('-');
-            if (dp.length === 3) gfDateParts = [parseInt(dp[0]), parseInt(dp[1]), parseInt(dp[2])];
-          }
           stillMissing.forEach(function(s, i) {
+            // Strip .NS and -SM suffix so Google Finance gets the plain NSE symbol
             var sym = s.trim().replace(/\.NS$/i, '').replace(/-SM$/i, '');
-            var formula;
-            if (gfDateParts) {
-              // Historical: INDEX picks the close value from the 2-row result
-              formula = '=IFERROR(INDEX(GOOGLEFINANCE("NSE:' + sym + '","close",'
-                + 'DATE(' + gfDateParts[0] + ',' + gfDateParts[1] + ',' + gfDateParts[2] + ')'
-                + '),2,2),0)';
-            } else {
-              formula = '=IFERROR(GOOGLEFINANCE("NSE:' + sym + '","price"),0)';
-            }
-            tmp.getRange(i + 1, 1).setFormula(formula);
+            tmp.getRange(i + 1, 1).setFormula('=IFERROR(GOOGLEFINANCE("NSE:' + sym + '","price"),0)');
           });
           SpreadsheetApp.flush();
           Utilities.sleep(2500);
@@ -228,6 +181,7 @@ function doGet(e) {
           errors.push('GoogleFinance:' + gfErr.message.slice(0, 40));
         }
       }
+      // ────────────────────────────────────────────────────────────────
 
       return json({
         prices: prices,
@@ -258,6 +212,40 @@ function doGet(e) {
       });
     }
 
+    // 2b. Historical price for a symbol on a given date
+    if (action === 'histPrice') {
+      var sym  = e.parameter.sym  || '';
+      var date = e.parameter.date || ''; // YYYY-MM-DD
+      if (!sym || !date) return json({error: 'sym and date required'});
+      try {
+        var d = new Date(date + 'T12:00:00Z');
+        var p1 = Math.floor(d.getTime() / 1000);
+        var p2 = p1 + 86400 * 4; // look ahead a few days in case of weekend/holiday
+        var url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(sym)
+          + '?period1=' + p1 + '&period2=' + p2 + '&interval=1d';
+        var headers = {'User-Agent':'Mozilla/5.0','Accept':'application/json','Referer':'https://finance.yahoo.com/'};
+        var resp = UrlFetchApp.fetch(url, {muteHttpExceptions: true, headers: headers});
+        var data = JSON.parse(resp.getContentText());
+        var result = ((data.chart || {}).result || [null])[0];
+        if (!result) return json({error: 'No data for ' + sym});
+        var closes = ((result.indicators || {}).quote || [{}])[0].close || [];
+        var timestamps = result.timestamp || [];
+        // find closest trading day at or after the requested date
+        var price = null, actualDate = null;
+        for (var i = 0; i < closes.length; i++) {
+          if (closes[i] != null) {
+            price = closes[i];
+            actualDate = new Date(timestamps[i] * 1000).toISOString().slice(0, 10);
+            break;
+          }
+        }
+        if (price == null) return json({error: 'No closing price found near ' + date});
+        return json({price: price, date: actualDate, sym: sym});
+      } catch(err) {
+        return json({error: err.message});
+      }
+    }
+
     // 3. Forex — live INR/USD rate
     if (action === 'forex') {
       try {
@@ -266,6 +254,7 @@ function doGet(e) {
         const data = JSON.parse(resp.getContentText());
         return json({INR: data.rates.INR, updatedAt: new Date().toISOString()});
       } catch(err) {
+        // Fallback: try another free API
         try {
           const url2 = 'https://open.er-api.com/v6/latest/USD';
           const resp2 = UrlFetchApp.fetch(url2, {muteHttpExceptions: true});
@@ -351,12 +340,13 @@ function doPost(e) {
       return json({ok: true});
     }
 
-    // Default: save portfolio
+    // Default: save portfolio (raw JSON string posted)
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
     sheet.getRange('A1').setValue(e.postData.contents);
     return json({ok: true});
 
   } catch(err) {
+    // Also try treating body as raw portfolio string
     try {
       const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
       sheet.getRange('A1').setValue(e.postData.contents);
@@ -367,7 +357,8 @@ function doPost(e) {
   }
 }
 
-// ── Run this from the Apps Script editor to authorize + test ──
+
+// ── Run THIS function from the editor to trigger authorization + test ──
 function authorizeAndTest() {
   var headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
