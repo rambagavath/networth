@@ -3039,6 +3039,7 @@ async function refreshAllPrices(){
     renderHoldingRows();
     recalc();
     gsSave();
+    saveHistorySnapshot();
     const fNote = $('footer-note');
     if(fNote) fNote.textContent = 'Live prices refreshed ' + timeStr + ' via Apps Script · USD/INR ' + USD_INR_LIVE.toFixed(2);
   } catch(e){
@@ -3135,17 +3136,19 @@ async function saveHistorySnapshot(manual=false){
     forex: USD_INR_LIVE,
   };
 
-  // Add to local history
-  historySnapshots.push(snap);
+  // Overwrite existing entry for today, or append if first snapshot of this date
+  const existingIdx = historySnapshots.findIndex(s => s.date === snap.date);
+  if(existingIdx >= 0) historySnapshots[existingIdx] = snap;
+  else historySnapshots.push(snap);
   saveHistoryLocal();
   renderHistoryChart();
 
-  // Push to Sheets
+  // Push to Sheets — update existing row for this date, or append new
   if(gsUrl){
     try {
       await fetchWithTimeout(gsUrl, {
         method: 'POST',
-        body: JSON.stringify({_action:'saveHistory', ...snap}),
+        body: JSON.stringify({_action:'upsertHistory', ...snap}),
       }, 8000);
       if(manual) setRefreshStatus('✓ Snapshot saved to Google Sheets');
     } catch(e){ console.warn('History save failed:', e.message); }
@@ -3200,33 +3203,64 @@ function renderHistoryChart(){
 
   if(chartInstance) chartInstance.destroy();
 
-  const labels = historySnapshots.map(s => s.date);
-  const total  = historySnapshots.map(s => s.total);
-  const us     = historySnapshots.map(s => s.us);
-  const ret    = historySnapshots.map(s => s.retirement);
-  const india  = historySnapshots.map(s => s.india);
+  const labels = historySnapshots.map(s => {
+    const d = new Date(s.date);
+    if(isNaN(d)) return s.date;
+    const mon = d.toLocaleString([],{month:'short'});
+    const day = d.getDate();
+    const yr  = d.getFullYear();
+    // Show year only when it changes from the previous snapshot
+    return { full: s.date, short: `${mon} ${day}`, yr };
+  });
+  const xLabels = labels.map((l, i) =>
+    (i === 0 || labels[i].yr !== labels[i-1].yr)
+      ? `${l.short} '${String(l.yr).slice(2)}`
+      : l.short
+  );
+  const afterTax = historySnapshots.map(s => {
+    const us  = Number(s.us)         || 0;
+    const ret = Number(s.retirement) || 0;
+    const ind = Number(s.india)      || 0;
+    const gld = Number(s.gold)       || 0;
+    return Math.round(us + ret * 0.7 + ind + gld);
+  });
+
+  const minVal = Math.min(...afterTax);
+  const maxVal = Math.max(...afterTax);
+  const pad    = Math.max((maxVal - minVal) * 0.1, 5000);
 
   const cfg = {
     type: chartMode,
     data: {
-      labels,
+      labels: xLabels,
       datasets: [
-        { label:'Total', data:total, borderColor:'#60a5fa', backgroundColor:'rgba(96,165,250,.15)', tension:.4, fill: chartMode==='line', pointRadius:4, borderWidth:2 },
-        { label:'US Taxable', data:us, borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,.1)', tension:.4, fill:false, pointRadius:3, borderWidth:1.5 },
-        { label:'Retirement', data:ret, borderColor:'#a78bfa', backgroundColor:'rgba(167,139,250,.1)', tension:.4, fill:false, pointRadius:3, borderWidth:1.5 },
-        { label:'India+Gold', data:india, borderColor:'#2dd4bf', backgroundColor:'rgba(45,212,191,.1)', tension:.4, fill:false, pointRadius:3, borderWidth:1.5 },
+        {
+          label: 'Net Worth (after tax)',
+          data: afterTax,
+          borderColor: '#34a853',
+          backgroundColor: 'rgba(52,168,83,.12)',
+          tension: .4,
+          fill: chartMode === 'line',
+          pointRadius: 4,
+          borderWidth: 2,
+        },
       ]
     },
     options: {
-      responsive:true, maintainAspectRatio:false,
-      interaction:{ mode:'index', intersect:false },
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode:'index', intersect:false },
       plugins:{
         legend:{ labels:{ color:'#9ca3af', font:{family:'DM Mono',size:10}, boxWidth:10 } },
         tooltip:{ callbacks:{ label: ctx => ' $' + ctx.raw.toLocaleString() } }
       },
       scales:{
-        x:{ ticks:{ color:'#6b7280', font:{family:'DM Mono',size:10} }, grid:{ color:'rgba(255,255,255,.04)' } },
-        y:{ ticks:{ color:'#6b7280', font:{family:'DM Mono',size:10}, callback: v => '$' + (v>=1e6?(v/1e6).toFixed(1)+'M':(v/1000).toFixed(0)+'k') }, grid:{ color:'rgba(255,255,255,.04)' } }
+        x:{ ticks:{ color:'#6b7280', font:{family:'DM Mono',size:10}, maxRotation:45, autoSkip:true, maxTicksLimit:10 }, grid:{ color:'rgba(255,255,255,.04)' } },
+        y:{
+          min: Math.floor((minVal - pad) / 1000) * 1000,
+          max: Math.ceil( (maxVal + pad) / 1000) * 1000,
+          ticks:{ color:'#6b7280', font:{family:'DM Mono',size:10}, callback: v => '$' + (v>=1e6?(v/1e6).toFixed(1)+'M':(v/1000).toFixed(0)+'k') },
+          grid:{ color:'rgba(255,255,255,.04)' }
+        }
       }
     }
   };
@@ -3924,7 +3958,7 @@ function doPost(e) {
     const body = JSON.parse(e.postData.contents);
     const action = body._action || 'save';
 
-    // Save history snapshot
+    // Save history snapshot (append)
     if (action === 'saveHistory') {
       const ss = SpreadsheetApp.getActiveSpreadsheet();
       let sheet = ss.getSheetByName(HISTORY_SHEET);
@@ -3935,6 +3969,29 @@ function doPost(e) {
       }
       sheet.appendRow([body.date, body.total, body.us, body.retirement, body.india, body.gold, body.forex]);
       return json({ok: true});
+    }
+
+    // Upsert history snapshot — update existing row for this date, or append
+    if (action === 'upsertHistory') {
+      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      let sheet = ss.getSheetByName(HISTORY_SHEET);
+      if (!sheet) {
+        sheet = ss.insertSheet(HISTORY_SHEET);
+        sheet.appendRow(['Date', 'Total (USD)', 'US Taxable', 'Retirement', 'India+Gold', 'Gold only', 'INR/USD']);
+        sheet.getRange(1,1,1,7).setFontWeight('bold').setBackground('#1E3A5F').setFontColor('#FFFFFF');
+      }
+      var newRow = [body.date, body.total, body.us, body.retirement, body.india, body.gold, body.forex];
+      var data = sheet.getDataRange().getValues();
+      var found = false;
+      for (var i = 1; i < data.length; i++) {
+        if (String(data[i][0]).trim() === String(body.date).trim()) {
+          sheet.getRange(i + 1, 1, 1, newRow.length).setValues([newRow]);
+          found = true;
+          break;
+        }
+      }
+      if (!found) sheet.appendRow(newRow);
+      return json({ok: true, updated: found});
     }
 
     // Save transaction

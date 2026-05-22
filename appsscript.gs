@@ -314,7 +314,7 @@ function doPost(e) {
     const body = JSON.parse(e.postData.contents);
     const action = body._action || 'save';
 
-    // Save history snapshot
+    // Save history snapshot (append)
     if (action === 'saveHistory') {
       const ss = SpreadsheetApp.getActiveSpreadsheet();
       let sheet = ss.getSheetByName(HISTORY_SHEET);
@@ -325,6 +325,29 @@ function doPost(e) {
       }
       sheet.appendRow([body.date, body.total, body.us, body.retirement, body.india, body.gold, body.forex]);
       return json({ok: true});
+    }
+
+    // Upsert history snapshot — update existing row for this date, or append
+    if (action === 'upsertHistory') {
+      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      let sheet = ss.getSheetByName(HISTORY_SHEET);
+      if (!sheet) {
+        sheet = ss.insertSheet(HISTORY_SHEET);
+        sheet.appendRow(['Date', 'Total (USD)', 'US Taxable', 'Retirement', 'India+Gold', 'Gold only', 'INR/USD']);
+        sheet.getRange(1,1,1,7).setFontWeight('bold').setBackground('#1E3A5F').setFontColor('#FFFFFF');
+      }
+      var newRow = [body.date, body.total, body.us, body.retirement, body.india, body.gold, body.forex];
+      var data = sheet.getDataRange().getValues();
+      var found = false;
+      for (var i = 1; i < data.length; i++) {
+        if (String(data[i][0]).trim() === String(body.date).trim()) {
+          sheet.getRange(i + 1, 1, 1, newRow.length).setValues([newRow]);
+          found = true;
+          break;
+        }
+      }
+      if (!found) sheet.appendRow(newRow);
+      return json({ok: true, updated: found});
     }
 
     // Save transaction
