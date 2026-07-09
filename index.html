@@ -2720,22 +2720,17 @@ function buildSavePayload(){
   });
 }
 
-function applyPayload(data, fullReplace=false){
+function applyPayload(data){
   try{
     const obj = typeof data==='string' ? JSON.parse(data) : data;
     if(!obj || !obj.holdings) return false;
 
-    // Restore all holdings fully from saved data — nothing is hardcoded
+    // COMPLETE OVERWRITE: wipe all local holdings and replace with saved data exactly.
+    // No merging with whatever was here before.
+    Object.keys(holdings).forEach(k => delete holdings[k]);
     Object.entries(obj.holdings || {}).forEach(([key, saved]) => {
-      holdings[key] = Object.assign(holdings[key] || {}, saved);
+      holdings[key] = Object.assign({}, saved);
     });
-
-    // Remove any local holding not present in the saved data
-    if(fullReplace){
-      Object.keys(holdings).forEach(key => {
-        if(!obj.holdings[key]) delete holdings[key];
-      });
-    }
 
     // Deduplicate: if two keys share the same sym+acct, keep the one with more shares
     const seen = {}; // "sym|acct" → key
@@ -2755,52 +2750,45 @@ function applyPayload(data, fullReplace=false){
       }
     });
 
-    // Restore fixed account overrides
-    if(obj.acctOverrides){
-      if(obj.acctOverrides.stallion)   ACCTS.stallion.val   = obj.acctOverrides.stallion;
-      if(obj.acctOverrides.niveshaay)  ACCTS.niveshaay.val  = obj.acctOverrides.niveshaay;
-      if(obj.acctOverrides.pension){
-        ACCTS.pension.val = obj.acctOverrides.pension;
-        // Apply 5% annual compounding for each Jan 1st crossed since last save
-        const savedYear = obj.acctOverrides.pensionLastCompoundYear || 2026;
-        const currentYear = new Date().getFullYear();
-        const yearsMissed = currentYear - savedYear;
-        if(yearsMissed > 0){
-          const oldVal = ACCTS.pension.val;
-          ACCTS.pension.val = parseFloat((oldVal * Math.pow(1.05, yearsMissed)).toFixed(2));
-          console.log(`Pension compounded ${yearsMissed}yr(s): $${oldVal.toFixed(2)} → $${ACCTS.pension.val.toFixed(2)}`);
-          logTransaction('Edit', 'PENSION', 'pension', 0, ACCTS.pension.val,
-            `Auto 5% annual interest · ${yearsMissed} year(s) · was $${oldVal.toFixed(2)}`);
-        }
-        ACCTS.pension.lastCompoundYear = currentYear;
+    // Complete overwrite of fixed account values (0 is a valid saved value, not "missing")
+    const ov = obj.acctOverrides || {};
+    ACCTS.stallion.val  = ov.stallion  ?? 0;
+    ACCTS.niveshaay.val = ov.niveshaay ?? 0;
+    ACCTS.pension.val   = ov.pension   ?? 0;
+    {
+      // Apply 5% annual compounding for each Jan 1st crossed since last save
+      const savedYear = ov.pensionLastCompoundYear || new Date().getFullYear();
+      const currentYear = new Date().getFullYear();
+      const yearsMissed = currentYear - savedYear;
+      if(yearsMissed > 0 && ACCTS.pension.val > 0){
+        const oldVal = ACCTS.pension.val;
+        ACCTS.pension.val = parseFloat((oldVal * Math.pow(1.05, yearsMissed)).toFixed(2));
+        console.log(`Pension compounded ${yearsMissed}yr(s): $${oldVal.toFixed(2)} → $${ACCTS.pension.val.toFixed(2)}`);
+        logTransaction('Edit', 'PENSION', 'pension', 0, ACCTS.pension.val,
+          `Auto 5% annual interest · ${yearsMissed} year(s) · was $${oldVal.toFixed(2)}`);
       }
-    }
-    if(obj.niveshaayData){
-      const nd = obj.niveshaayData;
-      if(nd.units)   ACCTS.niveshaay.units   = nd.units;
-      if(nd.nav)     ACCTS.niveshaay.nav     = nd.nav;
-      if(nd.costINR) ACCTS.niveshaay.costINR = nd.costINR;
-      if(nd.asOf)    ACCTS.niveshaay.asOf    = nd.asOf;
+      ACCTS.pension.lastCompoundYear = currentYear;
     }
 
-    // Restore exclusions
+    // Complete overwrite of Niveshaay detail fields
+    const nd = obj.niveshaayData || {};
+    ACCTS.niveshaay.units   = nd.units   || 0;
+    ACCTS.niveshaay.nav     = nd.nav     || 0;
+    ACCTS.niveshaay.costINR = nd.costINR || 0;
+    ACCTS.niveshaay.asOf    = nd.asOf    || '';
+
+    // Complete overwrite of exclusions
     excluded.clear();
     (obj.excluded||[]).forEach(k=>excluded.add(k));
 
-    // Restore transactions
-    if(obj.transactions && obj.transactions.length){
-      transactions = obj.transactions;
-      saveTxLocal();
-    }
+    // Complete overwrite of transactions — even if Sheets has fewer/none,
+    // that's the source of truth now, don't keep stale local ones around.
+    transactions = obj.transactions || [];
+    saveTxLocal();
 
-    // Restore gold price
-    if(obj.goldPrice){
-      const gp=$('gold-price'); if(gp) gp.value=obj.goldPrice;
-    }
-    // Restore gold sovereigns count
-    if(obj.goldSovereigns !== undefined && obj.goldSovereigns !== null){
-      const gs=$('gold-sovereigns'); if(gs) gs.value=obj.goldSovereigns;
-    }
+    // Complete overwrite of gold price and sovereign count
+    const gp=$('gold-price'); if(gp) gp.value = (obj.goldPrice != null ? obj.goldPrice : 135.83);
+    const gs=$('gold-sovereigns'); if(gs) gs.value = (obj.goldSovereigns != null ? obj.goldSovereigns : 86);
 
     renderHoldingRows();
     recalc();
@@ -2973,9 +2961,8 @@ async function syncFromSheets(silent){
       return;
     }
 
-    // Hard-clear so holdings deleted on another device don't linger here
-    Object.keys(holdings).forEach(k => delete holdings[k]);
-    const ok = applyPayload(parsed, true);
+    // applyPayload always does a complete overwrite now — no manual pre-clear needed
+    const ok = applyPayload(parsed);
     if(ok){
       renderTransactions();
       renderHistoryChart();
