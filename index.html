@@ -366,6 +366,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
       <button class="hdr-btn" id="btn-upload" onclick="showModal()">↑ Upload</button>
       <button class="hdr-btn" id="btn-manage" onclick="toggleManage()">Manage</button>
       <button class="hdr-btn" id="btn-sheets" onclick="showSheetsModal()" style="color:var(--green);border-color:rgba(52,168,83,.3)">⬡ Sheets</button>
+      <button class="hdr-btn" id="btn-sync" onclick="syncFromSheets(false)" style="color:var(--green);border-color:rgba(52,168,83,.3)" title="Pull the latest data from Google Sheets">⟳ Sync</button>
       <button class="hdr-btn" id="refresh-btn" onclick="refreshAllPrices()" style="color:var(--blue);border-color:rgba(138,180,248,.3)">↻ Refresh</button>
     </div>
     <div style="display:flex;align-items:center;gap:10px;font-size:11px;font-family:'Roboto Mono',monospace;padding-bottom:10px;flex-wrap:wrap;">
@@ -2927,6 +2928,84 @@ async function gsLoadManual(){
     setModalStatus('✗ Load failed: ' + e.message, false);
   }
 }
+
+// ─── Cross-device sync: pull whichever copy is newest ────────
+let lastSyncCheck = 0;
+let syncInFlight = false;
+
+async function syncFromSheets(silent){
+  if(!gsUrl){
+    if(!silent) setSaveStatus('error');
+    if(!silent) alert('Not connected to Google Sheets.');
+    return;
+  }
+  if(syncInFlight) return;
+  syncInFlight = true;
+  lastSyncCheck = Date.now();
+  if(!silent) setSaveStatus('loading');
+  try{
+    const r = await fetchWithTimeout(gsUrl+'?load=1&_t='+Date.now(), {cache:'no-store'}, 10000);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const text = await r.text();
+    if(!text || text==='{}' || text===''){
+      if(!silent){ setSaveStatus(''); alert('No data found in Sheets yet.'); }
+      return;
+    }
+    let parsed;
+    try{ parsed = JSON.parse(text); } catch(e){ if(!silent){ setSaveStatus(''); alert('Could not parse Sheets data.'); } return; }
+    if(!parsed || !parsed.holdings){ if(!silent) setSaveStatus(''); return; }
+
+    // Compare timestamps: only overwrite the current view if Sheets is actually newer
+    const localRaw = localStorage.getItem(LS_DATA_KEY);
+    const localObj = localRaw ? JSON.parse(localRaw) : null;
+    const sheetsIsNewer = !localObj || !localObj.savedAt || !parsed.savedAt ||
+      new Date(parsed.savedAt) > new Date(localObj.savedAt);
+
+    if(!sheetsIsNewer){
+      if(!silent){
+        const el = $('save-status');
+        if(el){
+          el.style.display='flex'; el.style.color='var(--muted)';
+          el.innerHTML = '<span>✓</span><span>Already up to date</span>';
+          setTimeout(()=>setSaveStatus(''), 3000);
+        }
+      }
+      return;
+    }
+
+    // Hard-clear so holdings deleted on another device don't linger here
+    Object.keys(holdings).forEach(k => delete holdings[k]);
+    const ok = applyPayload(parsed, true);
+    if(ok){
+      renderTransactions();
+      renderHistoryChart();
+      setSaveStatus('loaded');
+      if(!silent){
+        const el = $('save-status');
+        if(el) el.innerHTML = '<span style="color:var(--green)">✓</span><span>Synced newer data from another device</span>';
+        setTimeout(()=>setSaveStatus(''), 4000);
+      }
+    }
+  } catch(e){
+    console.warn('Sync check failed:', e.message);
+    if(!silent) setSaveStatus('error');
+  } finally {
+    syncInFlight = false;
+  }
+}
+
+// Re-check Sheets whenever the tab/app regains focus — catches changes
+// made on another device (e.g. phone) while this tab sat idle.
+// Throttled so switching tabs rapidly doesn't spam the Apps Script.
+function maybeSyncOnFocus(){
+  if(!gsUrl) return;
+  if(Date.now() - lastSyncCheck < 8000) return; // throttle: max once per 8s
+  syncFromSheets(true);
+}
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible') maybeSyncOnFocus();
+});
+window.addEventListener('focus', maybeSyncOnFocus);
 
 
 // ─── ENH-01 & ENH-02: Live price refresh ──────────────────────
