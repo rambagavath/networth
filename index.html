@@ -3365,11 +3365,13 @@ function renderHistoryChart(){
   const yMax   = Math.ceil(rawMax / step) * step;
 
   // Pick enough decimal places (when showing millions) that consecutive
-  // ticks never collapse to the same displayed label.
+  // ticks never collapse to the same displayed label. Derived directly
+  // from the step size rather than fixed thresholds, so it can't be off
+  // by one tier (e.g. a $50k step needs 2 decimals, not 1).
+  const mDecimals = Math.max(0, Math.ceil(Math.log10(1e6 / step) - 1e-9));
   function fmtAxisVal(v){
     if(Math.abs(v) >= 1e6){
-      const decimals = step >= 500000 ? 0 : step >= 50000 ? 1 : 2;
-      return '$' + (v/1e6).toFixed(decimals) + 'M';
+      return '$' + (v/1e6).toFixed(mDecimals) + 'M';
     }
     return '$' + Math.round(v/1000) + 'k';
   }
