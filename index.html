@@ -2749,28 +2749,11 @@ function applyPayload(data){
     if(!obj || !obj.holdings) return false;
 
     // COMPLETE OVERWRITE: wipe all local holdings and replace with saved data exactly.
-    // No merging with whatever was here before.
+    // No merging, no symbol-matching, no dedup heuristics — whatever keys/holdings
+    // are in Sheets become the entire holdings set, verbatim.
     Object.keys(holdings).forEach(k => delete holdings[k]);
     Object.entries(obj.holdings || {}).forEach(([key, saved]) => {
       holdings[key] = Object.assign({}, saved);
-    });
-
-    // Deduplicate: if two keys share the same sym+acct, keep the one with more shares
-    const seen = {}; // "sym|acct" → key
-    Object.keys(holdings).forEach(key => {
-      const h = holdings[key];
-      const id = h.sym + '|' + h.acct;
-      if(seen[id]){
-        const other = seen[id];
-        if((h.shares || 0) >= (holdings[other]?.shares || 0)){
-          delete holdings[other];
-          seen[id] = key;
-        } else {
-          delete holdings[key];
-        }
-      } else {
-        seen[id] = key;
-      }
     });
 
     // Complete overwrite of fixed account values (0 is a valid saved value, not "missing")
@@ -3429,12 +3412,43 @@ function logTransaction(action, sym, acct, shares, price, note=''){
   saveTxLocal();
   renderTransactions();
 
-  // Push to Sheets async
-  if(gsUrl){
-    fetchWithTimeout(gsUrl, {
-      method:'POST',
-      body: JSON.stringify({_action:'saveTransaction', ...tx}),
-    }, 8000).catch(e => console.warn('Tx save failed:', e.message));
+  // Push to Sheets async — retry once, then show a persistent warning if it still fails
+  pushTransactionToSheets(tx, false);
+}
+
+function pushTransactionToSheets(tx, isRetry){
+  if(!gsUrl) return;
+  fetchWithTimeout(gsUrl, {
+    method:'POST',
+    body: JSON.stringify({_action:'saveTransaction', ...tx}),
+  }, 8000).then(() => {
+    clearTxSaveWarning();
+  }).catch(e => {
+    console.warn('Tx save failed:', e.message);
+    if(!isRetry){
+      setTimeout(() => pushTransactionToSheets(tx, true), 3000);
+    } else {
+      showTxSaveWarning(tx);
+    }
+  });
+}
+
+function showTxSaveWarning(tx){
+  const el = $('save-status');
+  if(!el) return;
+  el.style.display = 'flex';
+  el.style.color = 'var(--red)';
+  el.innerHTML = `<span>⚠</span><span title="${tx.action} ${tx.sym}">Transaction not saved to Sheets — check connection</span>`;
+  el.dataset.txWarning = '1';
+  // Deliberately does not auto-hide — stays until cleared by a successful save/sync
+  // so it doesn't get missed, unlike the old silent console-only failure.
+}
+
+function clearTxSaveWarning(){
+  const el = $('save-status');
+  if(el && el.dataset.txWarning){
+    delete el.dataset.txWarning;
+    setSaveStatus('');
   }
 }
 
