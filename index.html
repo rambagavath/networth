@@ -580,18 +580,20 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
   <div class="sec-hdr" onclick="toggleSec(this)">
     <div class="sec-hdr-left">
       <div class="sec-icon" style="background:rgba(251,191,36,.12);color:#fbbf24">AU</div>
-      <div><div class="sec-name">Physical Gold — 86 Sovereigns</div><div class="sec-sub">22 karat · 8g/sovereign · 688g total</div></div>
+      <div><div class="sec-name" id="gold-sec-name">Physical Gold — 86 Sovereigns</div><div class="sec-sub" id="gold-sec-sub">22 karat · 8g/sovereign · 688g total</div></div>
     </div>
     <div class="sec-hdr-right"><div class="sec-val" style="color:var(--amber)" id="hdr-gold">—</div><div class="sec-chg" id="chg-gold"></div><div class="chevron">▼</div></div>
   </div>
   <div class="sec-body">
     <div class="stats-grid">
-      <div class="stat-cell"><div class="stat-label">Sovereigns</div><div class="stat-val amber">86</div></div>
-      <div class="stat-cell"><div class="stat-label">Total weight</div><div class="stat-val amber">688g (22K)</div></div>
-      <div class="stat-cell"><div class="stat-label">Fine gold</div><div class="stat-val amber">630.7g (91.67%)</div></div>
+      <div class="stat-cell"><div class="stat-label">Sovereigns</div><div class="stat-val amber" id="gold-stat-count">86</div></div>
+      <div class="stat-cell"><div class="stat-label">Total weight</div><div class="stat-val amber" id="gold-stat-weight">688g (22K)</div></div>
+      <div class="stat-cell"><div class="stat-label">Fine gold</div><div class="stat-val amber" id="gold-stat-fine">630.7g (91.67%)</div></div>
     </div>
-    <div class="holding"><div class="h-left"><div class="h-ticker" style="color:var(--amber)">22K SOVEREIGN</div><div class="h-name">86 × 8g · India Gold Sovereign</div><div class="h-meta">22K purity (91.67%) · 630.67g fine gold</div></div><div class="h-right"><div class="h-val amber" id="gold-usd-val">—</div><div class="h-gl amber" id="gold-inr-val">—</div></div></div>
+    <div class="holding"><div class="h-left"><div class="h-ticker" style="color:var(--amber)">22K SOVEREIGN</div><div class="h-name" id="gold-holding-name">86 × 8g · India Gold Sovereign</div><div class="h-meta">22K purity (91.67%) · 630.67g fine gold</div></div><div class="h-right"><div class="h-val amber" id="gold-usd-val">—</div><div class="h-gl amber" id="gold-inr-val">—</div></div></div>
     <div class="gold-price-bar">
+      <span>Sovereigns:</span>
+      <input class="gold-input" type="number" id="gold-sovereigns" value="86" step="1" min="0" oninput="recalc()">
       <span>22K price/gram (USD):</span>
       <input class="gold-input" type="number" id="gold-price" value="135.83" step="0.1" min="0" oninput="recalc()">
       <span style="color:var(--muted2)">live: $135.83/g · Apr 28</span>
@@ -1077,9 +1079,13 @@ function usd(n){ return '$' + Math.round(Math.abs(n)).toLocaleString(); }
 function inrCr(n){ return '₹' + (Math.abs(n)*(USD_INR_LIVE||USD_INR)/10000000).toFixed(2)+' Cr'; }
 function pct(a,b){ return b>0?(a/b*100).toFixed(1)+'%':'0%'; }
 
+function goldSovereigns(){
+  return parseFloat($('gold-sovereigns')?.value)||0;
+}
+
 function goldUSD(){
   const p = parseFloat($('gold-price').value)||135.83;
-  return 86 * 8 * (22/24) * p; // 630.67g fine * price
+  return goldSovereigns() * 8 * (22/24) * p; // fine gold * price
 }
 
 function acctVal(key){
@@ -1261,12 +1267,21 @@ function recalc(){
 
   // Gold display
   const gUSD = goldUSD();
+  const gSov = goldSovereigns();
+  const gWeight = gSov * 8;
+  const gFine = gWeight * (22/24);
   if($('gold-usd-val')) $('gold-usd-val').textContent = usd(gUSD);
   if($('gold-inr-val')) $('gold-inr-val').textContent = '₹'+(gUSD*(USD_INR_LIVE||USD_INR)/100000).toFixed(2)+'L';
+  if($('gold-sec-name')) $('gold-sec-name').textContent = `Physical Gold — ${gSov} Sovereigns`;
+  if($('gold-sec-sub')) $('gold-sec-sub').textContent = `22 karat · 8g/sovereign · ${gWeight}g total`;
+  if($('gold-stat-count')) $('gold-stat-count').textContent = gSov;
+  if($('gold-stat-weight')) $('gold-stat-weight').textContent = `${gWeight}g (22K)`;
+  if($('gold-stat-fine')) $('gold-stat-fine').textContent = `${gFine.toFixed(1)}g (91.67%)`;
+  if($('gold-holding-name')) $('gold-holding-name').textContent = `${gSov} × 8g · India Gold Sovereign`;
   if($('gold-india-note')){
     const r=(USD_INR_LIVE||USD_INR).toFixed(2);
     const gp=parseFloat($('gold-price')?.value||135.83);
-    $('gold-india-note').textContent=`86 × 8g = 688g · Fine: 630.67g · $${gp.toFixed(2)}/g · USD/INR ${r}`;
+    $('gold-india-note').textContent=`${gSov} × 8g = ${gWeight}g · Fine: ${gFine.toFixed(2)}g · $${gp.toFixed(2)}/g · USD/INR ${r}`;
   }
 
   // Options visibility
@@ -1331,7 +1346,7 @@ function recalc(){
   if($('m-india')) $('m-india').textContent      = usd(india);
   if($('m-india-sub')) $('m-india-sub').textContent = inrCr(india) + ' · PMS+AIF';
   if($('m-gold')) $('m-gold').textContent        = usd(gold);
-  if($('m-gold-sub')) $('m-gold-sub').textContent   = inrCr(gold) + ' · 86 Sovereigns';
+  if($('m-gold-sub')) $('m-gold-sub').textContent   = inrCr(gold) + ' · ' + goldSovereigns() + ' Sovereigns';
   if($('m-total-sub')){
     if(afterTaxOn){
       $('m-total-sub').innerHTML = `<span style="color:var(--amber)">After-tax view · 30% deducted on pre-tax · saved ${usd(taxDeduction)}</span>`;
@@ -1458,7 +1473,7 @@ function buildGroupView(usTax, retire, india, gold, grand, vals, stallionCount){
     {label:'India Portfolio', val:india, color:'#2dd4bf', grad:'linear-gradient(90deg,#2dd4bf,#0f766e)',
      rows:[{n:'Stallion Asset PMS',s:(stallionCount||'—')+' holdings · live prices',v:vals['stallion']},{n:'Niveshaay AIF B9',s:'units · —',v:vals['niveshaay']},...(vals['india-ind']>0?[{n:'India Individual',s:'NSE/BSE custom holdings',v:vals['india-ind']}]:[]),...(vals['india-ira']>0?[{n:'India Retirement',s:'NPS/PPF/EPF holdings',v:vals['india-ira']}]:[])]},
     {label:'Physical Gold', val:gold, color:'#f59e0b', grad:'linear-gradient(90deg,#f59e0b,#d97706)',
-     rows:[{n:'Physical Gold (86 Sovereigns)',s:'688g 22K · live price',v:vals['gold']}]},
+     rows:[{n:`Physical Gold (${goldSovereigns()} Sovereigns)`,s:`${goldSovereigns()*8}g 22K · live price`,v:vals['gold']}]},
   ];
   gc.innerHTML = groups.map((g,i)=>`
     <div class="gc" id="gc-${i}" onclick="this.classList.toggle('open')">
@@ -1485,7 +1500,7 @@ function buildCountryView(usTax, retire, india, gold, grand, vals, stallionCount
     {label:'US Pre-Tax', val:retire, color:'#a78bfa', grad:'linear-gradient(90deg,#a78bfa,#8b5cf6)',
      rows:[{n:'Fidelity Traditional IRA',s:'QQQM · TSLA · AMZN',v:vals['fid-ira']},{n:'Hartford 401(k)',s:'SS S&P 500 Index K',v:vals['hartford']},{n:'Fidelity Roth + HSA',s:'QQQM · BMNR',v:vals['fid-rh']},{n:'Pension Plan',s:'As of Dec 2025',v:vals['pension']}]},
     {label:'India', val:indiaTotal, color:'#2dd4bf', grad:'linear-gradient(90deg,#2dd4bf,#f59e0b)',
-     rows:[{n:'Stallion Asset PMS',s:(stallionCount||'—')+' holdings · live prices',v:vals['stallion']},{n:'Niveshaay AIF B9',s:'units · —',v:vals['niveshaay']},{n:'Physical Gold (86 Sovereigns)',s:'688g 22K · live price',v:vals['gold']},...(vals['india-ind']>0?[{n:'India Individual',s:'NSE/BSE custom holdings',v:vals['india-ind']}]:[]),...(vals['india-ira']>0?[{n:'India Retirement',s:'NPS/PPF/EPF holdings',v:vals['india-ira']}]:[])]},
+     rows:[{n:'Stallion Asset PMS',s:(stallionCount||'—')+' holdings · live prices',v:vals['stallion']},{n:'Niveshaay AIF B9',s:'units · —',v:vals['niveshaay']},{n:`Physical Gold (${goldSovereigns()} Sovereigns)`,s:`${goldSovereigns()*8}g 22K · live price`,v:vals['gold']},...(vals['india-ind']>0?[{n:'India Individual',s:'NSE/BSE custom holdings',v:vals['india-ind']}]:[]),...(vals['india-ira']>0?[{n:'India Retirement',s:'NPS/PPF/EPF holdings',v:vals['india-ira']}]:[])]},
   ];
   gc.innerHTML = groups.map((g,i)=>`
     <div class="gc" id="cgc-${i}" onclick="this.classList.toggle('open')">
@@ -2078,6 +2093,7 @@ function buildManualEditGrid(){
     rows.push({key, label:`${h.sym} (${ACCTS[h.acct]?.label||h.acct})`, price:h.price, shares:h.shares, hasShares:true});
   });
   rows.push({key:'gold-price-manual', label:'22K Gold price/gram (USD)', price:parseFloat($('gold-price').value)||135.83, shares:null});
+  rows.push({key:'gold-sovereigns-manual', label:'Gold sovereigns (count)', price:parseFloat($('gold-sovereigns')?.value)||86, shares:null});
   rows.push({key:'stallion-total', label:'Stallion PMS (INR total)', price:Math.round(ACCTS.stallion.val*(USD_INR_LIVE||USD_INR)), shares:null, isINR:true});
   rows.push({key:'niveshaay-total', label:'Niveshaay AIF (INR total)', price:Math.round(ACCTS.niveshaay.val*(USD_INR_LIVE||USD_INR)), shares:null, isINR:true});
 
@@ -2098,6 +2114,8 @@ function applyManual(){
       if(holdings[hkey] && val >= 0) holdings[hkey].shares = val;
     } else if(key==='gold-price-manual'){
       $('gold-price').value = val;
+    } else if(key==='gold-sovereigns-manual'){
+      $('gold-sovereigns').value = val;
     } else if(key==='stallion-total'){
       ACCTS.stallion.val = val/(USD_INR_LIVE || USD_INR);
     } else if(key==='niveshaay-total'){
@@ -2696,6 +2714,7 @@ function buildSavePayload(){
     },
     excluded: [...excluded],
     goldPrice: parseFloat($('gold-price')?.value||135.83),
+    goldSovereigns: parseFloat($('gold-sovereigns')?.value||86),
     transactions: transactions.slice(0, 200),
   });
 }
@@ -2776,6 +2795,10 @@ function applyPayload(data, fullReplace=false){
     // Restore gold price
     if(obj.goldPrice){
       const gp=$('gold-price'); if(gp) gp.value=obj.goldPrice;
+    }
+    // Restore gold sovereigns count
+    if(obj.goldSovereigns !== undefined && obj.goldSovereigns !== null){
+      const gs=$('gold-sovereigns'); if(gs) gs.value=obj.goldSovereigns;
     }
 
     renderHoldingRows();
@@ -3023,7 +3046,8 @@ async function refreshAllPrices(){
         const goldNote = document.querySelector('#sec-gold .india-note');
         if(goldNote){
           const spot = goldSpot.toFixed(0);
-          goldNote.textContent = 'Spot 24K: $' + Number(spot).toLocaleString() + '/troy oz · 22K = $' + gold22KPerGram.toFixed(2) + '/g · 86 × 8g = 688g · Fine: 630.67g · USD/INR ' + USD_INR_LIVE.toFixed(2);
+          const gSov = goldSovereigns(), gWeight = gSov*8, gFine = gWeight*(22/24);
+          goldNote.textContent = 'Spot 24K: $' + Number(spot).toLocaleString() + '/troy oz · 22K = $' + gold22KPerGram.toFixed(2) + '/g · ' + gSov + ' × 8g = ' + gWeight + 'g · Fine: ' + gFine.toFixed(2) + 'g · USD/INR ' + USD_INR_LIVE.toFixed(2);
         }
         if(Math.abs(oldGoldPrice - gold22KPerGram) > 0.01) updated++;
       }
