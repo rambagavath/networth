@@ -1,6 +1,11 @@
-const SHEET_NAME = 'Sheet1';
+const SHEET_NAME = 'Sheet1';          // legacy single-cell blob (kept only for one-time migration)
+const HOLDINGS_SHEET = 'Holdings';    // one row per position — human-editable
+const SETTINGS_SHEET = 'Settings';    // key/value pairs for accounts, gold, etc.
 const HISTORY_SHEET = 'History';
 const TX_SHEET = 'Transactions';
+
+const HOLDINGS_HEADER = ['Key','Symbol','Name','Account','Shares','Price','Currency','Prev Price','Yahoo Symbol','Day Prev Close','Custom'];
+const C_KEY=0, C_SYM=1, C_NAME=2, C_ACCT=3, C_SHARES=4, C_PRICE=5, C_CURR=6, C_PREV=7, C_YAHOO=8, C_DAYPC=9, C_CUSTOM=10;
 
 // ─── GET handler ──────────────────────────────────────────────
 function doGet(e) {
@@ -12,7 +17,7 @@ function doGet(e) {
       const q = e.parameter.q || '';
       if (!q) return json({quotes: []});
       const url = 'https://query1.finance.yahoo.com/v1/finance/search?q='
-        + encodeURIComponent(q) + '"esCount=10&newsCount=0';
+        + encodeURIComponent(q) + '&quotesCount=10&newsCount=0';
       try {
         const resp = UrlFetchApp.fetch(url, {muteHttpExceptions: true});
         const data = JSON.parse(resp.getContentText());
@@ -47,27 +52,60 @@ function doGet(e) {
       var symList = symbols.split(',');
       var resp, code, parsed, result, price;
 
+      // Optional historical date — if provided, fetch closing price on that date
+      var dateStr = e.parameter.date || '';
+      var histPeriod1 = 0, histPeriod2 = 0;
+      if (dateStr) {
+        try {
+          var targetDate = new Date(dateStr + 'T00:00:00Z');
+          histPeriod2 = Math.floor(targetDate.getTime() / 1000) + 2 * 86400; // +2 days covers IST offset
+          histPeriod1 = histPeriod2 - 9 * 86400; // 9 days back handles weekends + holidays
+        } catch(de) {}
+      }
+
       symList.forEach(function(sym) {
         sym = sym.trim();
         if (!sym) return;
         try {
-          // Use the chart endpoint — more reliable than quote for Apps Script
-          var url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + sym + '?interval=1d&range=1d';
+          // Chart endpoint — supports both current (range=1d) and historical (period1/period2)
+          var url = histPeriod1
+            ? 'https://query1.finance.yahoo.com/v8/finance/chart/' + sym + '?interval=1d&period1=' + histPeriod1 + '&period2=' + histPeriod2
+            : 'https://query1.finance.yahoo.com/v8/finance/chart/' + sym + '?interval=1d&range=1d';
           resp = UrlFetchApp.fetch(url, {muteHttpExceptions: true, headers: headers});
           code = resp.getResponseCode();
           if (code === 200) {
             parsed = JSON.parse(resp.getContentText());
-            var meta = ((parsed.chart || {}).result || [{}])[0].meta || {};
-            price = meta.regularMarketPrice || meta.previousClose;
+            var chartResult = ((parsed.chart || {}).result || [{}])[0];
+            var meta = chartResult.meta || {};
+            if (histPeriod1) {
+              // Historical: try close[], then adjclose[], then meta price as last resort
+              var timestamps = chartResult.timestamp || [];
+              var closes    = ((chartResult.indicators || {}).quote    || [{}])[0].close    || [];
+              var adjcloses = ((chartResult.indicators || {}).adjclose || [{}])[0].adjclose || [];
+              price = null;
+              for (var ti = timestamps.length - 1; ti >= 0; ti--) {
+                if (timestamps[ti] < histPeriod2) {
+                  var c = (closes[ti] != null) ? closes[ti] : (adjcloses[ti] != null ? adjcloses[ti] : null);
+                  if (c != null) { price = c; break; }
+                }
+              }
+              // If chart gave no usable close, fall back to meta (current price)
+              if (!price) price = meta.regularMarketPrice || meta.previousClose || meta.chartPreviousClose;
+            } else {
+              price = meta.regularMarketPrice || meta.previousClose;
+            }
             if (price) {
               var clean = sym.replace(/\.(NS|BO)$/i, '');
               prices[clean] = price;
               prices[sym] = price;
-              var pc = meta.chartPreviousClose || meta.previousClose || meta.regularMarketPreviousClose;
-              if (pc) { prevCloses[clean] = pc; prevCloses[sym] = pc; }
+              if (!histPeriod1) {
+                var pc = meta.chartPreviousClose || meta.previousClose || meta.regularMarketPreviousClose;
+                if (pc) { prevCloses[clean] = pc; prevCloses[sym] = pc; }
+              }
               return;
             }
           }
+          // In historical mode keep trying fallbacks — they return current price but better than nothing
           // Fallback 1: v8 quote endpoint (stocks + some mutual funds)
           url = 'https://query2.finance.yahoo.com/v8/finance/quote?symbols=' + sym
               + '&fields=regularMarketPrice,navPrice,price,regularMarketPreviousClose,previousClose';
@@ -109,15 +147,14 @@ function doGet(e) {
       });
 
       // ── Twelve Data fallback for symbols Yahoo couldn't price ──────
-      var tdKey = PropertiesService.getScriptProperties().getProperty('TWELVE_DATA_KEY')
-                  || '7d9a4575d3104cae88dd178c9448d22b';
+      var tdKey = PropertiesService.getScriptProperties().getProperty('TWELVE_DATA_KEY') || '';
       var failedNSE = symList.filter(function(s) {
         s = s.trim();
         if (!s) return false;
         var clean = s.replace(/\.(NS|BO)$/i, '');
         return /\.NS$/i.test(s) && !prices[clean] && !prices[s];
       });
-      if (failedNSE.length > 0) {
+      if (tdKey && failedNSE.length > 0) {
         var tdPairs = failedNSE.map(function(s) {
           return {ns: s.trim(), td: s.trim().replace(/\.NS$/i, ':NSE')};
         });
@@ -163,10 +200,24 @@ function doGet(e) {
           var tmpName = '_PriceTemp';
           var tmp = ss.getSheetByName(tmpName);
           if (!tmp) { tmp = ss.insertSheet(tmpName); tmp.hideSheet(); }
+          // Build a date tuple for GOOGLEFINANCE historical if dateStr was provided
+          var gfDateParts = null;
+          if (dateStr) {
+            var dp = dateStr.split('-');
+            if (dp.length === 3) gfDateParts = [parseInt(dp[0]), parseInt(dp[1]), parseInt(dp[2])];
+          }
           stillMissing.forEach(function(s, i) {
-            // Strip .NS and -SM suffix so Google Finance gets the plain NSE symbol
             var sym = s.trim().replace(/\.NS$/i, '').replace(/-SM$/i, '');
-            tmp.getRange(i + 1, 1).setFormula('=IFERROR(GOOGLEFINANCE("NSE:' + sym + '","price"),0)');
+            var formula;
+            if (gfDateParts) {
+              // Historical: INDEX picks the close value from the 2-row result
+              formula = '=IFERROR(INDEX(GOOGLEFINANCE("NSE:' + sym + '","close",'
+                + 'DATE(' + gfDateParts[0] + ',' + gfDateParts[1] + ',' + gfDateParts[2] + ')'
+                + '),2,2),0)';
+            } else {
+              formula = '=IFERROR(GOOGLEFINANCE("NSE:' + sym + '","price"),0)';
+            }
+            tmp.getRange(i + 1, 1).setFormula(formula);
           });
           SpreadsheetApp.flush();
           Utilities.sleep(2500);
@@ -181,7 +232,6 @@ function doGet(e) {
           errors.push('GoogleFinance:' + gfErr.message.slice(0, 40));
         }
       }
-      // ────────────────────────────────────────────────────────────────
 
       return json({
         prices: prices,
@@ -212,40 +262,6 @@ function doGet(e) {
       });
     }
 
-    // 2b. Historical price for a symbol on a given date
-    if (action === 'histPrice') {
-      var histSym  = e.parameter.sym  || '';
-      var histDate = e.parameter.date || ''; // YYYY-MM-DD
-      if (!histSym || !histDate) return json({error: 'sym and date required'});
-      try {
-        var histD  = new Date(histDate + 'T12:00:00Z');
-        var histP1 = Math.floor(histD.getTime() / 1000);
-        var histP2 = histP1 + 86400 * 4; // look ahead a few days in case of weekend/holiday
-        var histUrl = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(histSym)
-          + '?period1=' + histP1 + '&period2=' + histP2 + '&interval=1d';
-        var histHeaders = {'User-Agent':'Mozilla/5.0','Accept':'application/json','Referer':'https://finance.yahoo.com/'};
-        var histResp = UrlFetchApp.fetch(histUrl, {muteHttpExceptions: true, headers: histHeaders});
-        var histData = JSON.parse(histResp.getContentText());
-        var histResult = ((histData.chart || {}).result || [null])[0];
-        if (!histResult) return json({error: 'No data for ' + histSym});
-        var histCloses = ((histResult.indicators || {}).quote || [{}])[0].close || [];
-        var histTimestamps = histResult.timestamp || [];
-        // find closest trading day at or after the requested date
-        var histPriceVal = null, histActualDate = null;
-        for (var hi = 0; hi < histCloses.length; hi++) {
-          if (histCloses[hi] != null) {
-            histPriceVal = histCloses[hi];
-            histActualDate = new Date(histTimestamps[hi] * 1000).toISOString().slice(0, 10);
-            break;
-          }
-        }
-        if (histPriceVal == null) return json({error: 'No closing price found near ' + histDate});
-        return json({price: histPriceVal, date: histActualDate, sym: histSym});
-      } catch(err) {
-        return json({error: err.message});
-      }
-    }
-
     // 3. Forex — live INR/USD rate
     if (action === 'forex') {
       try {
@@ -254,7 +270,6 @@ function doGet(e) {
         const data = JSON.parse(resp.getContentText());
         return json({INR: data.rates.INR, updatedAt: new Date().toISOString()});
       } catch(err) {
-        // Fallback: try another free API
         try {
           const url2 = 'https://open.er-api.com/v6/latest/USD';
           const resp2 = UrlFetchApp.fetch(url2, {muteHttpExceptions: true});
@@ -298,10 +313,8 @@ function doGet(e) {
       }
     }
 
-    // Default: load portfolio
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
-    const data = sheet.getRange('A1').getValue();
-    return json(data ? JSON.parse(data) : {});
+    // Default: load portfolio — assemble the JSON payload from relational sheets
+    return json(buildPortfolioPayload());
 
   } catch(err) {
     return json({error: err.message});
@@ -314,40 +327,17 @@ function doPost(e) {
     const body = JSON.parse(e.postData.contents);
     const action = body._action || 'save';
 
-    // Save history snapshot (append)
+    // Save history snapshot
     if (action === 'saveHistory') {
       const ss = SpreadsheetApp.getActiveSpreadsheet();
       let sheet = ss.getSheetByName(HISTORY_SHEET);
       if (!sheet) {
         sheet = ss.insertSheet(HISTORY_SHEET);
-        sheet.appendRow(['Date', 'Total (USD)', 'US Taxable', 'Retirement', 'India+Gold', 'Gold only', 'INR/USD']);
+        sheet.appendRow(['Date', 'Total (USD)', 'US Taxable', 'Retirement', 'India', 'Gold only', 'INR/USD']);
         sheet.getRange(1,1,1,7).setFontWeight('bold').setBackground('#1E3A5F').setFontColor('#FFFFFF');
       }
       sheet.appendRow([body.date, body.total, body.us, body.retirement, body.india, body.gold, body.forex]);
       return json({ok: true});
-    }
-
-    // Upsert history snapshot — update existing row for this date, or append
-    if (action === 'upsertHistory') {
-      const ss = SpreadsheetApp.getActiveSpreadsheet();
-      let sheet = ss.getSheetByName(HISTORY_SHEET);
-      if (!sheet) {
-        sheet = ss.insertSheet(HISTORY_SHEET);
-        sheet.appendRow(['Date', 'Total (USD)', 'US Taxable', 'Retirement', 'India+Gold', 'Gold only', 'INR/USD']);
-        sheet.getRange(1,1,1,7).setFontWeight('bold').setBackground('#1E3A5F').setFontColor('#FFFFFF');
-      }
-      var newRow = [body.date, body.total, body.us, body.retirement, body.india, body.gold, body.forex];
-      var data = sheet.getDataRange().getValues();
-      var found = false;
-      for (var i = 1; i < data.length; i++) {
-        if (String(data[i][0]).trim() === String(body.date).trim()) {
-          sheet.getRange(i + 1, 1, 1, newRow.length).setValues([newRow]);
-          found = true;
-          break;
-        }
-      }
-      if (!found) sheet.appendRow(newRow);
-      return json({ok: true, updated: found});
     }
 
     // Save transaction
@@ -363,25 +353,267 @@ function doPost(e) {
       return json({ok: true});
     }
 
-    // Default: save portfolio (raw JSON string posted)
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
-    sheet.getRange('A1').setValue(e.postData.contents);
+    // Default: save portfolio — write the JSON payload into relational sheets
+    ensureSchema();
+    writeHoldings(getOrCreateSheet(HOLDINGS_SHEET, HOLDINGS_HEADER), body.holdings);
+    writeSettings(body);
     return json({ok: true});
 
   } catch(err) {
-    // Also try treating body as raw portfolio string
-    try {
-      const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
-      sheet.getRange('A1').setValue(e.postData.contents);
-      return json({ok: true});
-    } catch(e2) {
-      return json({error: err.message});
-    }
+    return json({error: err.message});
   }
 }
 
+// ─── Relational portfolio storage ─────────────────────────────
+// The JSON payload is still the wire format between the app and this script;
+// these helpers translate between that payload and the row-based sheets so
+// you can read/edit the data directly in Google Sheets.
 
-// ── Run THIS function from the editor to trigger authorization + test ──
+function getOrCreateSheet(name, header) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    if (header) {
+      sheet.getRange(1, 1, 1, header.length).setValues([header]);
+      sheet.getRange(1, 1, 1, header.length).setFontWeight('bold').setBackground('#1E3A5F').setFontColor('#FFFFFF');
+      sheet.setFrozenRows(1);
+    }
+  }
+  return sheet;
+}
+
+function num(v) {
+  if (v === '' || v === null || v === undefined) return '';
+  const n = Number(v);
+  return isFinite(n) ? n : v;
+}
+
+function ensureSchema() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (ss.getSheetByName(HOLDINGS_SHEET)) return; // already relational
+  const hSheet = getOrCreateSheet(HOLDINGS_SHEET, HOLDINGS_HEADER);
+  getOrCreateSheet(SETTINGS_SHEET, ['Key', 'Value']);
+
+  // One-time migration from the legacy single-cell blob in Sheet1
+  const legacy = ss.getSheetByName(SHEET_NAME);
+  if (!legacy) return;
+  try {
+    const raw = legacy.getRange('A1').getValue();
+    if (!raw || typeof raw !== 'string') return;
+    const obj = JSON.parse(raw);
+    if (obj && obj.holdings) {
+      writeHoldings(hSheet, obj.holdings);
+      writeSettings(obj);
+      migrateTransactions(obj.transactions);
+    }
+  } catch (e) { /* legacy blob unreadable — ignore */ }
+}
+
+function migrateTransactions(txns) {
+  if (!txns || !txns.length) return;
+  const sheet = getOrCreateSheet(TX_SHEET, ['Date', 'Action', 'Symbol', 'Account', 'Shares', 'Price', 'Value (USD)', 'Note']);
+  if (sheet.getLastRow() > 1) return; // already populated — don't duplicate
+  const rows = txns.map(function(t) {
+    return [t.date, t.action, t.sym, t.acct, t.shares, t.price, t.value, t.note || ''];
+  });
+  sheet.getRange(2, 1, rows.length, 8).setValues(rows);
+}
+
+// Mirror of the client's getYahooSym: derive the Yahoo ticker from the symbol
+// (India -> .NS suffix, US -> as-is). Blank when the symbol isn't refreshable.
+function deriveYahooSym(sym, inr) {
+  sym = String(sym || '').trim();
+  if (!sym) return '';
+  const skipSyms = ['CASH','SPAXX','FDRXX','MONEY MARKET','ML DIRECT'];
+  if (sym.includes(' ') || skipSyms.some(function(s){ return sym.toUpperCase().includes(s); })) return '';
+  if (inr) return sym.replace(/\.(NS|BO)$/i,'') + '.NS';
+  return sym;
+}
+
+function writeHoldings(sheet, holdings) {
+  const rows = [];
+  Object.entries(holdings || {}).forEach(function(entry) {
+    const key = entry[0], h = entry[1];
+    if (!h) return;
+    rows.push([
+      key,
+      h.sym || '',
+      h.name || h.sym || '',
+      h.acct || '',
+      num(h.shares),
+      num(h.price),
+      h.inr ? 'INR' : 'USD',
+      num(h.prevPrice),
+      h.yahooSym || deriveYahooSym(h.sym, h.inr),
+      num(h.dayPrevClose),
+      h.custom ? 'Y' : ''
+    ]);
+  });
+  const last = sheet.getLastRow();
+  if (last > 1) sheet.getRange(2, 1, last - 1, HOLDINGS_HEADER.length).clearContent();
+  if (rows.length) sheet.getRange(2, 1, rows.length, HOLDINGS_HEADER.length).setValues(rows);
+}
+
+function readHoldings(sheet) {
+  const holdings = {};
+  const last = sheet.getLastRow();
+  if (last <= 1) return holdings;
+  const data = sheet.getRange(2, 1, last - 1, HOLDINGS_HEADER.length).getValues();
+  const seen = {};
+  data.forEach(function(r) {
+    const sym = String(r[C_SYM] || '').trim();
+    if (!sym) return; // skip blank rows
+    let key = String(r[C_KEY] || '').trim();
+    if (!key) key = sym + '-' + String(r[C_ACCT] || '').trim();
+    seen[key] = (seen[key] || 0) + 1;
+    if (seen[key] > 1) key = key + '-' + seen[key];
+    const h = {
+      sym: sym,
+      name: String(r[C_NAME] || '').trim() || sym,
+      shares: num(r[C_SHARES]) || 0,
+      price: num(r[C_PRICE]) || 0,
+      acct: String(r[C_ACCT] || '').trim()
+    };
+    const curr = String(r[C_CURR] || '').trim().toUpperCase();
+    if (curr === 'INR') h.inr = true;
+    const prev = num(r[C_PREV]); if (prev !== '') h.prevPrice = prev;
+    // Only keep the Yahoo Symbol as an override when it differs from what we'd
+    // derive from Symbol — a value that merely echoes the derivation stays
+    // derived, so editing the Symbol column later re-derives correctly.
+    const yahoo = String(r[C_YAHOO] || '').trim();
+    if (yahoo && yahoo !== deriveYahooSym(sym, curr === 'INR')) h.yahooSym = yahoo;
+    const daypc = num(r[C_DAYPC]); if (daypc !== '') h.dayPrevClose = daypc;
+    const cust = r[C_CUSTOM];
+    if (cust === 'Y' || cust === 'y' || cust === true || cust === 'TRUE') h.custom = true;
+    holdings[key] = h;
+  });
+  return holdings;
+}
+
+function readSettings() {
+  const settings = {};
+  const sheet = getOrCreateSheet(SETTINGS_SHEET, ['Key', 'Value']);
+  const last = sheet.getLastRow();
+  if (last <= 1) return settings;
+  const rows = sheet.getRange(2, 1, last - 1, 2).getValues();
+  rows.forEach(function(r) {
+    if (r[0] !== '' && r[0] != null) settings[String(r[0]).trim()] = r[1];
+  });
+  return settings;
+}
+
+function writeSettings(obj) {
+  const sheet = getOrCreateSheet(SETTINGS_SHEET, ['Key', 'Value']);
+  const s = obj || {};
+
+  // Read what's currently stored so a real value can't be silently wiped by a
+  // stale/empty save (e.g. the app pushing goldGrams: 0 before it has loaded).
+  const existing = {};
+  const curLast = sheet.getLastRow();
+  if (curLast > 1) {
+    const curRows = sheet.getRange(2, 1, curLast - 1, 2).getValues();
+    curRows.forEach(function(r) {
+      if (r[0] !== '' && r[0] != null) existing[String(r[0]).trim()] = r[1];
+    });
+  }
+
+  // Keep a non-zero stored number when the incoming value is 0/empty — the app
+  // uses 0 as its "not set yet" default, so overwriting real data with it is
+  // how gold.grams (and pension, Niveshaay…) kept getting reset to zero.
+  const keepIfReal = function(key, incoming) {
+    const inc = num(incoming);
+    const cur = num(existing[key]);
+    if ((inc === 0 || inc === '') && typeof cur === 'number' && isFinite(cur) && cur !== 0) return cur;
+    return inc === '' ? 0 : inc;
+  };
+
+  const rows = [
+    ['version', '2'],
+    ['savedAt', s.savedAt || new Date().toISOString()],
+    ['niveshaay.val', keepIfReal('niveshaay.val', s.acctOverrides && s.acctOverrides.niveshaay)],
+    ['niveshaay.units', keepIfReal('niveshaay.units', s.niveshaayData && s.niveshaayData.units)],
+    ['niveshaay.nav', keepIfReal('niveshaay.nav', s.niveshaayData && s.niveshaayData.nav)],
+    ['niveshaay.costINR', keepIfReal('niveshaay.costINR', s.niveshaayData && s.niveshaayData.costINR)],
+    ['niveshaay.asOf', (s.niveshaayData && s.niveshaayData.asOf) || ''],
+    ['pension.val', keepIfReal('pension.val', s.acctOverrides && s.acctOverrides.pension)],
+    ['stallion.asOf', (s.stallionData && s.stallionData.asOf) || ''],
+    ['gold.price', keepIfReal('gold.price', s.goldPrice)],
+    ['gold.grams', keepIfReal('gold.grams', s.goldGrams)],
+    ['excluded', (s.excluded || []).join(',')]
+  ];
+  const last = sheet.getLastRow();
+  if (last > 1) sheet.getRange(2, 1, last - 1, 2).clearContent();
+  sheet.getRange(2, 1, rows.length, 2).setValues(rows);
+}
+
+function readTransactions() {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(TX_SHEET);
+    if (!sheet) return [];
+    const rows = sheet.getDataRange().getValues();
+    return rows.slice(1).map(function(r) {
+      return {date: r[0], action: r[1], sym: r[2], acct: r[3], shares: r[4], price: r[5], value: r[6], note: r[7]};
+    }).filter(function(r) { return r.date; }).slice(0, 200);
+  } catch (err) {
+    return [];
+  }
+}
+
+function buildPortfolioPayload() {
+  ensureSchema();
+  const holdings = readHoldings(getOrCreateSheet(HOLDINGS_SHEET, HOLDINGS_HEADER));
+  const s = readSettings();
+  const nv = function(k) { const v = num(s[k]); return v === '' ? 0 : v; };
+  return {
+    version: 2,
+    savedAt: s.savedAt || new Date().toISOString(),
+    holdings: holdings,
+    acctOverrides: {
+      niveshaay: nv('niveshaay.val'),
+      pension: nv('pension.val')
+    },
+    niveshaayData: {
+      units: nv('niveshaay.units'),
+      nav: nv('niveshaay.nav'),
+      costINR: nv('niveshaay.costINR'),
+      asOf: s['niveshaay.asOf'] || ''
+    },
+    stallionData: {
+      asOf: s['stallion.asOf'] || ''
+    },
+    excluded: s.excluded ? String(s.excluded).split(',').map(function(x) { return x.trim(); }).filter(Boolean) : [],
+    goldPrice: nv('gold.price'),
+    goldGrams: nv('gold.grams'),
+    transactions: readTransactions()
+  };
+}
+
+function updateSetting(key, value) {
+  const sheet = getOrCreateSheet(SETTINGS_SHEET, ['Key', 'Value']);
+  const last = sheet.getLastRow();
+  let target = -1;
+  if (last > 1) {
+    const keys = sheet.getRange(2, 1, last - 1, 1).getValues();
+    for (let i = 0; i < keys.length; i++) {
+      if (String(keys[i][0]).trim() === key) { target = i + 2; break; }
+    }
+  }
+  if (target === -1) sheet.appendRow([key, value]);
+  else sheet.getRange(target, 2).setValue(value);
+}
+
+// Simple trigger: when the user edits Holdings directly, mark the sheet newer so
+// the app's last-writer-wins sync pulls those edits down on the next load.
+function onEdit(e) {
+  try {
+    if (!e || !e.range) return;
+    if (e.range.getSheet().getName() !== HOLDINGS_SHEET) return;
+    updateSetting('savedAt', new Date().toISOString());
+  } catch (err) { /* silent */ }
+}
+
+// ── Run this from the Apps Script editor to authorize + test ──
 function authorizeAndTest() {
   var headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
