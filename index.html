@@ -6,15 +6,16 @@
 <title>Net Worth Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0d0f12;--bg2:#13161b;--bg3:#1a1e25;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);--text:#e8eaed;--muted:#6b7280;--muted2:#9ca3af;--green:#34d399;--red:#f87171;--blue:#60a5fa;--amber:#fbbf24;--teal:#2dd4bf;--purple:#a78bfa;}
+:root{--bg:#0d0f12;--bg2:#13161b;--bg3:#1a1e25;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);--text:#e8eaed;--muted:#6b7280;--muted2:#9ca3af;--green:#34d399;--red:#f87171;--blue:#60a5fa;--amber:#fbbf24;--teal:#2dd4bf;--purple:#a78bfa;--cyan:#22d3ee;--pink:#f472b6;--orange:#fb923c;--indigo:#818cf8;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
-.app{max-width:980px;margin:0 auto;padding:2rem 1.25rem 4rem;}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(1100px 560px at 12% -8%,rgba(96,165,250,.12),transparent 60%),radial-gradient(950px 520px at 96% 0%,rgba(167,139,250,.11),transparent 55%),radial-gradient(900px 560px at 88% 102%,rgba(45,212,191,.09),transparent 55%),radial-gradient(760px 480px at -4% 96%,rgba(251,191,36,.07),transparent 55%);}
+.app{max-width:980px;margin:0 auto;padding:2rem 1.25rem 4rem;position:relative;z-index:1;}
 
 /* Header */
 .hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:12px;}
 .hdr-logo{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.15em;color:var(--muted);text-transform:uppercase;margin-bottom:5px;}
-.hdr-title{font-size:24px;font-weight:600;letter-spacing:-.5px;}
+.hdr-title{font-size:24px;font-weight:600;letter-spacing:-.5px;background:linear-gradient(90deg,#ffffff 0%,#93c5fd 42%,#5eead4 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;}
 .hdr-sub{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;}
 .hdr-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;}
 .live-dot{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);font-family:'DM Mono',monospace;}
@@ -41,8 +42,9 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 /* Metrics */
 .metrics{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:1.25rem;}
 @media(max-width:640px){.metrics{grid-template-columns:repeat(2,1fr);}}
-.mc{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:13px 15px;position:relative;overflow:hidden;}
-.mc-accent{position:absolute;top:0;right:0;width:40px;height:40px;border-radius:0 10px 0 40px;}
+.mc{background:linear-gradient(180deg,var(--bg2),var(--bg));border:1px solid var(--border);border-radius:10px;padding:13px 15px;position:relative;overflow:hidden;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;}
+.mc:hover{transform:translateY(-2px);border-color:var(--border2);box-shadow:0 10px 26px -14px rgba(96,165,250,.4);}
+.mc-accent{position:absolute;top:0;right:0;width:72px;height:72px;border-radius:0 10px 0 64px;filter:saturate(1.2);}
 .mc-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:7px;}
 .mc-val{font-size:21px;font-weight:600;letter-spacing:-.5px;color:var(--text);line-height:1;}
 .mc-sub{font-size:10px;color:var(--muted);margin-top:5px;font-family:'DM Mono',monospace;}
@@ -60,8 +62,8 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 /* Grouped view */
 .group-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1rem;}
 @media(max-width:640px){.group-grid{grid-template-columns:1fr;}}
-.gc{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px;position:relative;overflow:hidden;cursor:pointer;transition:border-color .2s;}
-.gc:hover{border-color:var(--border2);}
+.gc{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px;position:relative;overflow:hidden;cursor:pointer;transition:border-color .2s,box-shadow .2s,transform .2s;}
+.gc:hover{border-color:var(--border2);box-shadow:0 12px 32px -18px rgba(96,165,250,.45);}
 .gc-accent{position:absolute;top:0;left:0;right:0;height:2px;border-radius:12px 12px 0 0;}
 .gc-label{font-size:10px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:8px;}
 .gc-val{font-size:24px;font-weight:600;letter-spacing:-.8px;line-height:1;margin-bottom:5px;}
@@ -132,6 +134,18 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 /* India note */
 .india-note{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;padding:8px 0 2px;border-top:1px solid var(--border);margin-top:4px;line-height:1.7;}
 
+/* Watchlist */
+.w-badge{display:inline-block;font-size:9px;font-family:'DM Mono',monospace;padding:1px 6px;border-radius:4px;background:var(--bg3);border:1px solid var(--border2);color:var(--muted2);margin-left:6px;vertical-align:1px;}
+.watch-add{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 0 2px;border-top:1px solid var(--border);margin-top:12px;}
+.watch-add input,.watch-add select{font-family:'DM Mono',monospace;font-size:12px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:6px 10px;}
+.watch-add input{flex:1;min-width:140px;text-transform:uppercase;}
+.watch-add input:focus{outline:none;border-color:var(--cyan);}
+.watch-add select{cursor:pointer;}
+.watch-sort-row{display:flex;gap:8px;align-items:center;justify-content:flex-end;padding:10px 0 2px;}
+.watch-sort-label{font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
+.watch-sort-row select{font-family:'DM Mono',monospace;font-size:12px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:5px 10px;cursor:pointer;}
+.watch-sort-row select:focus{outline:none;border-color:var(--cyan);}
+
 /* Stats mini grid */
 .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:8px 0 10px;border-bottom:1px solid var(--border);margin-bottom:6px;}
 .stat-cell{background:var(--bg3);border-radius:7px;padding:8px 10px;}
@@ -183,13 +197,13 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 .parse-amt{color:var(--text);}
 .modal-actions{display:flex;gap:7px;justify-content:flex-end;margin-top:6px;}
 .mbtn{font-family:'DM Mono',monospace;font-size:12px;padding:7px 16px;border-radius:7px;cursor:pointer;border:1px solid var(--border2);transition:all .15s;}
-.mbtn-primary{background:rgba(96,165,250,.12);color:var(--blue);border-color:rgba(96,165,250,.4);}
+.mbtn-primary{background:linear-gradient(135deg,rgba(96,165,250,.22),rgba(45,212,191,.14));color:var(--blue);border-color:rgba(96,165,250,.4);}
 .mbtn-primary:hover{background:rgba(96,165,250,.22);}
 .mbtn-secondary{background:var(--bg3);color:var(--muted2);}
 .mbtn-secondary:hover{color:var(--text);}
 
 /* Summary */
-.summary{background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:20px 24px;margin-top:1.25rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;}
+.summary{background:linear-gradient(135deg,rgba(96,165,250,.07),rgba(45,212,191,.05) 45%,rgba(167,139,250,.07));border:1px solid var(--border2);border-radius:12px;padding:20px 24px;margin-top:1.25rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;box-shadow:0 16px 44px -22px rgba(96,165,250,.4);}
 .sum-left .sum-label{font-size:10px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:6px;}
 .sum-val{font-size:30px;font-weight:600;letter-spacing:-1px;line-height:1;}
 .sum-sub{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:5px;}
@@ -347,6 +361,50 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
   </div>
 </div>
 
+<!-- ENH-01: Live price refresh bar -->
+<div class="refresh-bar">
+  <button class="refresh-btn" id="refresh-btn" onclick="refreshAllPrices()">↻ Refresh live prices</button>
+  <span class="refresh-status" id="refresh-status">Last refresh: never · Connect Google Sheets to enable live refresh</span>
+  <span class="forex-display">USD/INR: <b id="forex-display">94.55</b> <button class="chart-btn" onclick="fetchForex()" style="padding:2px 7px;margin-left:4px;">↻</button></span>
+</div>
+
+<!-- Watchlist -->
+<div class="sec" id="sec-watchlist">
+  <div class="sec-hdr" onclick="toggleSec(this)">
+    <div class="sec-hdr-left">
+      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(34,211,238,.38),rgba(34,211,238,.08));color:#67e8f9">WL</div>
+      <div><div class="sec-name">Watchlist</div><div class="sec-sub">Live prices · US after-hrs &amp; overnight via Robinhood</div></div>
+    </div>
+    <div class="sec-hdr-right"><div class="sec-val" style="color:var(--cyan)"><span id="watch-count">0</span> stocks</div><div class="chevron">▼</div></div>
+  </div>
+  <div class="sec-body">
+    <div class="watch-sort-row">
+      <span class="watch-sort-label">Sort</span>
+      <select id="watch-sort" onchange="setWatchSort(this.value)">
+        <option value="default">Default order</option>
+        <option value="pctDesc">% Change · high → low</option>
+        <option value="pctAsc">% Change · low → high</option>
+      </select>
+    </div>
+    <div id="rows-watchlist"></div>
+    <div class="watch-add">
+      <input id="watch-sym" type="text" placeholder="Ticker · e.g. MU, 000660, STLTECH" autocomplete="off" oninput="this.value=this.value.toUpperCase()">
+      <select id="watch-market">
+        <option value="us">🇺🇸 US</option>
+        <option value="korea">🇰🇷 Korea</option>
+        <option value="china">🇨🇳 China</option>
+        <option value="netherlands">🇳🇱 Netherlands</option>
+        <option value="india">🇮🇳 India</option>
+        <option value="taiwan">🇹🇼 Taiwan</option>
+        <option value="uk">🇬🇧 UK</option>
+      </select>
+      <button class="chart-btn" onclick="addWatch()" style="color:var(--cyan);border-color:rgba(34,211,238,.4);">＋ Add</button>
+      <span id="watch-err" style="display:none;font-size:11px;color:var(--red);font-family:'DM Mono',monospace;"></span>
+    </div>
+    <div class="india-note">Tracking only — not counted in net worth. Prices refresh with ↻ Refresh. For India enter the NSE symbol (e.g. STLTECH); the market suffix is added automatically.</div>
+  </div>
+</div>
+
 <!-- MANAGE ACCOUNTS PANEL -->
 <div class="manage-panel" id="manage-panel">
   <div class="manage-title">Toggle accounts to include / exclude from totals</div>
@@ -368,12 +426,12 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 
 <!-- METRICS -->
 <div class="metrics">
-  <div class="mc"><div class="mc-accent" style="background:rgba(96,165,250,.08)"></div><div class="mc-label">Total Net Worth</div><div class="mc-val" id="m-total">—</div><div class="mc-sub" id="m-total-sub">loading…</div><div class="mc-chg" id="m-total-chg"></div></div>
-  <div class="mc"><div class="mc-accent" style="background:rgba(45,212,191,.08)"></div><div class="mc-label">INR Equivalent</div><div class="mc-val" id="m-inr">—</div><div class="mc-sub">at live INR/USD rate</div></div>
-  <div class="mc"><div class="mc-accent" style="background:rgba(96,165,250,.06)"></div><div class="mc-label">US Taxable</div><div class="mc-val" id="m-ustax">—</div><div class="mc-sub" id="m-ustax-sub">Fidelity + Merrill</div><div class="mc-chg" id="m-ustax-chg"></div></div>
-  <div class="mc"><div class="mc-accent" style="background:rgba(167,139,250,.06)"></div><div class="mc-label">US Retirement</div><div class="mc-val" id="m-usret">—</div><div class="mc-sub" id="m-usret-sub">401k · IRA · Roth · Pension</div><div class="mc-chg" id="m-usret-chg"></div></div>
-  <div class="mc"><div class="mc-accent" style="background:rgba(45,212,191,.06)"></div><div class="mc-label">India</div><div class="mc-val" id="m-india">—</div><div class="mc-sub" id="m-india-sub">₹ · PMS + AIF</div><div class="mc-chg" id="m-india-chg"></div></div>
-  <div class="mc"><div class="mc-accent" style="background:rgba(251,191,36,.06)"></div><div class="mc-label">Gold</div><div class="mc-val" id="m-gold">—</div><div class="mc-sub" id="m-gold-sub">grams × 22K price</div><div class="mc-chg" id="m-gold-chg"></div></div>
+  <div class="mc"><div class="mc-accent" style="background:linear-gradient(135deg,rgba(96,165,250,.42),rgba(96,165,250,0))"></div><div class="mc-label">Total Net Worth</div><div class="mc-val" id="m-total">—</div><div class="mc-sub" id="m-total-sub">loading…</div><div class="mc-chg" id="m-total-chg"></div></div>
+  <div class="mc"><div class="mc-accent" style="background:linear-gradient(135deg,rgba(45,212,191,.42),rgba(45,212,191,0))"></div><div class="mc-label">INR Equivalent</div><div class="mc-val" id="m-inr">—</div><div class="mc-sub">at live INR/USD rate</div></div>
+  <div class="mc"><div class="mc-accent" style="background:linear-gradient(135deg,rgba(96,165,250,.38),rgba(96,165,250,0))"></div><div class="mc-label">US Taxable</div><div class="mc-val" id="m-ustax">—</div><div class="mc-sub" id="m-ustax-sub">Fidelity + Merrill</div><div class="mc-chg" id="m-ustax-chg"></div></div>
+  <div class="mc"><div class="mc-accent" style="background:linear-gradient(135deg,rgba(167,139,250,.4),rgba(167,139,250,0))"></div><div class="mc-label">US Retirement</div><div class="mc-val" id="m-usret">—</div><div class="mc-sub" id="m-usret-sub">401k · IRA · Roth · Pension</div><div class="mc-chg" id="m-usret-chg"></div></div>
+  <div class="mc"><div class="mc-accent" style="background:linear-gradient(135deg,rgba(45,212,191,.38),rgba(45,212,191,0))"></div><div class="mc-label">India</div><div class="mc-val" id="m-india">—</div><div class="mc-sub" id="m-india-sub">₹ · PMS + AIF</div><div class="mc-chg" id="m-india-chg"></div></div>
+  <div class="mc"><div class="mc-accent" style="background:linear-gradient(135deg,rgba(251,191,36,.38),rgba(251,191,36,0))"></div><div class="mc-label">Gold</div><div class="mc-val" id="m-gold">—</div><div class="mc-sub" id="m-gold-sub">grams × 22K price</div><div class="mc-chg" id="m-gold-chg"></div></div>
 </div>
 
 <!-- ALLOC BAR -->
@@ -395,14 +453,14 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 <div class="sec" id="sec-fid-ind">
   <div class="sec-hdr" onclick="toggleSec(this)">
     <div class="sec-hdr-left">
-      <div class="sec-icon" style="background:rgba(96,165,250,.12);color:#60a5fa">FI</div>
+      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(96,165,250,.38),rgba(96,165,250,.1));color:#93c5fd">FI</div>
       <div><div class="sec-name">Fidelity Individual (TOD)</div><div class="sec-sub">Taxable brokerage</div></div>
     </div>
-    <div class="sec-hdr-right"><div class="sec-val" style="color:var(--blue)" id="hdr-fid-ind">—</div><div class="sec-chg" id="chg-fid-ind"></div><div class="chevron">▼</div></div>
+    <div class="sec-hdr-right"><div class="sec-val" style="color:var(--text)" id="hdr-fid-ind">—</div><div class="sec-chg" id="chg-fid-ind"></div><div class="chevron">▼</div></div>
   </div>
   <div class="sec-body">
     <div id="rows-fid-ind"></div>
-    <div class="sec-total"><span class="sec-total-label" id="lbl-fid-ind">equities only</span><span class="sec-total-val" style="color:var(--blue)" id="tot-fid-ind">—</span></div>
+    <div class="sec-total"><span class="sec-total-label" id="lbl-fid-ind">equities only</span><span class="sec-total-val" style="color:var(--text)" id="tot-fid-ind">—</span></div>
   </div>
 </div>
 
@@ -410,14 +468,14 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 <div class="sec" id="sec-fid-ira">
   <div class="sec-hdr" onclick="toggleSec(this)">
     <div class="sec-hdr-left">
-      <div class="sec-icon" style="background:rgba(59,130,246,.12);color:#3b82f6">TR</div>
+      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(59,130,246,.38),rgba(59,130,246,.1));color:#93c5fd">TR</div>
       <div><div class="sec-name">Fidelity Traditional IRA</div><div class="sec-sub">Tax-deferred retirement</div></div>
     </div>
-    <div class="sec-hdr-right"><div class="sec-val" style="color:var(--blue)" id="hdr-fid-ira">—</div><div class="sec-chg" id="chg-fid-ira"></div><div class="chevron">▼</div></div>
+    <div class="sec-hdr-right"><div class="sec-val" style="color:var(--text)" id="hdr-fid-ira">—</div><div class="sec-chg" id="chg-fid-ira"></div><div class="chevron">▼</div></div>
   </div>
   <div class="sec-body">
     <div id="rows-fid-ira"></div>
-    <div class="sec-total"><span class="sec-total-label" id="lbl-fid-ira">equities only</span><span class="sec-total-val" style="color:var(--blue)" id="tot-fid-ira">—</span></div>
+    <div class="sec-total"><span class="sec-total-label" id="lbl-fid-ira">equities only</span><span class="sec-total-val" style="color:var(--text)" id="tot-fid-ira">—</span></div>
   </div>
 </div>
 
@@ -425,7 +483,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 <div class="sec" id="sec-hartford">
   <div class="sec-hdr" onclick="toggleSec(this)">
     <div class="sec-hdr-left">
-      <div class="sec-icon" style="background:rgba(167,139,250,.12);color:#a78bfa">HF</div>
+      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(167,139,250,.4),rgba(167,139,250,.1));color:#c4b5fd">HF</div>
       <div><div class="sec-name">Hartford 401(k)</div><div class="sec-sub">Employer plan · refreshes via fund proxy</div></div>
     </div>
     <div class="sec-hdr-right"><div class="sec-val" style="color:var(--purple)" id="hdr-hartford">—</div><div class="sec-chg" id="chg-hartford"></div><div class="chevron">▼</div></div>
@@ -439,10 +497,10 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 <div class="sec" id="sec-merrill">
   <div class="sec-hdr" onclick="toggleSec(this)">
     <div class="sec-hdr-left">
-      <div class="sec-icon" style="background:rgba(29,78,216,.15);color:#60a5fa">ME</div>
+      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(96,165,250,.4),rgba(29,78,216,.12));color:#93c5fd">ME</div>
       <div><div class="sec-name">Merrill CMA</div><div class="sec-sub">Cash management account</div></div>
     </div>
-    <div class="sec-hdr-right"><div class="sec-val" style="color:var(--blue)" id="hdr-merrill">—</div><div class="sec-chg" id="chg-merrill"></div><div class="chevron">▼</div></div>
+    <div class="sec-hdr-right"><div class="sec-val" style="color:var(--text)" id="hdr-merrill">—</div><div class="sec-chg" id="chg-merrill"></div><div class="chevron">▼</div></div>
   </div>
   <div class="sec-body">
     <div id="rows-merrill"></div>
@@ -453,14 +511,14 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 <div class="sec" id="sec-fid-rh">
   <div class="sec-hdr" onclick="toggleSec(this)">
     <div class="sec-hdr-left">
-      <div class="sec-icon" style="background:rgba(96,165,250,.08);color:#93c5fd">R+H</div>
+      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(96,165,250,.3),rgba(96,165,250,.08));color:#bfdbfe">R+H</div>
       <div><div class="sec-name">Fidelity Roth IRA & HSA</div><div class="sec-sub">Tax-free retirement & health savings</div></div>
     </div>
-    <div class="sec-hdr-right"><div class="sec-val" style="color:var(--blue)" id="hdr-fid-rh">—</div><div class="sec-chg" id="chg-fid-rh"></div><div class="chevron">▼</div></div>
+    <div class="sec-hdr-right"><div class="sec-val" style="color:var(--text)" id="hdr-fid-rh">—</div><div class="sec-chg" id="chg-fid-rh"></div><div class="chevron">▼</div></div>
   </div>
   <div class="sec-body">
     <div id="rows-fid-rh"></div>
-    <div class="sec-total"><span class="sec-total-label" id="lbl-fid-rh">Roth + HSA</span><span class="sec-total-val" style="color:var(--blue)" id="tot-fid-rh">—</span></div>
+    <div class="sec-total"><span class="sec-total-label" id="lbl-fid-rh">Roth + HSA</span><span class="sec-total-val" style="color:var(--text)" id="tot-fid-rh">—</span></div>
   </div>
 </div>
 
@@ -468,7 +526,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 <div class="sec" id="sec-pension">
   <div class="sec-hdr" onclick="toggleSec(this)">
     <div class="sec-hdr-left">
-      <div class="sec-icon" style="background:rgba(251,191,36,.1);color:#fbbf24">PE</div>
+      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(251,191,36,.36),rgba(251,191,36,.1));color:#fcd34d">PE</div>
       <div><div class="sec-name">Pension Plan Balance</div><div class="sec-sub">Defined benefit · 5% annual interest</div></div>
     </div>
     <div class="sec-hdr-right"><div class="sec-val" style="color:var(--amber)" id="hdr-pension">—</div><div class="chevron">▼</div></div>
@@ -482,7 +540,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 <div class="sec" id="sec-stallion">
   <div class="sec-hdr" onclick="toggleSec(this)">
     <div class="sec-hdr-left">
-      <div class="sec-icon" style="background:rgba(45,212,191,.12);color:#2dd4bf">ST</div>
+      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(45,212,191,.38),rgba(45,212,191,.1));color:#5eead4">ST</div>
       <div><div class="sec-name">Stallion Asset PMS</div><div class="sec-sub" id="stallion-as-of">as of —</div></div>
     </div>
     <div class="sec-hdr-right"><div class="sec-val" style="color:var(--teal)" id="hdr-stallion">—</div><div class="sec-chg" id="chg-stallion"></div><div class="chevron">▼</div></div>
@@ -498,7 +556,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 <div class="sec" id="sec-gold">
   <div class="sec-hdr" onclick="toggleSec(this)">
     <div class="sec-hdr-left">
-      <div class="sec-icon" style="background:rgba(251,191,36,.12);color:#fbbf24">AU</div>
+      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(251,191,36,.38),rgba(217,119,6,.12));color:#fcd34d">AU</div>
       <div><div class="sec-name">Physical Gold</div><div class="sec-sub">22 karat · value = grams × price/gram</div></div>
     </div>
     <div class="sec-hdr-right"><div class="sec-val" style="color:var(--amber)" id="hdr-gold">—</div><div class="sec-chg" id="chg-gold"></div><div class="chevron">▼</div></div>
@@ -519,7 +577,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 <div class="sec" id="sec-niveshaay">
   <div class="sec-hdr" onclick="toggleSec(this)">
     <div class="sec-hdr-left">
-      <div class="sec-icon" style="background:rgba(15,118,110,.2);color:#2dd4bf">NV</div>
+      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(45,212,191,.38),rgba(15,118,110,.16));color:#5eead4">NV</div>
       <div><div class="sec-name">Niveshaay AIF</div><div class="sec-sub" id="niv-as-of">as of —</div></div>
     </div>
     <div class="sec-hdr-right"><div class="sec-val" style="color:var(--teal)" id="hdr-niveshaay">—</div><div class="chevron">▼</div></div>
@@ -536,7 +594,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 <div class="sec" id="sec-india-ind" style="display:none">
   <div class="sec-hdr" onclick="toggleSec(this)">
     <div class="sec-hdr-left">
-      <div class="sec-icon" style="background:rgba(45,212,191,.12);color:#2dd4bf;font-size:10px;">IN</div>
+      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(45,212,191,.36),rgba(45,212,191,.1));color:#5eead4;font-size:10px;">IN</div>
       <div><div class="sec-name">India Individual Holdings</div><div class="sec-sub">NSE / BSE · prices in ₹ · auto-converted to USD</div></div>
     </div>
     <div class="sec-hdr-right"><div class="sec-val" style="color:var(--teal)" id="hdr-india-ind">—</div><div class="sec-chg" id="chg-india-ind"></div><div class="chevron">▼</div></div>
@@ -554,7 +612,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 <div class="sec" id="sec-india-ira" style="display:none">
   <div class="sec-hdr" onclick="toggleSec(this)">
     <div class="sec-hdr-left">
-      <div class="sec-icon" style="background:rgba(45,212,191,.12);color:#2dd4bf;font-size:10px;">NPS</div>
+      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(34,211,238,.36),rgba(13,148,136,.14));color:#67e8f9;font-size:10px;">NPS</div>
       <div><div class="sec-name">India Retirement Holdings</div><div class="sec-sub">NPS / PPF / EPF · prices in ₹</div></div>
     </div>
     <div class="sec-hdr-right"><div class="sec-val" style="color:var(--teal)" id="hdr-india-ira">—</div><div class="sec-chg" id="chg-india-ira"></div><div class="chevron">▼</div></div>
@@ -583,13 +641,6 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
   </div>
 </div>
 
-
-<!-- ENH-01: Live price refresh bar -->
-<div class="refresh-bar">
-  <button class="refresh-btn" id="refresh-btn" onclick="refreshAllPrices()">↻ Refresh live prices</button>
-  <span class="refresh-status" id="refresh-status">Last refresh: never · Connect Google Sheets to enable live refresh</span>
-  <span class="forex-display">USD/INR: <b id="forex-display">94.55</b> <button class="chart-btn" onclick="fetchForex()" style="padding:2px 7px;margin-left:4px;">↻</button></span>
-</div>
 
 <!-- ENH-03: Historical net worth chart -->
 <div class="chart-section" id="chart-section">
@@ -881,12 +932,63 @@ let currentView = 'account';
 let parsedData = [];
 let manualEdits = {};
 
+// ─── WATCHLIST ──────────────────────────────────────────────
+const WATCH_MARKETS = {
+  us:          {label:'US',          flag:'🇺🇸', suffix:''},
+  korea:       {label:'Korea',       flag:'🇰🇷', suffix:'.KS'},
+  china:       {label:'China',       flag:'🇨🇳', suffix:'.SS'},
+  netherlands: {label:'Netherlands', flag:'🇳🇱', suffix:'.AS'},
+  india:       {label:'India',       flag:'🇮🇳', suffix:'.NS'},
+  taiwan:      {label:'Taiwan',      flag:'🇹🇼', suffix:'.TW'},
+  uk:          {label:'UK',          flag:'🇬🇧', suffix:'.L'},
+};
+const WATCH_CUR = {USD:'$', INR:'₹', KRW:'₩', TWD:'NT$', CNY:'¥', GBP:'£', EUR:'€'};
+const DEFAULT_WATCHLIST = [
+  {sym:'MU', name:'Micron Technology', market:'us'},
+  {sym:'AMD', name:'Advanced Micro Devices', market:'us'},
+  {sym:'NVDA', name:'NVIDIA Corp', market:'us'},
+  {sym:'MRVL', name:'Marvell Technology', market:'us'},
+  {sym:'TSM', name:'Taiwan Semiconductor (ADR)', market:'us'},
+  {sym:'SIMO', name:'Silicon Motion Technology', market:'us'},
+  {sym:'ASML', name:'ASML Holding (ADR)', market:'us'},
+  {sym:'ARM', name:'Arm Holdings (ADR)', market:'us'},
+  {sym:'2357.TW', name:'Asustek Computer', market:'taiwan'},
+  {sym:'000660.KS', name:'SK Hynix', market:'korea'},
+  {sym:'005930.KS', name:'Samsung Electronics', market:'korea'},
+  {sym:'601138.SS', name:'Foxconn Industrial Internet', market:'china'},
+  {sym:'688008.SS', name:'Montage Technology', market:'china'},
+  {sym:'AFCOM.BO', name:'Afcom Holdings', market:'india'},
+  {sym:'ASMTEC.NS', name:'ASM Technologies', market:'india'},
+  {sym:'AVALON.NS', name:'Avalon Technologies', market:'india'},
+  {sym:'AVANTEL.NS', name:'Avantel', market:'india'},
+  {sym:'BORORENEW.NS', name:'Borosil Renewables', market:'india'},
+  {sym:'CENTUM.NS', name:'Centum Electronics', market:'india'},
+  {sym:'DEEDEV.NS', name:'DEE Development Engineers', market:'india'},
+  {sym:'DYNAMATECH.NS', name:'Dynamatic Technologies', market:'india'},
+  {sym:'E2E.NS', name:'E2E Networks', market:'india'},
+  {sym:'ICEMAKE.NS', name:'Ice Make Refrigeration', market:'india'},
+  {sym:'NEOGEN.NS', name:'Neogen Chemicals', market:'india'},
+  {sym:'POCL.NS', name:'Pondy Oxides & Chemicals', market:'india'},
+  {sym:'RAIN.NS', name:'Rain Industries', market:'india'},
+  {sym:'SAMBHV.NS', name:'Sambhv Steel Tubes', market:'india'},
+  {sym:'SBCL.NS', name:'Shivalik Bimetal Controls', market:'india'},
+  {sym:'STLTECH.NS', name:'Sterlite Technologies', market:'india'},
+  {sym:'TANFACIND.NS', name:'Tanfac Industries', market:'india'},
+  {sym:'VALIANT.NS', name:'Valiant Communications', market:'india'},
+  {sym:'VINYAS-SM.NS', name:'Vinyas Innovative Technologies', market:'india'},
+];
+let watchlist = DEFAULT_WATCHLIST.slice(); // [{sym, name, market}]
+let watchQuotes = {};                      // sym -> {price, changePct, postPrice, prePrice, ...}
+let watchSort = 'default';                 // 'default' | 'pctDesc' | 'pctAsc'
+const WL_SEED_KEY = 'nw_watchlist_seeded'; // set once the default list has been persisted
+
 // ─── HELPERS ────────────────────────────────────────────────
 function $(id){ return document.getElementById(id); }
 function usd(n){ return '$' + Math.round(Math.abs(n)).toLocaleString(); }
 function inrRate(){ return USD_INR_LIVE || USD_INR; }
 function inrCr(n){ return '₹' + (Math.abs(n)*inrRate()/10000000).toFixed(2)+' Cr'; }
 function pct(a,b){ return b>0?(a/b*100).toFixed(1)+'%':'0%'; }
+function escHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 
 function goldUSD(){
   const grams = parseFloat($('gold-grams').value)||0;
@@ -1010,9 +1112,105 @@ function deleteHolding(key){
   renderHoldingRows(); recalc(); gsSave();
 }
 
+// ─── WATCHLIST RENDER / ADD / REMOVE ─────────────────────────
+function renderWatchlist(){
+  const el = $('rows-watchlist'); if(!el) return;
+  const cnt = $('watch-count'); if(cnt) cnt.textContent = watchlist.length;
+  if(!watchlist.length){
+    el.innerHTML = '<div style="font-size:11px;color:var(--muted);font-family:\'DM Mono\',monospace;padding:12px 0;text-align:center;">Watchlist is empty — add a ticker below.</div>';
+    return;
+  }
+  const items = watchlist.map((w,i)=>({w,i}));
+  if(watchSort !== 'default'){
+    const effPct = w => { const q = watchQuotes[w.sym]; return (q && typeof q.changePct === 'number' && isFinite(q.changePct)) ? q.changePct : -Infinity; };
+    items.sort((a,b)=>{
+      const pa = effPct(a.w), pb = effPct(b.w);
+      return watchSort === 'pctAsc' ? pa - pb : pb - pa;
+    });
+  }
+  el.innerHTML = items.map(({w,i})=>{
+    const q = watchQuotes[w.sym];
+    const m = WATCH_MARKETS[w.market] || WATCH_MARKETS.us;
+    const cur = (q && q.currency && WATCH_CUR[q.currency]) ? WATCH_CUR[q.currency] : (w.market==='india' ? '₹' : '$');
+    const name = (w.name && w.name !== w.sym) ? w.name : (q && q.name && q.name !== w.sym ? q.name : w.sym);
+    let priceHtml = '<span class="muted">—</span>';
+    let extHtml = '';
+    if(q && q.price){
+      const pctV = q.changePct != null ? q.changePct : 0;
+      const cls = pctV >= 0 ? 'pos' : 'neg';
+      priceHtml = cur + q.price.toLocaleString(undefined,{maximumFractionDigits:2}) + ' <span class="'+cls+'">' + (pctV>=0?'+':'') + pctV.toFixed(2) + '%</span>';
+      if(w.market === 'us'){
+        // Robinhood session-aware extended-hours price: the label distinguishes
+        // After-hrs (4–8pm ET) from Overnight (8pm–4am ET). Yahoo after-hours /
+        // pre-market only as fallbacks when Robinhood returned nothing.
+        let extP = q.overnightPrice, extPct = q.overnightChangePct, label = q.extLabel || 'Overnight';
+        if(!(extP > 0)){ extP = q.postPrice; extPct = q.postChangePct; label = 'After-hrs'; }
+        if(!(extP > 0)){ extP = q.prePrice;  extPct = q.preChangePct;  label = 'Pre-mkt'; }
+        if(extP > 0){
+          const extCls = (extPct != null ? extPct : 0) >= 0 ? 'pos' : 'neg';
+          const emoji = label === 'Overnight' ? '🌙' : (label === 'Pre-mkt' ? '🌅' : '🌇');
+          extHtml = '<div class="h-gl '+extCls+'">' + emoji + ' ' + label + ' ' + cur + extP.toLocaleString(undefined,{maximumFractionDigits:2}) + (extPct != null ? ' ('+(extPct>=0?'+':'')+extPct.toFixed(2)+'%)' : '') + '</div>';
+        }
+      }
+    }
+    return `<div class="holding">
+      <div class="h-left">
+        <div class="h-ticker" style="color:var(--cyan)">${escHtml(w.sym)}</div>
+        <div class="h-name">${escHtml(name)} <span class="w-badge">${m.flag} ${m.label}</span></div>
+        ${extHtml}
+      </div>
+      <div class="h-right">
+        <div class="h-val">${priceHtml}</div>
+        <div style="display:flex;gap:5px;justify-content:flex-end;margin-top:3px;">
+          <button class="h-edit-btn" onclick="removeWatch(${i})" style="color:var(--red);border-color:rgba(248,113,113,.3);">✕ remove</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setWatchSort(v){ watchSort = v; renderWatchlist(); }
+
+function addWatch(){
+  const symEl = $('watch-sym'), mktEl = $('watch-market'), errEl = $('watch-err');
+  if(!symEl || !mktEl) return;
+  let ticker = (symEl.value||'').trim().toUpperCase();
+  if(!ticker){ if(errEl){errEl.textContent='Enter a ticker.'; errEl.style.display='block';} return; }
+  const market = mktEl.value;
+  const suffix = (WATCH_MARKETS[market]||{}).suffix || '';
+  let sym = ticker;
+  if(suffix && !ticker.endsWith(suffix) && !/\.(NS|BO|KS|KQ|SS|SZ|TW|AS|L)$/i.test(ticker)) sym = ticker + suffix;
+  if(watchlist.some(w=>w.sym.toUpperCase()===sym.toUpperCase())){
+    if(errEl){errEl.textContent = sym + ' is already in the watchlist.'; errEl.style.display='block';}
+    return;
+  }
+  watchlist.push({sym: sym, name: ticker, market: market});
+  LS.set(WL_SEED_KEY, '1');
+  symEl.value='';
+  if(errEl){errEl.textContent=''; errEl.style.display='none';}
+  renderWatchlist();
+  recalc();
+  gsSave();
+}
+
+function removeWatch(i){
+  watchlist.splice(i,1);
+  LS.set(WL_SEED_KEY, '1');
+  renderWatchlist();
+  recalc();
+  gsSave();
+}
+
 // ─── RECALC ────────────────────────────────────────────────
 function recalc(){
   ACCTS.gold.val = goldUSD();
+
+  // Keep Niveshaay's USD value live with the current INR/USD rate. units × NAV
+  // is the source of truth; val is only a cached conversion, so recompute it on
+  // every recalc instead of letting it go stale when the forex rate updates.
+  if(ACCTS.niveshaay.units && ACCTS.niveshaay.nav){
+    ACCTS.niveshaay.val = (ACCTS.niveshaay.units * ACCTS.niveshaay.nav) / inrRate();
+  }
 
   // Per-account values
   const vals = {};
@@ -1150,22 +1348,22 @@ function recalc(){
 
   // Alloc bar
   const segments = [
-    {val:vals['fid-ind'],    color:'#60a5fa', label:'Fidelity Indiv'},
-    {val:vals['fid-ira'],    color:'#3b82f6', label:'Fidelity IRA'},
-    {val:vals['hartford'],   color:'#8b5cf6', label:'Hartford 401k'},
-    {val:vals['merrill'],    color:'#1d4ed8', label:'Merrill'},
-    {val:vals['fid-rh'],     color:'#93c5fd', label:'Roth+HSA'},
-    {val:vals['pension'],    color:'#fbbf24', label:'Pension'},
-    {val:vals['stallion'],   color:'#2dd4bf', label:'Stallion'},
-    {val:vals['gold'],       color:'#f59e0b', label:'Gold'},
-    {val:vals['niveshaay'],  color:'#0f766e', label:'Niveshaay'},
-    {val:vals['india-ind'],  color:'#14b8a6', label:'India Indiv'},
-    {val:vals['india-ira'],  color:'#0d9488', label:'India Retire'},
+    {val:vals['fid-ind'],    color:'#60a5fa', grad:'linear-gradient(180deg,#93c5fd,#3b82f6)', label:'Fidelity Indiv'},
+    {val:vals['fid-ira'],    color:'#3b82f6', grad:'linear-gradient(180deg,#60a5fa,#2563eb)', label:'Fidelity IRA'},
+    {val:vals['hartford'],   color:'#8b5cf6', grad:'linear-gradient(180deg,#c4b5fd,#8b5cf6)', label:'Hartford 401k'},
+    {val:vals['merrill'],    color:'#1d4ed8', grad:'linear-gradient(180deg,#60a5fa,#1d4ed8)', label:'Merrill'},
+    {val:vals['fid-rh'],     color:'#93c5fd', grad:'linear-gradient(180deg,#bfdbfe,#93c5fd)', label:'Roth+HSA'},
+    {val:vals['pension'],    color:'#fbbf24', grad:'linear-gradient(180deg,#fcd34d,#f59e0b)', label:'Pension'},
+    {val:vals['stallion'],   color:'#2dd4bf', grad:'linear-gradient(180deg,#5eead4,#0d9488)', label:'Stallion'},
+    {val:vals['gold'],       color:'#f59e0b', grad:'linear-gradient(180deg,#fbbf24,#d97706)', label:'Gold'},
+    {val:vals['niveshaay'],  color:'#0f766e', grad:'linear-gradient(180deg,#2dd4bf,#0f766e)', label:'Niveshaay'},
+    {val:vals['india-ind'],  color:'#14b8a6', grad:'linear-gradient(180deg,#5eead4,#14b8a6)', label:'India Indiv'},
+    {val:vals['india-ira'],  color:'#0d9488', grad:'linear-gradient(180deg,#2dd4bf,#0d9488)', label:'India Retire'},
   ].filter(s=>s.val>0);
   const barEl=$('alloc-bar'), legEl=$('alloc-legend');
   if(barEl && grand>0){
-    barEl.innerHTML=segments.map(s=>`<div class="alloc-seg" style="width:${(s.val/grand*100).toFixed(1)}%;background:${s.color}"></div>`).join('');
-    legEl.innerHTML=segments.map(s=>`<div class="alloc-item"><div class="alloc-dot" style="background:${s.color}"></div>${s.label} ${usd(s.val)}</div>`).join('');
+    barEl.innerHTML=segments.map(s=>`<div class="alloc-seg" style="width:${(s.val/grand*100).toFixed(1)}%;background:${s.grad}"></div>`).join('');
+    legEl.innerHTML=segments.map(s=>`<div class="alloc-item"><div class="alloc-dot" style="background:${s.grad}"></div>${s.label} ${usd(s.val)}</div>`).join('');
   }
 
   // Group view
@@ -1183,7 +1381,7 @@ function recalc(){
     ? `30% withheld on 401k · Trad IRA · Pension (−${usd(taxDeduction)})`
     : inrCr(grand) + ' · US + India + gold';
   if($('sum-breakdown')) $('sum-breakdown').innerHTML =
-    `US Taxable: <span style="color:var(--blue)">${usd(usTaxable)}</span><br>Retirement: <span style="color:var(--purple)">${usd(retirement)}</span>${afterTaxOn ? ` <span style="color:var(--amber);font-size:10px">(after 30% tax)</span>` : ''}<br>India: <span style="color:var(--teal)">${usd(india)}</span><br>Gold: <span style="color:var(--amber)">${usd(gold)}</span>`;
+    `US Taxable: <span style="color:var(--text)">${usd(usTaxable)}</span><br>Retirement: <span style="color:var(--purple)">${usd(retirement)}</span>${afterTaxOn ? ` <span style="color:var(--amber);font-size:10px">(after 30% tax)</span>` : ''}<br>India: <span style="color:var(--teal)">${usd(india)}</span><br>Gold: <span style="color:var(--amber)">${usd(gold)}</span>`;
 
   // Excluded sections
   Object.keys(ACCTS).forEach(k=>{
@@ -1743,7 +1941,7 @@ function buildManualEditGrid(){
   const g=$('manual-edit-grid'); if(!g) return;
   const rows=[];
   Object.entries(holdings).forEach(([key,h])=>{
-    rows.push({key, label:`${h.sym} (${ACCTS[h.acct]?.label||h.acct})`, price:h.price, shares:h.shares, hasShares:true});
+    rows.push({key, label:`${h.sym} (${ACCTS[h.acct]?.label||h.acct})`, price:h.price, shares:h.shares, hasShares:true, isINR: h.inr});
   });
   rows.push({key:'pension-total', label:'Pension Plan (USD value)', price:Math.round(ACCTS.pension.val), shares:null});
 
@@ -2247,6 +2445,7 @@ document.addEventListener('keydown', function(e){
 let gsUrl = '';
 let gsSaveTimer = null;
 let sheetsLoaded = false; // only push to Sheets after a successful load
+let loadedSheetTs = 0;    // savedAt at our last load/save — detects direct sheet edits
 const GS_KEY = 'nw_sheets_url';
 
 // Safe localStorage (works from file:// and https://)
@@ -2401,6 +2600,7 @@ function buildSavePayload(){
     goldPrice: parseFloat($('gold-price')?.value||135.83),
     goldGrams: parseFloat($('gold-grams')?.value)||0,
     transactions: transactions.slice(0, 200),
+    watchlist: watchlist.slice(),
   });
 }
 
@@ -2428,6 +2628,11 @@ function applyPayload(data){
       if(nd.nav)     ACCTS.niveshaay.nav     = nd.nav;
       if(nd.costINR) ACCTS.niveshaay.costINR = nd.costINR;
       if(nd.asOf)    ACCTS.niveshaay.asOf    = nd.asOf;
+      // Recompute the stored USD value from units × NAV so direct sheet edits
+      // to niveshaay.units / niveshaay.nav reflect in totals immediately.
+      if(ACCTS.niveshaay.units && ACCTS.niveshaay.nav){
+        ACCTS.niveshaay.val = (ACCTS.niveshaay.units * ACCTS.niveshaay.nav) / inrRate();
+      }
     }
     if(obj.stallionData && obj.stallionData.asOf) ACCTS.stallion.asOf = obj.stallionData.asOf;
 
@@ -2449,7 +2654,22 @@ function applyPayload(data){
       const gg=$('gold-grams'); if(gg) gg.value=obj.goldGrams;
     }
 
+    // Restore watchlist. An empty list is only trusted once the default seed has
+    // been persisted (WL_SEED_KEY); otherwise an empty/legacy payload would wipe
+    // the seeded defaults on first run.
+    if(Array.isArray(obj.watchlist)){
+      if(obj.watchlist.length > 0){
+        watchlist = obj.watchlist;
+        watchQuotes = {};
+        LS.set(WL_SEED_KEY, '1');
+      } else if(LS.get(WL_SEED_KEY)){
+        watchlist = [];
+        watchQuotes = {};
+      }
+    }
+
     renderHoldingRows();
+    renderWatchlist();
     recalc();
     return true;
   }catch(e){
@@ -2466,6 +2686,25 @@ async function gsSave(manual=false){
     console.warn('Skipping Sheets save — portfolio not loaded from Sheets yet.');
     return;
   }
+
+  // Freshness check: if the sheet was edited directly (Holdings or Settings tab)
+  // after our last load, re-mirror it before saving so a stale in-memory payload
+  // can't clobber those edits. Failures here just fall through to the save.
+  try{
+    const tr = await fetchWithTimeout(gsUrl+'?action=ts', {}, 8000);
+    if(tr.ok){
+      const td = await tr.json();
+      const sheetTs = Date.parse(td.savedAt || '') || 0;
+      if(sheetTs > loadedSheetTs + 2000){
+        const lr = await fetchWithTimeout(gsUrl+'?load=1', {}, 8000);
+        if(lr.ok){
+          const txt = await lr.text();
+          if(txt && txt !== '{}' && applyPayload(txt)) setSaveStatus('loaded');
+        }
+      }
+    }
+  }catch(e){ /* freshness check failed — proceed with the save */ }
+
   const payload = buildSavePayload();
   setSaveStatus('saving');
   try{
@@ -2474,6 +2713,7 @@ async function gsSave(manual=false){
       body: payload,
     }, 10000);
     if(!r.ok) throw new Error('HTTP '+r.status);
+    try{ loadedSheetTs = Date.parse(JSON.parse(payload).savedAt) || 0; }catch(e2){}
     const now = new Date().toLocaleTimeString();
     setSaveStatus('saved', now);
     const lsEl=$('gs-last-save'); if(lsEl) lsEl.textContent=now;
@@ -2493,7 +2733,7 @@ async function gsLoad(){
     const text = await r.text();
     if(!text || text==='{}') { alert('No data found in Google Sheets yet. Save first!'); setSaveStatus(''); return; }
     const ok = applyPayload(text);
-    if(ok){ sheetsLoaded = true; setSaveStatus('loaded'); hideSheetsModal(); }
+    if(ok){ sheetsLoaded = true; try{ loadedSheetTs = Date.parse(JSON.parse(text).savedAt)||0; }catch(e2){} setSaveStatus('loaded'); hideSheetsModal(); }
     else alert('Could not parse data from Sheets. It may be empty or corrupted.');
   }catch(e){
     setSaveStatus('error');
@@ -2527,7 +2767,11 @@ function scheduleGsSave(){
 
 
 // ─── ENH-01 & ENH-02: Live price refresh ──────────────────────
-let USD_INR_LIVE = 94.55;
+let USD_INR_LIVE = parseFloat(LS.get('nw_forex_rate')) || 94.55;
+(function(){
+  const fxEl = document.getElementById('forex-display');
+  if(fxEl) fxEl.textContent = USD_INR_LIVE.toFixed(2);
+})();
 // ── Cross-browser fetch with timeout (replaces AbortSignal.timeout) ──────────
 function fetchWithTimeout(url, options, ms) {
   ms = ms || 10000;
@@ -2564,6 +2808,20 @@ function getRefreshSymbols(){
     symMap[ySym].push(key);
   });
   return symMap; // returns map so we can look up which holdings to update
+}
+
+// Fetch watchlist quotes (extended-hours included for US entities)
+async function refreshWatchlistQuotes(){
+  const wSyms = watchlist.map(w=>w.sym).filter(Boolean);
+  if(!wSyms.length || !gsUrl) return 0;
+  try{
+    const url = gsUrl + '?action=quotes&symbols=' + wSyms.map(s=>encodeURIComponent(s)).join('%2C');
+    const r = await fetchWithTimeout(url, {}, 20000);
+    if(!r.ok) return 0;
+    const d = await r.json();
+    if(d.quotes){ watchQuotes = d.quotes; renderWatchlist(); }
+    return d.quotes ? Object.keys(d.quotes).length : 0;
+  }catch(e){ console.warn('Watchlist quotes failed:', e.message); return 0; }
 }
 
 async function refreshAllPrices(){
@@ -2609,7 +2867,10 @@ async function refreshAllPrices(){
       if(!newPrice || newPrice <= 0){
         skipped++;
         const h0 = keys[0] ? holdings[keys[0]] : null;
-        skippedSyms.push(h0 ? h0.sym : ySym);
+        const label = h0
+          ? (h0.name && h0.name !== h0.sym ? h0.name + ' (' + h0.sym + ')' : h0.sym)
+          : ySym;
+        skippedSyms.push(label);
         return;
       }
       keys.forEach(key => {
@@ -2650,16 +2911,21 @@ async function refreshAllPrices(){
       }
     }
 
+    // Watchlist quotes (extended-hours for US entities)
+    const wOk = await refreshWatchlistQuotes();
+
     lastRefresh = new Date();
     LS.set('nw_last_refresh_ts', String(Date.now()));
     const timeStr = lastRefresh.toLocaleTimeString();
     const skipMsg = skipped > 0
       ? ' (' + skipped + ' not found: ' + skippedSyms.slice(0,6).join(', ') + (skippedSyms.length > 6 ? ', …' : '') + ')'
       : '';
-    setRefreshStatus('✓ ' + updated + ' prices updated at ' + timeStr + skipMsg);
+    const wMsg = watchlist.length ? ' · watchlist ' + wOk + '/' + watchlist.length : '';
+    setRefreshStatus('✓ ' + updated + ' prices updated at ' + timeStr + wMsg + skipMsg);
     renderHoldingRows();
     recalc();
     gsSave();
+    fetchForex(); // keep INR/USD rate live alongside stock prices
     const fNote = $('footer-note');
     if(fNote) fNote.textContent = 'Live prices refreshed ' + timeStr + ' via Apps Script · USD/INR ' + USD_INR_LIVE.toFixed(2);
   } catch(e){
@@ -2684,6 +2950,7 @@ async function fetchForex(){
     const data = await r.json();
     if(data.INR && data.INR > 0){
       USD_INR_LIVE = data.INR;
+      LS.set('nw_forex_rate', String(data.INR)); // persist across reloads
       const el = $('forex-display');
       if(el) el.textContent = USD_INR_LIVE.toFixed(2);
       recalc();
@@ -2939,6 +3206,7 @@ initDone = true;
 // Render transactions and history chart from local data
 renderTransactions();
 renderHistoryChart();
+renderWatchlist();
 
 // Auto-snapshot check runs 5 seconds after startup (non-blocking)
 setTimeout(maybeAutoSnapshot, 5000);
@@ -2972,7 +3240,10 @@ setTimeout(maybeAutoSnapshot, 5000);
       // Google Sheets is always the source of truth — mirror it exactly.
       // Never fall back to or push up local data while Sheets is reachable.
       const loadedOk = applyPayload(text);
-      if(loadedOk) sheetsLoaded = true;
+      if(loadedOk){
+        sheetsLoaded = true;
+        try{ loadedSheetTs = Date.parse(JSON.parse(text).savedAt)||0; }catch(e2){}
+      }
       const t = new Date().toLocaleTimeString();
       setSaveStatus('loaded');
       const lsEl=$('gs-last-save'); if(lsEl) lsEl.textContent=t;
@@ -2984,6 +3255,12 @@ setTimeout(maybeAutoSnapshot, 5000);
 
     // Auto-load history snapshots from Sheets so the chart shows every recorded day
     loadHistory();
+
+    // Fetch the live INR/USD rate on open
+    fetchForex();
+
+    // Fetch watchlist quotes on open (extended-hours for US)
+    refreshWatchlistQuotes();
 
     // Auto-refresh live prices (throttled to once per 15 min) now that we're connected
     const lastTs = parseInt(LS.get('nw_last_refresh_ts')||'0',10);

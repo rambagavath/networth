@@ -3,8 +3,10 @@ const HOLDINGS_SHEET = 'Holdings';    // one row per position — human-editable
 const SETTINGS_SHEET = 'Settings';    // key/value pairs for accounts, gold, etc.
 const HISTORY_SHEET = 'History';
 const TX_SHEET = 'Transactions';
+const WATCHLIST_SHEET = 'Watchlist'; // one row per tracked stock — human-editable
 
 const HOLDINGS_HEADER = ['Key','Symbol','Name','Account','Shares','Price','Currency','Prev Price','Yahoo Symbol','Day Prev Close','Custom'];
+const WATCHLIST_HEADER = ['Symbol','Name','Market'];
 const C_KEY=0, C_SYM=1, C_NAME=2, C_ACCT=3, C_SHARES=4, C_PRICE=5, C_CURR=6, C_PREV=7, C_YAHOO=8, C_DAYPC=9, C_CUSTOM=10;
 
 // ─── GET handler ──────────────────────────────────────────────
@@ -313,6 +315,111 @@ function doGet(e) {
       }
     }
 
+    // 5b. Watchlist quotes.
+    // US symbols come from Robinhood's public quotes endpoint (no auth), which
+    // carries both the regular and the overnight (extended-hours) trade. Yahoo's
+    // v7/v8 *quote* endpoints are now crumb-gated (401), but the v8 *chart*
+    // endpoint still works without auth — so international symbols (and any US
+    // symbol Robinhood misses) are fetched from there.
+    if (action === 'quotes') {
+      var wsyms = (e.parameter.symbols || '').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+      if (!wsyms.length) return json({quotes: {}});
+      var quotes = {}, werrors = [];
+      var wheaders = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9'
+      };
+
+      // Yahoo chart endpoint: not crumb-gated. meta carries regularMarketPrice,
+      // chartPreviousClose, currency and the long name for every exchange suffix.
+      function yahooChart(sym) {
+        var u = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(sym) + '?interval=1d&range=5d';
+        var r = UrlFetchApp.fetch(u, {muteHttpExceptions:true, headers:wheaders});
+        if (r.getResponseCode() !== 200) return null;
+        var d = JSON.parse(r.getContentText());
+        var meta = d.chart && d.chart.result && d.chart.result[0] && d.chart.result[0].meta;
+        if (!meta) return null;
+        var price = meta.regularMarketPrice;
+        var prev = meta.chartPreviousClose;
+        return {
+          price: price != null ? price : null,
+          changePct: (price != null && prev && prev > 0) ? ((price - prev) / prev) * 100 : null,
+          prevClose: prev || null,
+          postPrice: null, postChangePct: null, prePrice: null, preChangePct: null,
+          currency: meta.currency || '',
+          name: meta.longName || meta.shortName || sym,
+          exchange: meta.exchangeName || meta.fullExchangeName || '',
+          marketState: ''
+        };
+      }
+
+      var usSyms = wsyms.filter(function(s){ return !/\.[A-Z]{2,3}$/i.test(s); });
+      var intlSyms = wsyms.filter(function(s){ return /\.[A-Z]{2,3}$/i.test(s); });
+
+      // International symbols → Yahoo chart
+      intlSyms.forEach(function(sym){
+        try {
+          var q = yahooChart(sym);
+          if (q && q.price != null) quotes[sym] = q;
+          else werrors.push(sym + ':noquote');
+        } catch(e1) { werrors.push(sym + ':' + e1.message.slice(0,30)); }
+      });
+
+      // US symbols → Robinhood (regular + overnight), Yahoo chart as fallback
+      if (usSyms.length) {
+        try {
+          var rhUrl = 'https://api.robinhood.com/quotes/?symbols=' + encodeURIComponent(usSyms.join(','));
+          var rhResp = UrlFetchApp.fetch(rhUrl, {muteHttpExceptions:true, headers:wheaders});
+          if (rhResp.getResponseCode() === 200) {
+            var rhData = JSON.parse(rhResp.getContentText());
+            (rhData.results || (rhData.symbol ? [rhData] : [])).forEach(function(r){
+              var sym = r.symbol;
+              if (!sym) return;
+              var reg = parseFloat(r.last_trade_price);
+              var prev = parseFloat(r.previous_close || r.adjusted_previous_close);
+              var overnight = parseFloat(r.last_extended_hours_trade_price || r.last_non_reg_trade_price);
+              if (!(reg > 0)) return;
+              quotes[sym] = {
+                price: reg,
+                changePct: (prev > 0) ? ((reg - prev) / prev) * 100 : null,
+                prevClose: prev > 0 ? prev : null,
+                postPrice: null, postChangePct: null, prePrice: null, preChangePct: null,
+                // Overnight % is the extended-hours move vs the regular-session
+                // close (matches Robinhood's "After-hours" line), not the
+                // previous day's close.
+                overnightPrice: overnight > 0 ? overnight : null,
+                overnightChangePct: (overnight > 0 && reg > 0) ? ((overnight - reg) / reg) * 100 : null,
+                extLabel: rhSessionLabel(r.venue_last_non_reg_trade_time || r.last_non_reg_trade_time || ''),
+                currency: 'USD',
+                name: '',
+                exchange: '',
+                marketState: ''
+              };
+            });
+          }
+        } catch(rhErr) { werrors.push('robinhood:' + rhErr.message.slice(0,40)); }
+
+        // Fallback for any US symbol Robinhood didn't return
+        usSyms.forEach(function(sym){
+          if (quotes[sym]) return;
+          try {
+            var q = yahooChart(sym);
+            if (q && q.price != null) quotes[sym] = q;
+            else werrors.push(sym + ':noquote');
+          } catch(e2) { werrors.push(sym + ':' + e2.message.slice(0,30)); }
+        });
+      }
+
+      return json({quotes: quotes, errors: werrors, updatedAt: new Date().toISOString()});
+    }
+
+    // 6. Timestamp-only check — cheap freshness probe for the app's pre-save guard
+    if (action === 'ts') {
+      const s = readSettings();
+      return json({savedAt: s.savedAt || ''});
+    }
+
     // Default: load portfolio — assemble the JSON payload from relational sheets
     return json(buildPortfolioPayload());
 
@@ -357,6 +464,7 @@ function doPost(e) {
     ensureSchema();
     writeHoldings(getOrCreateSheet(HOLDINGS_SHEET, HOLDINGS_HEADER), body.holdings);
     writeSettings(body);
+    if (Array.isArray(body.watchlist)) writeWatchlist(body.watchlist);
     return json({ok: true});
 
   } catch(err) {
@@ -432,10 +540,35 @@ function deriveYahooSym(sym, inr) {
 }
 
 function writeHoldings(sheet, holdings) {
+  // Yahoo Symbol is the one column users edit directly in the sheet (to fix
+  // tickers). Read the current values so a stale in-memory save can't clobber
+  // them back to the auto-derived ticker — the app only sets yahooSym on initial
+  // import, never during a normal save/refresh.
+  const existingYahoo = {}; // 'sym|acct' -> current Yahoo Symbol cell
+  const curLast = sheet.getLastRow();
+  if (curLast > 1) {
+    const curRows = sheet.getRange(2, 1, curLast - 1, HOLDINGS_HEADER.length).getValues();
+    curRows.forEach(function(r) {
+      const sym = String(r[C_SYM] || '').trim();
+      if (!sym) return;
+      const k = sym + '|' + String(r[C_ACCT] || '').trim();
+      existingYahoo[k] = String(r[C_YAHOO] || '').trim();
+    });
+  }
+
   const rows = [];
   Object.entries(holdings || {}).forEach(function(entry) {
     const key = entry[0], h = entry[1];
     if (!h) return;
+    const matchKey = (h.sym || '') + '|' + (h.acct || '');
+    const savedYahoo = existingYahoo[matchKey];
+    const derived = deriveYahooSym(h.sym, h.inr);
+    let yahooCell;
+    if (savedYahoo != null && savedYahoo !== '' && savedYahoo !== derived) {
+      yahooCell = savedYahoo; // genuine user edit (differs from derivation) — preserve
+    } else {
+      yahooCell = h.yahooSym || derived; // blank/echo cell → app value (override or derive)
+    }
     rows.push([
       key,
       h.sym || '',
@@ -445,7 +578,7 @@ function writeHoldings(sheet, holdings) {
       num(h.price),
       h.inr ? 'INR' : 'USD',
       num(h.prevPrice),
-      h.yahooSym || deriveYahooSym(h.sym, h.inr),
+      yahooCell,
       num(h.dayPrevClose),
       h.custom ? 'Y' : ''
     ]);
@@ -542,6 +675,13 @@ function writeSettings(obj) {
     ['gold.grams', keepIfReal('gold.grams', s.goldGrams)],
     ['excluded', (s.excluded || []).join(',')]
   ];
+  // Preserve any extra keys the user added directly in the Settings tab — only
+  // the canonical keys above are rewritten from the app payload.
+  const canon = {};
+  rows.forEach(function(r) { canon[r[0]] = true; });
+  Object.keys(existing).forEach(function(k) {
+    if (!canon[k]) rows.push([k, existing[k]]);
+  });
   const last = sheet.getLastRow();
   if (last > 1) sheet.getRange(2, 1, last - 1, 2).clearContent();
   sheet.getRange(2, 1, rows.length, 2).setValues(rows);
@@ -560,12 +700,39 @@ function readTransactions() {
   }
 }
 
+function readWatchlist() {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(WATCHLIST_SHEET);
+    if (!sheet) return null; // no tab yet → omit the field so the app seeds defaults
+    const last = sheet.getLastRow();
+    if (last <= 1) return [];
+    const rows = sheet.getRange(2, 1, last - 1, 3).getValues();
+    const out = [];
+    rows.forEach(function(r) {
+      const sym = String(r[0] || '').trim();
+      if (!sym) return;
+      out.push({sym: sym, name: String(r[1] || '').trim() || sym, market: String(r[2] || '').trim().toLowerCase() || 'us'});
+    });
+    return out;
+  } catch (err) { return null; }
+}
+
+function writeWatchlist(list) {
+  const sheet = getOrCreateSheet(WATCHLIST_SHEET, WATCHLIST_HEADER);
+  const rows = (list || []).map(function(w) {
+    return [w.sym, w.name || w.sym, w.market || 'us'];
+  });
+  const last = sheet.getLastRow();
+  if (last > 1) sheet.getRange(2, 1, last - 1, 3).clearContent();
+  if (rows.length) sheet.getRange(2, 1, rows.length, 3).setValues(rows);
+}
+
 function buildPortfolioPayload() {
   ensureSchema();
   const holdings = readHoldings(getOrCreateSheet(HOLDINGS_SHEET, HOLDINGS_HEADER));
   const s = readSettings();
   const nv = function(k) { const v = num(s[k]); return v === '' ? 0 : v; };
-  return {
+  const payload = {
     version: 2,
     savedAt: s.savedAt || new Date().toISOString(),
     holdings: holdings,
@@ -587,6 +754,12 @@ function buildPortfolioPayload() {
     goldGrams: nv('gold.grams'),
     transactions: readTransactions()
   };
+  // Omit watchlist when no Watchlist tab exists yet — a missing tab must not be
+  // mistaken for an empty (user-cleared) list, or the app's seeded defaults get
+  // wiped on the very first load.
+  const wl = readWatchlist();
+  if (wl !== null) payload.watchlist = wl;
+  return payload;
 }
 
 function updateSetting(key, value) {
@@ -603,12 +776,14 @@ function updateSetting(key, value) {
   else sheet.getRange(target, 2).setValue(value);
 }
 
-// Simple trigger: when the user edits Holdings directly, mark the sheet newer so
-// the app's last-writer-wins sync pulls those edits down on the next load.
+// Simple trigger: when the user edits Holdings or Settings directly, mark the
+// sheet newer so the app's pre-save freshness check pulls those edits down
+// before its next write (otherwise a stale in-memory save could clobber them).
 function onEdit(e) {
   try {
     if (!e || !e.range) return;
-    if (e.range.getSheet().getName() !== HOLDINGS_SHEET) return;
+    const sheetName = e.range.getSheet().getName();
+    if (sheetName !== HOLDINGS_SHEET && sheetName !== SETTINGS_SHEET) return;
     updateSetting('savedAt', new Date().toISOString());
   } catch (err) { /* silent */ }
 }
@@ -634,4 +809,29 @@ function authorizeAndTest() {
 function json(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+// Classify a Robinhood extended-hours trade by US Eastern time of day.
+// Robinhood's 24-hour market: pre-market 4–9:30am, regular 9:30am–4pm,
+// after-hours 4–8pm, overnight 8pm–4am (all ET). The user draws the
+// after-hours vs overnight line at 8pm, so this never blurs the two.
+function rhSessionLabel(isoUtc) {
+  if (!isoUtc) return 'After-hrs';
+  var ms = Date.parse(isoUtc);
+  if (!isFinite(ms)) return 'After-hrs';
+  var year = new Date(ms).getUTCFullYear();
+  // US Eastern DST: 2nd Sunday of March → 1st Sunday of November.
+  var mar1 = new Date(Date.UTC(year, 2, 1));
+  var firstSunMar = ((7 - mar1.getUTCDay()) % 7) + 1;
+  var dstStart = Date.UTC(year, 2, firstSunMar + 7, 7);  // 7:00 UTC = 3am EDT boundary
+  var nov1 = new Date(Date.UTC(year, 10, 1));
+  var firstSunNov = ((7 - nov1.getUTCDay()) % 7) + 1;
+  var dstEnd = Date.UTC(year, 10, firstSunNov, 6);       // 6:00 UTC = 2am EDT boundary
+  var offset = (ms >= dstStart && ms < dstEnd) ? 4 : 5;  // hours behind UTC
+  var d = new Date(ms - offset * 3600000);
+  var h = d.getUTCHours() + d.getUTCMinutes() / 60;
+  if (h >= 16 && h < 20) return 'After-hrs';
+  if (h >= 20 || h < 4) return 'Overnight';
+  if (h >= 4 && h < 9.5) return 'Pre-mkt';
+  return 'After-hrs';
 }
