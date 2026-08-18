@@ -6,16 +6,16 @@
 <title>Net Worth Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0d0f12;--bg2:#13161b;--bg3:#1a1e25;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);--text:#e8eaed;--muted:#6b7280;--muted2:#9ca3af;--green:#34d399;--red:#f87171;--blue:#60a5fa;--amber:#fbbf24;--teal:#2dd4bf;--purple:#a78bfa;--cyan:#22d3ee;--pink:#f472b6;--orange:#fb923c;--indigo:#818cf8;}
+:root{--bg:#10131a;--bg2:#171b25;--bg3:#212736;--border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.18);--text:#f1f3f6;--muted:#8a93a6;--muted2:#bcc5d3;--green:#4ade80;--red:#ff6b6b;--blue:#6fb1ff;--amber:#fcd34d;--teal:#5eead4;--purple:#c4b5fd;--cyan:#67e8f9;--pink:#f9a8d4;--orange:#fdba74;--indigo:#a5b4fc;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
-body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(1100px 560px at 12% -8%,rgba(96,165,250,.12),transparent 60%),radial-gradient(950px 520px at 96% 0%,rgba(167,139,250,.11),transparent 55%),radial-gradient(900px 560px at 88% 102%,rgba(45,212,191,.09),transparent 55%),radial-gradient(760px 480px at -4% 96%,rgba(251,191,36,.07),transparent 55%);}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(1100px 560px at 12% -8%,rgba(96,165,250,.22),transparent 60%),radial-gradient(950px 520px at 96% 0%,rgba(167,139,250,.2),transparent 55%),radial-gradient(900px 560px at 88% 102%,rgba(45,212,191,.16),transparent 55%),radial-gradient(760px 480px at -4% 96%,rgba(251,191,36,.12),transparent 55%),radial-gradient(800px 420px at 50% 0%,rgba(244,114,182,.1),transparent 60%);}
 .app{max-width:980px;margin:0 auto;padding:2rem 1.25rem 4rem;position:relative;z-index:1;}
 
 /* Header */
 .hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:12px;}
 .hdr-logo{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.15em;color:var(--muted);text-transform:uppercase;margin-bottom:5px;}
-.hdr-title{font-size:24px;font-weight:600;letter-spacing:-.5px;background:linear-gradient(90deg,#ffffff 0%,#93c5fd 42%,#5eead4 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;}
+.hdr-title{font-size:24px;font-weight:600;letter-spacing:-.5px;background:linear-gradient(90deg,#ffffff 0%,#93c5fd 28%,#67e8f9 55%,#c4b5fd 82%,#f9a8d4 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;}
 .hdr-sub{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;}
 .hdr-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;}
 .live-dot{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);font-family:'DM Mono',monospace;}
@@ -43,8 +43,8 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 .metrics{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:1.25rem;}
 @media(max-width:640px){.metrics{grid-template-columns:repeat(2,1fr);}}
 .mc{background:linear-gradient(180deg,var(--bg2),var(--bg));border:1px solid var(--border);border-radius:10px;padding:13px 15px;position:relative;overflow:hidden;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;}
-.mc:hover{transform:translateY(-2px);border-color:var(--border2);box-shadow:0 10px 26px -14px rgba(96,165,250,.4);}
-.mc-accent{position:absolute;top:0;right:0;width:72px;height:72px;border-radius:0 10px 0 64px;filter:saturate(1.2);}
+.mc:hover{transform:translateY(-2px);border-color:var(--border2);box-shadow:0 10px 30px -12px rgba(96,165,250,.6);}
+.mc-accent{position:absolute;top:0;right:0;width:72px;height:72px;border-radius:0 10px 0 64px;filter:saturate(1.8) brightness(1.25);}
 .mc-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:7px;}
 .mc-val{font-size:21px;font-weight:600;letter-spacing:-.5px;color:var(--text);line-height:1;}
 .mc-sub{font-size:10px;color:var(--muted);margin-top:5px;font-family:'DM Mono',monospace;}
@@ -63,7 +63,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 .group-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1rem;}
 @media(max-width:640px){.group-grid{grid-template-columns:1fr;}}
 .gc{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px;position:relative;overflow:hidden;cursor:pointer;transition:border-color .2s,box-shadow .2s,transform .2s;}
-.gc:hover{border-color:var(--border2);box-shadow:0 12px 32px -18px rgba(96,165,250,.45);}
+.gc:hover{border-color:var(--border2);box-shadow:0 12px 32px -16px rgba(96,165,250,.65);}
 .gc-accent{position:absolute;top:0;left:0;right:0;height:2px;border-radius:12px 12px 0 0;}
 .gc-label{font-size:10px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:8px;}
 .gc-val{font-size:24px;font-weight:600;letter-spacing:-.8px;line-height:1;margin-bottom:5px;}
@@ -134,8 +134,10 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 /* India note */
 .india-note{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;padding:8px 0 2px;border-top:1px solid var(--border);margin-top:4px;line-height:1.7;}
 
-/* Watchlist */
-.w-badge{display:inline-block;font-size:9px;font-family:'DM Mono',monospace;padding:1px 6px;border-radius:4px;background:var(--bg3);border:1px solid var(--border2);color:var(--muted2);margin-left:6px;vertical-align:1px;}
+/* Watchlist */  .w-badge{display:inline-block;font-size:9px;font-family:'DM Mono',monospace;padding:1px 6px;border-radius:4px;background:var(--bg3);border:1px solid var(--border2);color:var(--muted2);margin-left:6px;vertical-align:1px;}
+  .w-link{display:block;text-decoration:none;color:inherit;border-radius:6px;}
+  .w-link:hover{background:rgba(255,255,255,.04);}
+  .w-link:hover .h-ticker{text-decoration:underline;}
 .watch-add{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 0 2px;border-top:1px solid var(--border);margin-top:12px;}
 .watch-add input,.watch-add select{font-family:'DM Mono',monospace;font-size:12px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:6px 10px;}
 .watch-add input{flex:1;min-width:140px;text-transform:uppercase;}
@@ -197,13 +199,13 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 .parse-amt{color:var(--text);}
 .modal-actions{display:flex;gap:7px;justify-content:flex-end;margin-top:6px;}
 .mbtn{font-family:'DM Mono',monospace;font-size:12px;padding:7px 16px;border-radius:7px;cursor:pointer;border:1px solid var(--border2);transition:all .15s;}
-.mbtn-primary{background:linear-gradient(135deg,rgba(96,165,250,.22),rgba(45,212,191,.14));color:var(--blue);border-color:rgba(96,165,250,.4);}
+.mbtn-primary{background:linear-gradient(135deg,rgba(96,165,250,.4),rgba(45,212,191,.28));color:#dbeafe;border-color:rgba(96,165,250,.6);}
 .mbtn-primary:hover{background:rgba(96,165,250,.22);}
 .mbtn-secondary{background:var(--bg3);color:var(--muted2);}
 .mbtn-secondary:hover{color:var(--text);}
 
 /* Summary */
-.summary{background:linear-gradient(135deg,rgba(96,165,250,.07),rgba(45,212,191,.05) 45%,rgba(167,139,250,.07));border:1px solid var(--border2);border-radius:12px;padding:20px 24px;margin-top:1.25rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;box-shadow:0 16px 44px -22px rgba(96,165,250,.4);}
+.summary{background:linear-gradient(135deg,rgba(96,165,250,.14),rgba(45,212,191,.1) 45%,rgba(167,139,250,.14));border:1px solid var(--border2);border-radius:12px;padding:20px 24px;margin-top:1.25rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;box-shadow:0 16px 44px -20px rgba(96,165,250,.55);}
 .sum-left .sum-label{font-size:10px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:6px;}
 .sum-val{font-size:30px;font-weight:600;letter-spacing:-1px;line-height:1;}
 .sum-sub{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:5px;}
@@ -372,7 +374,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 <div class="sec" id="sec-watchlist">
   <div class="sec-hdr" onclick="toggleSec(this)">
     <div class="sec-hdr-left">
-      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(34,211,238,.38),rgba(34,211,238,.08));color:#67e8f9">WL</div>
+      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(34,211,238,.55),rgba(34,211,238,.15));color:#a5f3fc">WL</div>
       <div><div class="sec-name">Watchlist</div><div class="sec-sub">Live prices · US after-hrs &amp; overnight via Robinhood</div></div>
     </div>
     <div class="sec-hdr-right"><div class="sec-val" style="color:var(--cyan)"><span id="watch-count">0</span> stocks</div><div class="chevron">▼</div></div>
@@ -398,7 +400,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
         <option value="taiwan">🇹🇼 Taiwan</option>
         <option value="uk">🇬🇧 UK</option>
       </select>
-      <button class="chart-btn" onclick="addWatch()" style="color:var(--cyan);border-color:rgba(34,211,238,.4);">＋ Add</button>
+      <button class="chart-btn" onclick="addWatch()" style="color:var(--cyan);border-color:rgba(34,211,238,.6);">＋ Add</button>
       <span id="watch-err" style="display:none;font-size:11px;color:var(--red);font-family:'DM Mono',monospace;"></span>
     </div>
     <div class="india-note">Tracking only — not counted in net worth. Prices refresh with ↻ Refresh. For India enter the NSE symbol (e.g. STLTECH); the market suffix is added automatically.</div>
@@ -426,12 +428,12 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 
 <!-- METRICS -->
 <div class="metrics">
-  <div class="mc"><div class="mc-accent" style="background:linear-gradient(135deg,rgba(96,165,250,.42),rgba(96,165,250,0))"></div><div class="mc-label">Total Net Worth</div><div class="mc-val" id="m-total">—</div><div class="mc-sub" id="m-total-sub">loading…</div><div class="mc-chg" id="m-total-chg"></div></div>
-  <div class="mc"><div class="mc-accent" style="background:linear-gradient(135deg,rgba(45,212,191,.42),rgba(45,212,191,0))"></div><div class="mc-label">INR Equivalent</div><div class="mc-val" id="m-inr">—</div><div class="mc-sub">at live INR/USD rate</div></div>
-  <div class="mc"><div class="mc-accent" style="background:linear-gradient(135deg,rgba(96,165,250,.38),rgba(96,165,250,0))"></div><div class="mc-label">US Taxable</div><div class="mc-val" id="m-ustax">—</div><div class="mc-sub" id="m-ustax-sub">Fidelity + Merrill</div><div class="mc-chg" id="m-ustax-chg"></div></div>
-  <div class="mc"><div class="mc-accent" style="background:linear-gradient(135deg,rgba(167,139,250,.4),rgba(167,139,250,0))"></div><div class="mc-label">US Retirement</div><div class="mc-val" id="m-usret">—</div><div class="mc-sub" id="m-usret-sub">401k · IRA · Roth · Pension</div><div class="mc-chg" id="m-usret-chg"></div></div>
-  <div class="mc"><div class="mc-accent" style="background:linear-gradient(135deg,rgba(45,212,191,.38),rgba(45,212,191,0))"></div><div class="mc-label">India</div><div class="mc-val" id="m-india">—</div><div class="mc-sub" id="m-india-sub">₹ · PMS + AIF</div><div class="mc-chg" id="m-india-chg"></div></div>
-  <div class="mc"><div class="mc-accent" style="background:linear-gradient(135deg,rgba(251,191,36,.38),rgba(251,191,36,0))"></div><div class="mc-label">Gold</div><div class="mc-val" id="m-gold">—</div><div class="mc-sub" id="m-gold-sub">grams × 22K price</div><div class="mc-chg" id="m-gold-chg"></div></div>
+  <div class="mc"><div class="mc-accent" style="background:linear-gradient(135deg,rgba(96,165,250,.62),rgba(96,165,250,0))"></div><div class="mc-label">Total Net Worth</div><div class="mc-val" id="m-total">—</div><div class="mc-sub" id="m-total-sub">loading…</div><div class="mc-chg" id="m-total-chg"></div></div>
+  <div class="mc"><div class="mc-accent" style="background:linear-gradient(135deg,rgba(45,212,191,.62),rgba(45,212,191,0))"></div><div class="mc-label">INR Equivalent</div><div class="mc-val" id="m-inr">—</div><div class="mc-sub">at live INR/USD rate</div></div>
+  <div class="mc"><div class="mc-accent" style="background:linear-gradient(135deg,rgba(96,165,250,.55),rgba(96,165,250,0))"></div><div class="mc-label">US Taxable</div><div class="mc-val" id="m-ustax">—</div><div class="mc-sub" id="m-ustax-sub">Fidelity + Merrill</div><div class="mc-chg" id="m-ustax-chg"></div></div>
+  <div class="mc"><div class="mc-accent" style="background:linear-gradient(135deg,rgba(167,139,250,.58),rgba(167,139,250,0))"></div><div class="mc-label">US Retirement</div><div class="mc-val" id="m-usret">—</div><div class="mc-sub" id="m-usret-sub">401k · IRA · Roth · Pension</div><div class="mc-chg" id="m-usret-chg"></div></div>
+  <div class="mc"><div class="mc-accent" style="background:linear-gradient(135deg,rgba(45,212,191,.55),rgba(45,212,191,0))"></div><div class="mc-label">India</div><div class="mc-val" id="m-india">—</div><div class="mc-sub" id="m-india-sub">₹ · PMS + AIF</div><div class="mc-chg" id="m-india-chg"></div></div>
+  <div class="mc"><div class="mc-accent" style="background:linear-gradient(135deg,rgba(251,191,36,.55),rgba(251,191,36,0))"></div><div class="mc-label">Gold</div><div class="mc-val" id="m-gold">—</div><div class="mc-sub" id="m-gold-sub">grams × 22K price</div><div class="mc-chg" id="m-gold-chg"></div></div>
 </div>
 
 <!-- ALLOC BAR -->
@@ -453,7 +455,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 <div class="sec" id="sec-fid-ind">
   <div class="sec-hdr" onclick="toggleSec(this)">
     <div class="sec-hdr-left">
-      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(96,165,250,.38),rgba(96,165,250,.1));color:#93c5fd">FI</div>
+      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(96,165,250,.55),rgba(96,165,250,.16));color:#dbeafe">FI</div>
       <div><div class="sec-name">Fidelity Individual (TOD)</div><div class="sec-sub">Taxable brokerage</div></div>
     </div>
     <div class="sec-hdr-right"><div class="sec-val" style="color:var(--text)" id="hdr-fid-ind">—</div><div class="sec-chg" id="chg-fid-ind"></div><div class="chevron">▼</div></div>
@@ -468,7 +470,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 <div class="sec" id="sec-fid-ira">
   <div class="sec-hdr" onclick="toggleSec(this)">
     <div class="sec-hdr-left">
-      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(59,130,246,.38),rgba(59,130,246,.1));color:#93c5fd">TR</div>
+      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(59,130,246,.55),rgba(59,130,246,.16));color:#bfdbfe">TR</div>
       <div><div class="sec-name">Fidelity Traditional IRA</div><div class="sec-sub">Tax-deferred retirement</div></div>
     </div>
     <div class="sec-hdr-right"><div class="sec-val" style="color:var(--text)" id="hdr-fid-ira">—</div><div class="sec-chg" id="chg-fid-ira"></div><div class="chevron">▼</div></div>
@@ -483,7 +485,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 <div class="sec" id="sec-hartford">
   <div class="sec-hdr" onclick="toggleSec(this)">
     <div class="sec-hdr-left">
-      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(167,139,250,.4),rgba(167,139,250,.1));color:#c4b5fd">HF</div>
+      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(167,139,250,.58),rgba(167,139,250,.16));color:#e9d5ff">HF</div>
       <div><div class="sec-name">Hartford 401(k)</div><div class="sec-sub">Employer plan · refreshes via fund proxy</div></div>
     </div>
     <div class="sec-hdr-right"><div class="sec-val" style="color:var(--purple)" id="hdr-hartford">—</div><div class="sec-chg" id="chg-hartford"></div><div class="chevron">▼</div></div>
@@ -497,7 +499,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 <div class="sec" id="sec-merrill">
   <div class="sec-hdr" onclick="toggleSec(this)">
     <div class="sec-hdr-left">
-      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(96,165,250,.4),rgba(29,78,216,.12));color:#93c5fd">ME</div>
+      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(96,165,250,.58),rgba(29,78,216,.2));color:#dbeafe">ME</div>
       <div><div class="sec-name">Merrill CMA</div><div class="sec-sub">Cash management account</div></div>
     </div>
     <div class="sec-hdr-right"><div class="sec-val" style="color:var(--text)" id="hdr-merrill">—</div><div class="sec-chg" id="chg-merrill"></div><div class="chevron">▼</div></div>
@@ -511,7 +513,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 <div class="sec" id="sec-fid-rh">
   <div class="sec-hdr" onclick="toggleSec(this)">
     <div class="sec-hdr-left">
-      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(96,165,250,.3),rgba(96,165,250,.08));color:#bfdbfe">R+H</div>
+      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(96,165,250,.48),rgba(96,165,250,.14));color:#dbeafe">R+H</div>
       <div><div class="sec-name">Fidelity Roth IRA & HSA</div><div class="sec-sub">Tax-free retirement & health savings</div></div>
     </div>
     <div class="sec-hdr-right"><div class="sec-val" style="color:var(--text)" id="hdr-fid-rh">—</div><div class="sec-chg" id="chg-fid-rh"></div><div class="chevron">▼</div></div>
@@ -526,7 +528,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 <div class="sec" id="sec-pension">
   <div class="sec-hdr" onclick="toggleSec(this)">
     <div class="sec-hdr-left">
-      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(251,191,36,.36),rgba(251,191,36,.1));color:#fcd34d">PE</div>
+      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(251,191,36,.55),rgba(251,191,36,.16));color:#fde68a">PE</div>
       <div><div class="sec-name">Pension Plan Balance</div><div class="sec-sub">Defined benefit · 5% annual interest</div></div>
     </div>
     <div class="sec-hdr-right"><div class="sec-val" style="color:var(--amber)" id="hdr-pension">—</div><div class="chevron">▼</div></div>
@@ -540,7 +542,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 <div class="sec" id="sec-stallion">
   <div class="sec-hdr" onclick="toggleSec(this)">
     <div class="sec-hdr-left">
-      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(45,212,191,.38),rgba(45,212,191,.1));color:#5eead4">ST</div>
+      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(45,212,191,.55),rgba(45,212,191,.16));color:#99f6e4">ST</div>
       <div><div class="sec-name">Stallion Asset PMS</div><div class="sec-sub" id="stallion-as-of">as of —</div></div>
     </div>
     <div class="sec-hdr-right"><div class="sec-val" style="color:var(--teal)" id="hdr-stallion">—</div><div class="sec-chg" id="chg-stallion"></div><div class="chevron">▼</div></div>
@@ -556,7 +558,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 <div class="sec" id="sec-gold">
   <div class="sec-hdr" onclick="toggleSec(this)">
     <div class="sec-hdr-left">
-      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(251,191,36,.38),rgba(217,119,6,.12));color:#fcd34d">AU</div>
+      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(251,191,36,.55),rgba(217,119,6,.2));color:#fde68a">AU</div>
       <div><div class="sec-name">Physical Gold</div><div class="sec-sub">22 karat · value = grams × price/gram</div></div>
     </div>
     <div class="sec-hdr-right"><div class="sec-val" style="color:var(--amber)" id="hdr-gold">—</div><div class="sec-chg" id="chg-gold"></div><div class="chevron">▼</div></div>
@@ -577,7 +579,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 <div class="sec" id="sec-niveshaay">
   <div class="sec-hdr" onclick="toggleSec(this)">
     <div class="sec-hdr-left">
-      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(45,212,191,.38),rgba(15,118,110,.16));color:#5eead4">NV</div>
+      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(45,212,191,.55),rgba(15,118,110,.24));color:#99f6e4">NV</div>
       <div><div class="sec-name">Niveshaay AIF</div><div class="sec-sub" id="niv-as-of">as of —</div></div>
     </div>
     <div class="sec-hdr-right"><div class="sec-val" style="color:var(--teal)" id="hdr-niveshaay">—</div><div class="chevron">▼</div></div>
@@ -594,7 +596,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 <div class="sec" id="sec-india-ind" style="display:none">
   <div class="sec-hdr" onclick="toggleSec(this)">
     <div class="sec-hdr-left">
-      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(45,212,191,.36),rgba(45,212,191,.1));color:#5eead4;font-size:10px;">IN</div>
+      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(45,212,191,.55),rgba(45,212,191,.16));color:#99f6e4;font-size:10px;">IN</div>
       <div><div class="sec-name">India Individual Holdings</div><div class="sec-sub">NSE / BSE · prices in ₹ · auto-converted to USD</div></div>
     </div>
     <div class="sec-hdr-right"><div class="sec-val" style="color:var(--teal)" id="hdr-india-ind">—</div><div class="sec-chg" id="chg-india-ind"></div><div class="chevron">▼</div></div>
@@ -612,7 +614,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 <div class="sec" id="sec-india-ira" style="display:none">
   <div class="sec-hdr" onclick="toggleSec(this)">
     <div class="sec-hdr-left">
-      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(34,211,238,.36),rgba(13,148,136,.14));color:#67e8f9;font-size:10px;">NPS</div>
+      <div class="sec-icon" style="background:linear-gradient(135deg,rgba(34,211,238,.55),rgba(13,148,136,.22));color:#a5f3fc;font-size:10px;">NPS</div>
       <div><div class="sec-name">India Retirement Holdings</div><div class="sec-sub">NPS / PPF / EPF · prices in ₹</div></div>
     </div>
     <div class="sec-hdr-right"><div class="sec-val" style="color:var(--teal)" id="hdr-india-ira">—</div><div class="sec-chg" id="chg-india-ira"></div><div class="chevron">▼</div></div>
@@ -750,7 +752,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
         <div id="stallion-replace-preview" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted2);max-height:180px;overflow-y:auto;margin-bottom:8px;"></div>
         <div class="modal-actions">
           <button class="mbtn mbtn-secondary" onclick="hideModal()">Cancel</button>
-          <button class="mbtn mbtn-primary" id="stallion-replace-btn" style="background:rgba(251,146,60,.12);color:#fb923c;border-color:rgba(251,146,60,.4);" onclick="applyStallionReplace()" disabled>Replace Portfolio</button>
+          <button class="mbtn mbtn-primary" id="stallion-replace-btn" style="background:rgba(251,146,60,.22);color:#fdba74;border-color:rgba(251,146,60,.6);" onclick="applyStallionReplace()" disabled>Replace Portfolio</button>
         </div>
       </div>
     </div>
@@ -895,7 +897,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
 
       <div class="modal-actions" style="margin-top:14px;">
         <button class="mbtn mbtn-secondary" onclick="hideModal()">Cancel</button>
-        <button class="mbtn mbtn-primary" id="add-stock-btn" style="background:rgba(52,211,153,.12);color:var(--green);border-color:rgba(52,211,153,.4);" onclick="addStock()">+ Add to Portfolio</button>
+        <button class="mbtn mbtn-primary" id="add-stock-btn" style="background:rgba(52,211,153,.22);color:var(--green);border-color:rgba(52,211,153,.6);" onclick="addStock()">+ Add to Portfolio</button>
       </div>
     </div>
 
@@ -1133,6 +1135,12 @@ function renderWatchlist(){
     const m = WATCH_MARKETS[w.market] || WATCH_MARKETS.us;
     const cur = (q && q.currency && WATCH_CUR[q.currency]) ? WATCH_CUR[q.currency] : (w.market==='india' ? '₹' : '$');
     const name = (w.name && w.name !== w.sym) ? w.name : (q && q.name && q.name !== w.sym ? q.name : w.sym);
+    // US stocks link to Robinhood (where the overnight/after-hrs prices come
+    // from); everything else links to Yahoo Finance, which handles every
+    // exchange suffix (STLTECH.NS, 000660.KS, 601138.SS, 2357.TW, ASML.AS…).
+    const linkUrl = (w.market === 'us')
+      ? 'https://robinhood.com/stocks/' + encodeURIComponent(w.sym)
+      : 'https://finance.yahoo.com/quote/' + encodeURIComponent(w.sym);
     let priceHtml = '<span class="muted">—</span>';
     let extHtml = '';
     if(q && q.price){
@@ -1140,23 +1148,32 @@ function renderWatchlist(){
       const cls = pctV >= 0 ? 'pos' : 'neg';
       priceHtml = cur + q.price.toLocaleString(undefined,{maximumFractionDigits:2}) + ' <span class="'+cls+'">' + (pctV>=0?'+':'') + pctV.toFixed(2) + '%</span>';
       if(w.market === 'us'){
-        // Robinhood session-aware extended-hours price: the label distinguishes
-        // After-hrs (4–8pm ET) from Overnight (8pm–4am ET). Yahoo after-hours /
-        // pre-market only as fallbacks when Robinhood returned nothing.
+        // Extended-hours line, shown only when the most recent trade IS an
+        // extended-hours trade (i.e. pre-market / after-hrs / overnight) — the
+        // same condition under which Robinhood shows its "After-hours"/
+        // "Overnight" line. It displays the move vs the regular-session close
+        // (matching Robinhood), since the headline price is already the
+        // extended price in that case. Yahoo after-hrs/pre-mkt as fallback.
         let extP = q.overnightPrice, extPct = q.overnightChangePct, label = q.extLabel || 'Overnight';
         if(!(extP > 0)){ extP = q.postPrice; extPct = q.postChangePct; label = 'After-hrs'; }
         if(!(extP > 0)){ extP = q.prePrice;  extPct = q.preChangePct;  label = 'Pre-mkt'; }
-        if(extP > 0){
+        const showExt = (extP > 0) && (q.inExtendedHours !== false);
+        if(showExt){
           const extCls = (extPct != null ? extPct : 0) >= 0 ? 'pos' : 'neg';
           const emoji = label === 'Overnight' ? '🌙' : (label === 'Pre-mkt' ? '🌅' : '🌇');
-          extHtml = '<div class="h-gl '+extCls+'">' + emoji + ' ' + label + ' ' + cur + extP.toLocaleString(undefined,{maximumFractionDigits:2}) + (extPct != null ? ' ('+(extPct>=0?'+':'')+extPct.toFixed(2)+'%)' : '') + '</div>';
+          let moveTxt = '';
+          if(q.regularClose > 0){ const mv = extP - q.regularClose; moveTxt = ' ' + (mv>=0?'+':'') + cur + mv.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}); }
+          else moveTxt = ' ' + cur + extP.toLocaleString(undefined,{maximumFractionDigits:2});
+          extHtml = '<div class="h-gl '+extCls+'">' + emoji + ' ' + label + moveTxt + (extPct != null ? ' ('+(extPct>=0?'+':'')+extPct.toFixed(2)+'%)' : '') + '</div>';
         }
       }
     }
     return `<div class="holding">
       <div class="h-left">
-        <div class="h-ticker" style="color:var(--cyan)">${escHtml(w.sym)}</div>
-        <div class="h-name">${escHtml(name)} <span class="w-badge">${m.flag} ${m.label}</span></div>
+        <a class="w-link" href="${linkUrl}" target="_blank" rel="noopener">
+          <div class="h-ticker" style="color:var(--cyan)">${escHtml(w.sym)}</div>
+          <div class="h-name">${escHtml(name)} <span class="w-badge">${m.flag} ${m.label}</span></div>
+        </a>
         ${extHtml}
       </div>
       <div class="h-right">

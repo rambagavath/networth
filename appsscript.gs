@@ -338,10 +338,18 @@ function doGet(e) {
         var r = UrlFetchApp.fetch(u, {muteHttpExceptions:true, headers:wheaders});
         if (r.getResponseCode() !== 200) return null;
         var d = JSON.parse(r.getContentText());
-        var meta = d.chart && d.chart.result && d.chart.result[0] && d.chart.result[0].meta;
+        var res = d.chart && d.chart.result && d.chart.result[0];
+        var meta = res && res.meta;
         if (!meta) return null;
         var price = meta.regularMarketPrice;
-        var prev = meta.chartPreviousClose;
+        // chartPreviousClose with range=5d is the close ~5 sessions ago, NOT
+        // yesterday's close — using it would turn the day-change into a
+        // multi-day change. The second-to-last close in the series is the
+        // prior trading session's close, which is the correct base.
+        var closes = ((res.indicators || {}).quote || [{}])[0].close || [];
+        var prev = null;
+        if (closes.length >= 2 && closes[closes.length - 2] > 0) prev = closes[closes.length - 2];
+        if (!(prev > 0)) prev = meta.chartPreviousClose; // fallback (e.g. new listing)
         return {
           price: price != null ? price : null,
           changePct: (price != null && prev && prev > 0) ? ((price - prev) / prev) * 100 : null,
@@ -380,17 +388,28 @@ function doGet(e) {
               var prev = parseFloat(r.previous_close || r.adjusted_previous_close);
               var overnight = parseFloat(r.last_extended_hours_trade_price || r.last_non_reg_trade_price);
               if (!(reg > 0)) return;
+              var regT = r.venue_last_trade_time || '';
+              var extT = r.venue_last_non_reg_trade_time || r.last_non_reg_trade_time || '';
+              // Robinhood's headline price is the most recent trade — the
+              // extended-hours trade once the regular session ends (pre-mkt
+              // 4–9:30am, after-hrs 4–8pm, overnight 8pm–4am) — and its
+              // "Today" % is that price vs the previous close. Mirror that so
+              // the watchlist matches Robinhood's own page.
+              var inExt = (overnight > 0) && (extT > regT);
+              var headline = inExt ? overnight : reg;
               quotes[sym] = {
-                price: reg,
-                changePct: (prev > 0) ? ((reg - prev) / prev) * 100 : null,
+                price: headline,
+                changePct: (prev > 0) ? ((headline - prev) / prev) * 100 : null,
                 prevClose: prev > 0 ? prev : null,
+                regularClose: reg,
                 postPrice: null, postChangePct: null, prePrice: null, preChangePct: null,
                 // Overnight % is the extended-hours move vs the regular-session
                 // close (matches Robinhood's "After-hours" line), not the
                 // previous day's close.
                 overnightPrice: overnight > 0 ? overnight : null,
                 overnightChangePct: (overnight > 0 && reg > 0) ? ((overnight - reg) / reg) * 100 : null,
-                extLabel: rhSessionLabel(r.venue_last_non_reg_trade_time || r.last_non_reg_trade_time || ''),
+                extLabel: rhSessionLabel(extT),
+                inExtendedHours: inExt,
                 currency: 'USD',
                 name: '',
                 exchange: '',
