@@ -392,14 +392,17 @@ function doGet(e) {
               var extT = r.venue_last_non_reg_trade_time || r.last_non_reg_trade_time || '';
               // Robinhood's headline price is the most recent trade — the
               // extended-hours trade once the regular session ends (pre-mkt
-              // 4–9:30am, after-hrs 4–8pm, overnight 8pm–4am) — and its
-              // "Today" % is that price vs the previous close. Mirror that so
-              // the watchlist matches Robinhood's own page.
+              // 4–9:30am, after-hrs 4–8pm, overnight 8pm–4am). Its "Today" %
+              // is ALWAYS the regular-session close vs the previous close
+              // (verified live: page showed MU $1,017 extended but "Today
+              // +4.16%" = 1012.08 vs 971.66 — the day % never follows the
+              // extended price). Mirror that so the watchlist matches
+              // Robinhood's own page.
               var inExt = (overnight > 0) && (extT > regT);
               var headline = inExt ? overnight : reg;
               quotes[sym] = {
                 price: headline,
-                changePct: (prev > 0) ? ((headline - prev) / prev) * 100 : null,
+                changePct: (prev > 0) ? ((reg - prev) / prev) * 100 : null,
                 prevClose: prev > 0 ? prev : null,
                 regularClose: reg,
                 postPrice: null, postChangePct: null, prePrice: null, preChangePct: null,
@@ -409,6 +412,7 @@ function doGet(e) {
                 overnightPrice: overnight > 0 ? overnight : null,
                 overnightChangePct: (overnight > 0 && reg > 0) ? ((overnight - reg) / reg) * 100 : null,
                 extLabel: rhSessionLabel(extT),
+                extTime: rhTimeLabel(extT),
                 inExtendedHours: inExt,
                 currency: 'USD',
                 name: '',
@@ -853,4 +857,27 @@ function rhSessionLabel(isoUtc) {
   if (h >= 20 || h < 4) return 'Overnight';
   if (h >= 4 && h < 9.5) return 'Pre-mkt';
   return 'After-hrs';
+}
+
+// Format a Robinhood trade timestamp as US Eastern wall-clock time, e.g.
+// "7:59 PM". Shown next to the extended-hours label so a stale after-hours
+// print is never mistaken for the live overnight price (Robinhood's public
+// API stops at 8 PM ET — the 8pm–4am overnight session is not exposed).
+function rhTimeLabel(isoUtc) {
+  if (!isoUtc) return '';
+  var ms = Date.parse(isoUtc);
+  if (!isFinite(ms)) return '';
+  var year = new Date(ms).getUTCFullYear();
+  var mar1 = new Date(Date.UTC(year, 2, 1));
+  var firstSunMar = ((7 - mar1.getUTCDay()) % 7) + 1;
+  var dstStart = Date.UTC(year, 2, firstSunMar + 7, 7);
+  var nov1 = new Date(Date.UTC(year, 10, 1));
+  var firstSunNov = ((7 - nov1.getUTCDay()) % 7) + 1;
+  var dstEnd = Date.UTC(year, 10, firstSunNov, 6);
+  var offset = (ms >= dstStart && ms < dstEnd) ? 4 : 5;
+  var d = new Date(ms - offset * 3600000);
+  var h = d.getUTCHours(), m = d.getUTCMinutes();
+  var ampm = h >= 12 ? 'PM' : 'AM';
+  var h12 = h % 12 || 12;
+  return h12 + ':' + (m < 10 ? '0' : '') + m + ' ' + ampm;
 }

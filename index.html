@@ -375,7 +375,7 @@ input:checked+.slider:before{transform:translateX(16px);background:var(--blue);}
   <div class="sec-hdr" onclick="toggleSec(this)">
     <div class="sec-hdr-left">
       <div class="sec-icon" style="background:linear-gradient(135deg,rgba(34,211,238,.55),rgba(34,211,238,.15));color:#a5f3fc">WL</div>
-      <div><div class="sec-name">Watchlist</div><div class="sec-sub">Live prices · US after-hrs &amp; overnight via Robinhood</div></div>
+      <div><div class="sec-name">Watchlist</div><div class="sec-sub">Live prices · US after-hrs via Robinhood · overnight (8pm–4am ET) not exposed by their API</div></div>
     </div>
     <div class="sec-hdr-right"><div class="sec-val" style="color:var(--cyan)"><span id="watch-count">0</span> stocks</div><div class="chevron">▼</div></div>
   </div>
@@ -1164,7 +1164,10 @@ function renderWatchlist(){
           let moveTxt = '';
           if(q.regularClose > 0){ const mv = extP - q.regularClose; moveTxt = ' ' + (mv>=0?'+':'') + cur + mv.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}); }
           else moveTxt = ' ' + cur + extP.toLocaleString(undefined,{maximumFractionDigits:2});
-          extHtml = '<div class="h-gl '+extCls+'">' + emoji + ' ' + label + moveTxt + (extPct != null ? ' ('+(extPct>=0?'+':'')+extPct.toFixed(2)+'%)' : '') + '</div>';
+          // The ET trade time makes it clear this is the last after-hours
+          // print, not the live overnight price (which Robinhood's public API
+          // does not expose after 8 PM ET).
+          extHtml = '<div class="h-gl '+extCls+'">' + emoji + ' ' + label + (q.extTime ? ' ' + q.extTime : '') + moveTxt + (extPct != null ? ' ('+(extPct>=0?'+':'')+extPct.toFixed(2)+'%)' : '') + '</div>';
         }
       }
     }
