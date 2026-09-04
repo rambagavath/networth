@@ -2466,7 +2466,16 @@ let gsUrl = '';
 let gsSaveTimer = null;
 let sheetsLoaded = false; // only push to Sheets after a successful load
 let loadedSheetTs = 0;    // savedAt at our last load/save — detects direct sheet edits
+let lastRemoteHoldingsCount = -1; // holdings count from last successful Sheets load; -1 = unknown
 const GS_KEY = 'nw_sheets_url';
+const BACKUP_KEY = 'nw_portfolio_backup_v1'; // pre-overwrite snapshot, for wipe recovery
+
+function backupCurrentState(reason){
+  try{
+    const snap = buildSavePayload();
+    LS.set(BACKUP_KEY, JSON.stringify({reason: reason||'', at: new Date().toISOString(), payload: JSON.parse(snap)}));
+  }catch(e){}
+}
 
 // Safe localStorage (works from file:// and https://)
 const LS = {
@@ -2592,7 +2601,7 @@ function saveLocal(){
 function loadLocal(){
   try {
     const raw = localStorage.getItem(LS_DATA_KEY);
-    if(raw && raw !== '{}') return applyPayload(raw);
+    if(raw && raw !== '{}') return applyPayload(raw, 'local');
   } catch(e) {}
   return false;
 }
@@ -2624,10 +2633,28 @@ function buildSavePayload(){
   });
 }
 
-function applyPayload(data){
+function applyPayload(data, source){
   try{
     const obj = typeof data==='string' ? JSON.parse(data) : data;
     if(!obj || !obj.holdings) return false;
+    const remoteCount = Object.keys(obj.holdings || {}).length;
+    const localCount = Object.keys(holdings || {}).length;
+
+    // SAFETY: never mirror an EMPTY remote payload over non-empty local state.
+    // An empty Sheets response (new/blank spreadsheet, wrong deployment URL,
+    // deleted Holdings tab) is a config problem, not a delete-all instruction.
+    if(source === 'remote' && remoteCount === 0 && localCount > 0){
+      console.warn('Refusing to overwrite ' + localCount + ' local holdings with empty Sheets payload.');
+      try{
+        const el = $('refresh-status');
+        if(el) el.textContent = '⚠ Sheets returned 0 holdings — kept ' + localCount + ' local positions. Check the Web App URL / deployment before saving.';
+      }catch(e2){}
+      return false;
+    }
+
+    // Snapshot current state before a remote overwrite, so a bad mirror can be
+    // restored from localStorage key nw_portfolio_backup_v1.
+    if(source === 'remote' && localCount > 0) backupCurrentState('pre-remote-apply');
 
     // Mirror the saved holdings exactly. The app and Sheets share one list, so
     // anything removed elsewhere (e.g. a sold position) is dropped here too.
@@ -2691,6 +2718,9 @@ function applyPayload(data){
     renderHoldingRows();
     renderWatchlist();
     recalc();
+    if(source === 'remote'){
+      try{ lastRemoteHoldingsCount = Object.keys(obj.holdings || {}).length; }catch(e2){}
+    }
     return true;
   }catch(e){
     console.error('Failed to apply payload:', e);
@@ -2708,8 +2738,9 @@ async function gsSave(manual=false){
   }
 
   // Freshness check: if the sheet was edited directly (Holdings or Settings tab)
-  // after our last load, re-mirror it before saving so a stale in-memory payload
-  // can't clobber those edits. Failures here just fall through to the save.
+  // after our last load, re-mirror it and ABORT this save — saving stale
+  // in-memory state now would clobber those edits. The fresh data is already
+  // rendered; the user's next change will save on top of it.
   try{
     const tr = await fetchWithTimeout(gsUrl+'?action=ts', {}, 8000);
     if(tr.ok){
@@ -2719,11 +2750,24 @@ async function gsSave(manual=false){
         const lr = await fetchWithTimeout(gsUrl+'?load=1', {}, 8000);
         if(lr.ok){
           const txt = await lr.text();
-          if(txt && txt !== '{}' && applyPayload(txt)) setSaveStatus('loaded');
+          if(txt && txt !== '{}' && applyPayload(txt, 'remote')){
+            setSaveStatus('loaded');
+            try{ loadedSheetTs = sheetTs; }catch(e2){}
+            return; // abort stale save; sheet already has newer data
+          }
         }
       }
     }
   }catch(e){ /* freshness check failed — proceed with the save */ }
+
+  // SAFETY: never push an empty holdings list over a sheet known to have data.
+  // To intentionally delete everything, clear the rows directly in Sheets.
+  const curCount = Object.keys(holdings || {}).length;
+  if(curCount === 0 && lastRemoteHoldingsCount > 0){
+    console.warn('Refusing to save 0 holdings over Sheets data (' + lastRemoteHoldingsCount + ' rows).');
+    setRefreshStatus('⚠ Save blocked: app holds 0 positions but Sheets has ' + lastRemoteHoldingsCount + '. Reload the page — if the app is still empty, restore ' + BACKUP_KEY + ' from localStorage.');
+    return;
+  }
 
   const payload = buildSavePayload();
   setSaveStatus('saving');
@@ -2733,6 +2777,21 @@ async function gsSave(manual=false){
       body: payload,
     }, 10000);
     if(!r.ok) throw new Error('HTTP '+r.status);
+    try{
+      const jr = await r.clone().json();
+      if(jr && jr.ok === false){
+        throw new Error(jr.error || 'Sheets refused the save');
+      }
+    }catch(je){
+      if(je && /refus/i.test(je.message || '')){
+        console.warn('Sheets refused save:', je.message);
+        setRefreshStatus('⚠ Sheets refused save: ' + je.message);
+        setSaveStatus('error');
+        if(manual) alert('Sheets refused the save: ' + je.message);
+        return;
+      }
+      // Non-JSON or clone unsupported (older browsers) — treat as success path
+    }
     try{ loadedSheetTs = Date.parse(JSON.parse(payload).savedAt) || 0; }catch(e2){}
     const now = new Date().toLocaleTimeString();
     setSaveStatus('saved', now);
@@ -2752,9 +2811,9 @@ async function gsLoad(){
     if(!r.ok) throw new Error('HTTP '+r.status);
     const text = await r.text();
     if(!text || text==='{}') { alert('No data found in Google Sheets yet. Save first!'); setSaveStatus(''); return; }
-    const ok = applyPayload(text);
+    const ok = applyPayload(text, 'remote');
     if(ok){ sheetsLoaded = true; try{ loadedSheetTs = Date.parse(JSON.parse(text).savedAt)||0; }catch(e2){} setSaveStatus('loaded'); hideSheetsModal(); }
-    else alert('Could not parse data from Sheets. It may be empty or corrupted.');
+    else alert('Refused to load: Sheets returned 0 holdings while this device has data. Check the Web App URL / deployment — your local data was kept.');
   }catch(e){
     setSaveStatus('error');
     alert('Load failed: '+e.message);
@@ -3257,9 +3316,9 @@ setTimeout(maybeAutoSnapshot, 5000);
       const text = await r.text();
       if(!text || text==='{}' || text==='') throw new Error('Empty');
 
-      // Google Sheets is always the source of truth — mirror it exactly.
-      // Never fall back to or push up local data while Sheets is reachable.
-      const loadedOk = applyPayload(text);
+      // Sheets is the source of truth when it returns real data — but an empty
+      // payload never overwrites local positions (applyPayload refuses it).
+      const loadedOk = applyPayload(text, 'remote');
       if(loadedOk){
         sheetsLoaded = true;
         try{ loadedSheetTs = Date.parse(JSON.parse(text).savedAt)||0; }catch(e2){}
