@@ -119,3 +119,30 @@
     recover();
   }
 })();
+
+
+/* === UI redesign loader === */
+(function loadUiRedesign() {
+  function add(rel, isCss) {
+    var url = rel + (rel.indexOf('?') >= 0 ? '&' : '?') + 'v=20260904';
+    if (isCss) {
+      if (document.querySelector('link[data-nw-redesign]')) return;
+      var l = document.createElement('link');
+      l.rel = 'stylesheet';
+      l.href = url;
+      l.setAttribute('data-nw-redesign', '1');
+      document.head.appendChild(l);
+    } else {
+      if (document.querySelector('script[data-nw-redesign]')) return;
+      var s = document.createElement('script');
+      s.src = url;
+      s.defer = true;
+      s.setAttribute('data-nw-redesign', '1');
+      (document.body || document.documentElement).appendChild(s);
+    }
+  }
+  add('./styles-redesign.css', true);
+  function addJs() { add('./ui-enhance.js', false); }
+  if (document.body) addJs();
+  else document.addEventListener('DOMContentLoaded', addJs);
+})();
