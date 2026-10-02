@@ -21,9 +21,23 @@
   // index.html's fetchWithTimeout is a classic-script function declaration, so
   // assigning window.fetchWithTimeout does NOT change what Refresh calls.
   // Wrapping window.fetch does — we replace short AbortSignals with a 60s one.
+  // After Refresh fetches live prices, gsSave asks ?action=ts. If Sheets looks
+  // newer than this page, it reloads the old rows and the new prices vanish.
+  var keepFreshPrices = false;
+  var keepFreshTimer = null;
+
   window.fetch = function (input, init) {
     var url = scriptUrl(input);
     if (!SCRIPT_RE.test(url)) return nativeFetch(input, init);
+
+    if (keepFreshPrices && /[?&]action=ts(?:&|$)/.test(url)) {
+      keepFreshPrices = false;
+      if (keepFreshTimer) clearTimeout(keepFreshTimer);
+      return Promise.resolve(new Response(
+        JSON.stringify({savedAt: '1970-01-01T00:00:00.000Z'}),
+        {status: 200, headers: {'Content-Type': 'application/json'}}
+      ));
+    }
 
     function once() {
       var ctrl = new AbortController();
@@ -34,11 +48,22 @@
       return nativeFetch(url, opts).finally(function () { clearTimeout(timer); });
     }
 
-    return once().catch(function (e) {
+    var pending = once().catch(function (e) {
       var msg = (e && e.message) || String(e);
       if (!/abort|timed out|TimeoutError/i.test(msg)) throw e;
       return new Promise(function (r) { setTimeout(r, 800); }).then(once);
     });
+    if (/[?&]action=prices(?:&|$)/.test(url)) {
+      pending = pending.then(function (res) {
+        if (res && res.ok) {
+          keepFreshPrices = true;
+          if (keepFreshTimer) clearTimeout(keepFreshTimer);
+          keepFreshTimer = setTimeout(function () { keepFreshPrices = false; }, 20000);
+        }
+        return res;
+      });
+    }
+    return pending;
   };
 
   function rawFetchWithTimeout(url, options, ms) {
